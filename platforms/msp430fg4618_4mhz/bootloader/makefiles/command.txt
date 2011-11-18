@@ -1,0 +1,3 @@
+target remote localhost:2000
+macro define ui16p *(uint16_t*)
+macro define ui8p *(uint8_t*)

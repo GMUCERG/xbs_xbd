@@ -1,0 +1,20 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+posOpts="-Wl,-section-start=.text=0x3200" 
+mcuOpts="-mmcu=msp430fg4618"
+#debugOpts="-DXBX_DEBUG_APP -g3 -gdwarf-2"
+
+
+
+cat <<EOF
+msp430-gcc $debugOpts $mcuOpts $posOpts -O0 -fomit-frame-pointer $sizeOpts
+msp430-gcc $debugOpts $mcuOpts $posOpts -Os -fomit-frame-pointer $sizeOpts
+msp430-gcc $debugOpts $mcuOpts $posOpts -O1 -fomit-frame-pointer $sizeOpts
+msp430-gcc $debugOpts $mcuOpts $posOpts -O2 -fomit-frame-pointer $sizeOpts
+msp430-gcc $debugOpts $mcuOpts $posOpts -O3 -fomit-frame-pointer $sizeOpts
+EOF
+
+#cat <<EOF
+#msp430-gcc $debugOpts $mcuOpts $posOpts -O0 -fomit-frame-pointer $sizeOpts
+#EOF
