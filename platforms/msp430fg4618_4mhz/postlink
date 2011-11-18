@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#maxSize=$1
+maxSize=44544 # 0xe000-0x3200 - there are 256 addtional bytes between 0x3200 and
+              # 0x3100 but these aren't page aligned
+if [ -z "$maxSize" ]
+then
+  exit -1
+fi
+
+if [ -e xbdprog.bin ]
+then
+  totalsize=`msp430-size xbdprog.bin | tail -n 1 | awk '{print $4}'`
+  if [ $totalsize -ge $maxSize ]
+  then
+    echo "Postlink: Binary too large ($totalsize bytes)" >&2
+    rm xbdprog.bin
+    exit -1
+  fi
+fi
+
+if [ -e xbdprog.bin ]
+then
+  #HEX_FLASH_FLAGS="--debugging -R .eeprom -R .fuse -R .lock -R .signature"
+  HEX_FLASH_FLAGS="-R .eeprom -R .fuse -R .lock -R .signature"
+  msp430-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
+else
+  echo "Postlink: Objcopy failed" >&2
+  exit -1
+fi
+
