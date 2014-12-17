@@ -8,7 +8,7 @@ use warnings;
 our $bootLoaderMode=1;
 our $applicationMode=2;
 
-my $protoVersion="03";
+my $protoVersion="04";
 
 sub new
 {
@@ -18,7 +18,7 @@ sub new
     $self->{port}=shift;
     $self->{proto}=shift;
 
-    $self->{proto}="udp" if ! defined $self->{proto};
+    $self->{proto}="tcp" if ! defined $self->{proto};
 
     if(!defined($self->{ip}) ||  !defined($self->{port}) ) {
         die("Invalid call to XBH::new\n");
@@ -99,7 +99,15 @@ sub execXBHCommand {
     $self->{cmdPending}=$command;  
     $self->{error}=0;
     $self->{lastAnswerData}=0;
-    $self->{sock}->send("XBH".$protoVersion.$command."r".$data);
+    if($self->{proto} eq "tcp"){
+        # TCP is streambased, need to delineate messages
+        $msg = "XBH".$protoVersion.$command."r".$data;
+        $msg = sprintf("%03X", length $msg).$msg;
+        $self->{sock}->send($command);
+    } else{
+        $self->{sock}->send("XBH".$protoVersion.$command."r".$data);
+    }
+
 }
 
 sub waitForMessage
