@@ -156,8 +156,8 @@ sub printHelp
   print "  -e, --results\t\t Fetch the results of the last execution\n";
   print "  -t, --timings\t\t Fetch the timings of the last execution\n";
   print "  -k, --reset [0/1]\t Set reset pin of XBD to off(0), on(1) or on,wait,off ()\n";
-  print "  --xbhRev\t\t Report SVN revision of XBH\n";
-  print "  --blRev\t\t Report SVN revision of XBD boot loader\n";
+  print "  --xbhRev\t\t Report Git revision of XBH\n";
+  print "  --blRev\t\t Report Git revision of XBD boot loader\n";
   print "  -z, --stackUsage\t Stack Usage report\n";
   print "  -y, --timingCal\t Timing Calibration report\n";
   print "\nOPTIONS:\n";
@@ -474,16 +474,16 @@ if($doStatus) {
 }
 
 if($doXBHRev) {
-  my ($svnrev,$mac)=$xbh->getXBHRev();
-  defined($svnrev) || bailOut("get xbh svn revision failed");
-  print "SVN Revision:".$svnrev."\n";
+  my ($gitrev,$mac)=$xbh->getXBHRev();
+  defined($gitrev) || bailOut("get xbh git revision failed");
+  print "Git Revision:".$gitrev."\n";
   print "MAC Address:".$mac."\n"; 
 }
 
 if($doBLRev) {
-  my $svnrev=$xbh->getBLRev();
-  defined($svnrev) || bailOut("get bl svn revision failed");
-  print "SVN Revision:".$svnrev."\n";
+  my $gitrev=$xbh->getBLRev();
+  defined($gitrev) || bailOut("get bl git revision failed");
+  print "Git Revision:".$gitrev."\n";
 }
 
 
