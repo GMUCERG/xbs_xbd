@@ -337,14 +337,14 @@ sub getXBHRev
 {
     my $self=shift;
 
-    $self->{verbose} && $self->log("Getting svn revision (and MAC address) of XBH");
+    $self->{verbose} && $self->log("Getting git revision (and MAC address) of XBH");
 
     $self->execXBHCommand("sr");
     $self->waitForCompletion();
 
     return undef if $self->{error};
-    my ($svnRev,$mac) = split(",",$self->{lastAnswerData});
-    return $svnRev, $mac;
+    my ($gitRev,$mac) = split(",",$self->{lastAnswerData});
+    return $gitRev, $mac;
 }
 
 sub getBLRev
@@ -352,7 +352,7 @@ sub getBLRev
     my $self=shift;
 
     $self->requireBootLoaderMode() || return undef;
-    $self->{verbose} && $self->log("Getting svn revision of XBD boot loader");
+    $self->{verbose} && $self->log("Getting git revision of XBD boot loader");
 
     $self->execXBHCommand("tr");
     $self->waitForCompletion();
