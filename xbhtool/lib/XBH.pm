@@ -8,7 +8,9 @@ use warnings;
 our $bootLoaderMode=1;
 our $applicationMode=2;
 
-my $protoVersion="04";
+my $protoVersion="05";
+
+my $CMDLEN_SZ="4";
 
 sub new
 {
@@ -101,9 +103,10 @@ sub execXBHCommand {
     $self->{lastAnswerData}=0;
     if($self->{proto} eq "tcp"){
         # TCP is streambased, need to delineate messages
-        $msg = "XBH".$protoVersion.$command."r".$data;
-        $msg = sprintf("%03X", length $msg).$msg;
-        $self->{sock}->send($command);
+        my $msg = "XBH".$protoVersion.$command."r".$data;
+        $msg = sprintf("%0".$CMDLEN_SZ."x:", length $msg).$msg;
+        $self->{sock}->send($msg);
+
     } else{
         $self->{sock}->send("XBH".$protoVersion.$command."r".$data);
     }
