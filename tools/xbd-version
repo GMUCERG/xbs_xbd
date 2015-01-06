@@ -1,8 +1,8 @@
 #! /bin/sh
 
-if test -d "$1"/.svn ; then
-	DATE=`LC_ALL=C svn info "$1" | sed -n 's/^Last Changed Date: \(.*\)/\1/p'`
-	REVISION=`LC_ALL=C svn info "$1" | sed -n 's/^Revision: \(.*\)/\1/p'`
+if test -d "$1"/.git; then
+	DATE=`LC_ALL=C git log --date=iso "$1" | sed -n 's/^Date: \(.*\)/\1/p'|head -n 1`
+	REVISION=`LC_ALL=C git log "$1" | sed -n 's/^commit \(.*\)$/\1/p'|head -n 1`
 	VERSION_DATE=`echo $DATE | cut -f 1 -d ' ' | tr -d -`
 	VERSION_TIME=`echo $DATE | cut -f 2 -d ' ' | awk -F: '{printf "%0.4d", $1$2}'`
 	echo "#define XBX_REVISION \"$REVISION\""
