@@ -1,0 +1,3 @@
+[submodule "deps/TivaWare_driverlib"]
+	path = deps/TivaWare_driverlib
+	url = git@github.com:jhnphm/TivaWare_driverlib.git
