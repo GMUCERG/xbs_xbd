@@ -195,12 +195,12 @@ void XBD_BL_HandleTimingCalibrationRequest(){
 
 void XBD_BL_HandleTargetRevisionRequest(){
 	uint8_t i;
-	uint8_t svnRevLen = strlen(XBD_Rev);
+	uint8_t gitRevLen = strlen(XBD_Rev);
 
 	XBD_loadStringFromConstDataArea((char *)XBD_response, XBDtro);
 	
-	// Report SVN Rev in 5 digits length
-	for(i=0;i<5-svnRevLen;++i)
+	// Report git Rev in 40 digits length
+	for(i=0;i<40-gitRevLen;++i)
 	{
 		XBD_response[XBD_COMMAND_LEN+i]='0';
 	}
