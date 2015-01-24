@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -e xbdprog.bin ]
+then
+
+  if which fromelf > /dev/null
+  then
+    fromelf --i32 xbdprog.bin --output xbdprog.hex
+  else
+    arm-elf-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
+  fi
+fi
+

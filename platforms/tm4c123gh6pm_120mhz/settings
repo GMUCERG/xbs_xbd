@@ -1,0 +1,8 @@
+# upload page size in bytes
+pagesize=512
+# use uart
+communicationMode="uart250k"
+#cycles per second
+cyclespersecond=6000000
+
+

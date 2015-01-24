@@ -1,0 +1,22 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+gccopts="-pipe -Wl,--entry,ResetISR -Wl,-T,XBD_AF.ld -mthumb -MD -std=gnu99 -Dgcc"
+mcuOpts="-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -DPART_TM4C123GH6PM"
+#debugOpts="-DXBX_DEBUG_APP -Og -ggdb3 -gdwarf-2 -fno-lto"
+
+cat <<EOF
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O0 -fuse-linker-plugin -flto=8 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -Os -fuse-linker-plugin -flto=8 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O1 -fuse-linker-plugin -flto=8 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O2 -fuse-linker-plugin -flto=8 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O3 -fuse-linker-plugin -flto=8 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O0 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -Os -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O1 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O2 -fomit-frame-pointer $sizeOpts $debugOpts 
+arm-stellaris-eabi-gcc $mcuOpts $gccOpts -O3 -fomit-frame-pointer $sizeOpts $debugOpts 
+EOF
+
+
+
