@@ -168,40 +168,13 @@ void XBD_switchToApplication()
 {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
-   (*((void (*)(void))(*(unsigned long *)0x2004)))();
+   (*((void (*)(void))(*(unsigned long *)0x2000)))();
 }
 
 
 void XBD_switchToBootLoader()
 {
-  /* switch back from uploaded code to boot loader */
-	  OSRAM96x16x1Init(false);
-	  OSRAM96x16x1DisplayOn();
-   //
-    // Enable the peripherals used by this example.
-    //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_WDOG0);
-
-    //
-    // Set the period of the watchdog timer.
-    //
-    WatchdogReloadSet(WATCHDOG0_BASE, 3);
-
-    //
-    // Enable reset generation from the watchdog timer.
-    //
-    WatchdogResetEnable(WATCHDOG0_BASE);
-
-    //
-    // Enable the watchdog timer.
-    //
-    WatchdogEnable(WATCHDOG0_BASE);
-
-	while(1)
-	{
-		OSRAM96x16x1StringDraw("A", 0, 0);
-		OSRAM96x16x1StringDraw("b", 0, 0);
-	}
+    SysCtlReset();
 }
 
 uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles)
