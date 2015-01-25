@@ -1,3 +1,3 @@
-[submodule "platforms/tm4c123gh6pm_120mhz/hal/tivaware"]
-	path = platforms/tm4c123gh6pm_120mhz/hal/tivaware
+[submodule "platforms/tm4c123gh6pm_16mhz/hal/tivaware"]
+	path = platforms/tm4c123gh6pm_16mhz/hal/tivaware
 	url = git@github.com:jhnphm/TivaWare_driverlib.git
