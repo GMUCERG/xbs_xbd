@@ -159,34 +159,8 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf )
     //
     // Erase this block of the flash.
     //
-    HWREG(FLASH_FMA) = pageStartAddress;
-    HWREG(FLASH_FMC) = FLASH_FMC_WRKEY | FLASH_FMC_ERASE;
-
-    //
-    // Wait until the flash has been erased.
-    //
-    while(HWREG(FLASH_FMC) & FLASH_FMC_ERASE)
-    {
-    }
-
-
-    for(int ulLoop = 0; ulLoop < PAGESIZE; ulLoop += 4)
-    {
-        //
-        // Program this word into flash.
-        //
-        HWREG(FLASH_FMA) = pageStartAddress + ulLoop;
-        HWREG(FLASH_FMD) = *(unsigned long *)(buf + ulLoop);
-        HWREG(FLASH_FMC) = FLASH_FMC_WRKEY | FLASH_FMC_WRITE;
-
-        //
-        // Wait until the flash has been programmed.
-        //
-        while(HWREG(FLASH_FMC) & FLASH_FMC_WRITE)
-        {
-        }
-    }
-
+    FlashErase(pageStartAddress);
+    FlashProgram(buf, pageStartAddress, PAGESIZE);
 
 }
 
@@ -273,24 +247,26 @@ void XBD_delayCycles(uint32_t approxCycles)
 }
 
 
-uint8_t *p_stack = LM3S811_STACKTOP;
-uint8_t *p = LM3S811_STACKBOTTOM;
+uint8_t *p_stack = NULL;
+uint8_t *p = NULL;
 uint8_t inv_sc=0;
 
 
-void getSP(uint8_t **var_SP)
-{
-  volatile uint8_t beacon;
-  *var_SP=&beacon;
-  return;
-}
+//void getSP(uint8_t **var_SP)
+//{
+//  volatile uint8_t beacon;
+//  *var_SP=&beacon;
+//  return;
+//}
 
 void XBD_paintStack(void)
 {
+    register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
-	p = LM3S811_STACKBOTTOM;
+	p = &_end; //bottom of stack, end of bss
 	inv_sc=!inv_sc;
-	getSP(&p_stack);
+	//getSP(&p_stack);
+    p_stack = __stackptr;
 
     
 	while(p <= p_stack)
@@ -303,7 +279,7 @@ void XBD_paintStack(void)
 uint32_t XBD_countStack(void)
 {
 /* return stack measurement result */
-    p = LM3S811_STACKBOTTOM;
+    p = &_end;
     register uint32_t c = 0;
 
     while(*p == STACK_CANARY && p <= p_stack)
