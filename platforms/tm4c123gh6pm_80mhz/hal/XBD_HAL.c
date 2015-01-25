@@ -5,6 +5,8 @@
 #include <string.h>
 /* device specific includes */
 
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
 
 #include "inc/hw_ints.h"
 #include "inc/hw_flash.h"
@@ -18,25 +20,25 @@
 #include "driverlib/systick.h"
 #include "driverlib/watchdog.h"
 #include "driverlib/uart.h"
-#include "drivers/osram96x16x1.h"
+#include "driverlib/uart.h"
 
 
 
 
 /* your functions / global variables here */
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
+extern uint8_t _end;  ///<Last used byte of the last segment in RAM (defined by the linker)
 
 void writeByte(unsigned char byte);
 
 void XBD_init()
 {
   /* inititalisation code, called once */
-      //
-    // Set the clocking to run directly from the crystal.
+    //
+    // Set the clocking to run directly from the crystal. 16MHz
     //
     SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
-                   SYSCTL_XTAL_6MHZ);
-    OSRAM96x16x1Init(false);
+                       SYSCTL_XTAL_16MHZ);
 
 	/* enable uart0 for debug output */
    //
@@ -44,6 +46,10 @@ void XBD_init()
     //
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+
+    //Configure UART pins
+    GPIOPinConfigure(GPIO_PA0_U0RX);
+    GPIOPinConfigure(GPIO_PA1_U0TX);
 
     //
     // Set GPIO A0 and A1 as UART pins.
@@ -57,6 +63,7 @@ void XBD_init()
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
 
+#if 0 //we use i2c instead
    /* enable uart1 for xbd<-> xbh comm */
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
@@ -73,6 +80,7 @@ void XBD_init()
 	/* Set PORTD Pin 0 as Output for XBH timing acquisition */
     GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_0);
  	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
+#endif
                  
 
 }
