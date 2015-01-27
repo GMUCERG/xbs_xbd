@@ -20,7 +20,7 @@ okcompilers="$resultdir/okcompilers"
 
 function assemble_files
 {
-  cpcommand="cp -ra"
+  cpcommand="cp -Lr"
   if [ -n "$fromsvn" ]
   then
     cpcommand="rsync -a --cvs-exclude --include=core"
