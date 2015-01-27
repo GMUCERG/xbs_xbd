@@ -3,16 +3,16 @@
 ###############################################################################
 
 ## General Flags
-PROJECT = LM3S811-EVB_BL
-PART=LM3S811
+PROJECT = TM4C123GH6PM_BL
+PART=TM4C123GH6PM
 AXFFILE = $(PROJECT).axf
 TARGET =  $(PROJECT).bin
 
 #GCC_TYPE=eabi
-GCC_TYPE=elf
+GCC_TYPE=stellaris-eabi
 
 CC = arm-$(GCC_TYPE)-gcc
-LD = arm-$(GCC_TYPE)-ld
+LD = arm-$(GCC_TYPE)-gcc
 OBJCOPY=arm-$(GCC_TYPE)-objcopy
 
 
@@ -36,12 +36,13 @@ LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 #CFLAGS += -Wall -gdwarf-2 -std=gnu99      -DF_CPU=6000000UL -Os -fsigned-char
 #CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 CFLAGS=-mthumb             \
-       -mcpu=cortex-m3     \
+       -mcpu=cortex-m4     \
+       -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
        -Os                 \
        -ffunction-sections \
        -fdata-sections     \
        -MD                 \
-       -std=c99            \
+       -std=gnu99          \
        -Wall               \
        -DPART_${PART}      \
        -c
@@ -54,14 +55,27 @@ ASMFLAGS += $(CFLAGS)
 ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
-LDFLAGS = --gc-sections
-LDFLAGS +=  -Map=$(PROJECT).map
+LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -Map=$(PROJECT).map
 LDFLAGS += --entry ResetISR
 LDFLAGS += -T $(PATH_HAL)/XBD_BL.ld 
 
 ## Objects that must be built in order to link
-OBJECTS = XBD_crc.o XBD_debug.o XBD_util.o XBD_BL.o XBD_HAL.o startup_gcc.o osram96x16x1.o XBD_commands.o
-OBJECTS += sysctl.o interrupt.o uart.o gpio.o i2c.o systick.o
+OBJECTS += $(PATH_AF)/XBD_crc.o
+OBJECTS += $(PATH_AF)/XBD_debug.o
+OBJECTS += $(PATH_AF)/XBD_util.o
+OBJECTS += $(PATH_AF)/XBD_commands.o
+OBJECTS += $(PATH_AF)/../xbd_bl/XBD_BL.o
+OBJECTS += $(PATH_HAL)/XBD_HAL.o
+OBJECTS += $(PATH_HAL)/drivers/startup_gcc.o
+OBJECTS += $(PATH_HAL)/drivers/i2c_comm.c
+OBJECTS += $(PATH_HAL)/drivers/sysctl.o 
+OBJECTS += $(PATH_HAL)/drivers/interrupt.o
+OBJECTS += $(PATH_HAL)/drivers/uart.o
+OBJECTS += $(PATH_HAL)/drivers/gpio.o
+OBJECTS += $(PATH_HAL)/drivers/i2c.o
+OBJECTS += $(PATH_HAL)/drivers/systick.o
+OBJECTS += $(PATH_HAL)/drivers/flash.o
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = '${LIBC}' '${LIBGCC}'
@@ -71,51 +85,51 @@ LINKONLYOBJECTS = '${LIBC}' '${LIBGCC}'
 all: XBD_version $(TARGET) 
 
 ## Compile
-XBD_crc.o: $(PATH_AF)/XBD_crc.c
+%.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-XBD_debug.o: $(PATH_AF)/XBD_debug.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-	
-XBD_commands.o: $(PATH_AF)/XBD_commands.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-	        
-
-XBD_util.o: $(PATH_AF)/XBD_util.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-
-XBD_BL.o: $(PATH_AF)/../xbd_bl/XBD_BL.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-
-XBD_HAL.o: $(PATH_HAL)/XBD_HAL.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-
-startup_gcc.o: $(PATH_HAL)/drivers/startup_gcc.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-	
-osram96x16x1.o: $(PATH_HAL)/drivers/osram96x16x1.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-uart.o: $(PATH_HAL)/drivers/uart.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-interrupt.o: $(PATH_HAL)/drivers/interrupt.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-sysctl.o: $(PATH_HAL)/drivers/sysctl.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-gpio.o: $(PATH_HAL)/drivers/gpio.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-systick.o: $(PATH_HAL)/drivers/systick.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-
-
-
-
-i2c.o: $(PATH_HAL)/drivers/i2c.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#XBD_crc.o: $(PATH_AF)/XBD_crc.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#
+#XBD_debug.o: $(PATH_AF)/XBD_debug.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#	
+#XBD_commands.o: $(PATH_AF)/XBD_commands.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#	        
+#
+#XBD_util.o: $(PATH_AF)/XBD_util.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#
+#XBD_BL.o: $(PATH_AF)/../xbd_bl/XBD_BL.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#
+#XBD_HAL.o: $(PATH_HAL)/XBD_HAL.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#
+#startup_gcc.o: $(PATH_HAL)/drivers/startup_gcc.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+#	
+#osram96x16x1.o: $(PATH_HAL)/drivers/osram96x16x1.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#uart.o: $(PATH_HAL)/drivers/uart.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#interrupt.o: $(PATH_HAL)/drivers/interrupt.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#sysctl.o: $(PATH_HAL)/drivers/sysctl.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#gpio.o: $(PATH_HAL)/drivers/gpio.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#systick.o: $(PATH_HAL)/drivers/systick.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+#
+#i2c.o: $(PATH_HAL)/drivers/i2c.c
+#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
 
 
 
