@@ -1,4 +1,4 @@
 #!/bin/bash
 # only needed for statistics
-arm-elf-size $@
+arm-stellaris-eabi-size $@
 
