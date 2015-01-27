@@ -7,6 +7,7 @@
 #include <XBD_debug.h>
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include <string.h>
 /* device specific includes */
@@ -21,11 +22,11 @@
 #include "inc/hw_types.h"
 #include "driverlib/debug.h"
 #include "driverlib/gpio.h"
+#include "driverlib/flash.h"
 #include "driverlib/interrupt.h"
+#include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/systick.h"
-#include "driverlib/watchdog.h"
-#include "driverlib/uart.h"
 #include "driverlib/uart.h"
 
 #include "i2c_comm.h"
@@ -155,7 +156,7 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
     // Erase this block of the flash.
     //
     FlashErase(pageStartAddress);
-    FlashProgram(buf, pageStartAddress, PAGESIZE);
+    FlashProgram((uint32_t *)buf, pageStartAddress, PAGESIZE);
 
 }
 
