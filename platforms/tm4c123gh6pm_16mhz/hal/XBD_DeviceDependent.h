@@ -1,3 +1,5 @@
+#include <inttypes.h>
+#include <stdbool.h>
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
 #include "inc/hw_ints.h"
@@ -20,10 +22,11 @@
 
 /** define size of a page to program, keep at this value if there is no page 
 *   concept */
-#define PAGESIZE (MAP_SysCtlFlashSectorSizeGet())
+//#define PAGESIZE (MAP_SysCtlFlashSectorSizeGet())
+#define PAGESIZE (1024)
 /** mask for alignment of page boundaries, keep at this value if there is no
 * page concept */
-#define PAGE_ALIGN_MASK (~MAP_SysCtlFlashSectorSizeGet()) 
+#define PAGE_ALIGN_MASK ~PAGESIZE
 
 
 /** maximum flash / binary storage size */
