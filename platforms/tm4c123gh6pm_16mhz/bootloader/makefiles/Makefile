@@ -61,19 +61,19 @@ LDFLAGS += --entry ResetISR
 LDFLAGS += -T $(PATH_HAL)/XBD_BL.ld 
 
 ## Objects that must be built in order to link
-OBJECTS += af/XBD_crc.o
-OBJECTS += af/XBD_debug.o
-OBJECTS += af/XBD_util.o
-OBJECTS += af/XBD_commands.o
-OBJECTS += af/../xbd_bl/XBD_BL.o
+OBJECTS += xbd_af/XBD_crc.o
+OBJECTS += xbd_af/XBD_debug.o
+OBJECTS += xbd_af/XBD_util.o
+OBJECTS += xbd_af/XBD_commands.o
+OBJECTS += xbd_af/../xbd_bl/XBD_BL.o
 OBJECTS += hal/XBD_HAL.o
 OBJECTS += hal/drivers/startup_gcc.o
-OBJECTS += hal/drivers/i2c_comm.c
 OBJECTS += hal/drivers/sysctl.o 
 OBJECTS += hal/drivers/interrupt.o
 OBJECTS += hal/drivers/uart.o
 OBJECTS += hal/drivers/gpio.o
 OBJECTS += hal/drivers/i2c.o
+OBJECTS += hal/drivers/i2c_comm.o
 OBJECTS += hal/drivers/systick.o
 OBJECTS += hal/drivers/flash.o
 
@@ -85,15 +85,19 @@ LINKONLYOBJECTS = '${LIBC}' '${LIBGCC}'
 all: XBD_version $(TARGET) 
 
 hal:
-	-mkdir hal
+	-mkdir -p hal/drivers
 
-af: 
-	-mkdir af 
+xbd_af: 
+	-mkdir xbd_af 
+
+xbd_bl: 
+	-mkdir xbd_bl
+
 ## Compile
 hal/%.o: $(PATH_HAL)/%.c |hal
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
-af/%.o: $(PATH_AF)/%.c |af
+xbd_af/%.o: $(PATH_AF)/%.c |xbd_af xbd_bl
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 #XBD_crc.o: $(PATH_AF)/XBD_crc.c
@@ -158,7 +162,7 @@ $(TARGET): $(AXFFILE)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) af hal $(PROJECT).elf dep/* $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
+	-rm -rf $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf dep/* $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
 
 targz:
 	-tar czf $(PROJECT).tar.gz $(PROJECT).hex $(PROJECT).elf
