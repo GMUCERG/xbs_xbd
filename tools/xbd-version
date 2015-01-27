@@ -1,6 +1,6 @@
 #! /bin/sh
 
-if test -d "$1"/.git; then
+if test -e "$1"/.git; then
 	DATE=`LC_ALL=C git log --date=iso "$1" | sed -n 's/^Date: \(.*\)/\1/p'|head -n 1`
 	REVISION=`LC_ALL=C git log "$1" | sed -n 's/^commit \(.*\)$/\1/p'|head -n 1`
 	VERSION_DATE=`echo $DATE | cut -f 1 -d ' ' | tr -d -`
@@ -9,5 +9,7 @@ if test -d "$1"/.git; then
 	echo "#define XBX_VERSION_DATE \"$VERSION_DATE\""
 	echo "#define XBX_VERSION_TIME \"$VERSION_TIME\""
 else
-	exit 1
+	echo "#define XBX_REVISION \"2.0.1\""
+	echo "#define XBX_VERSION_DATE \"20101107\""
+	echo "#define XBX_VERSION_TIME \"15:24:20\""
 fi
