@@ -7,7 +7,7 @@ then
   then
     fromelf --i32 xbdprog.bin --output xbdprog.hex
   else
-    arm-elf-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
+    arm-stellaris-eabi-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
   fi
 fi
 
