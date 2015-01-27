@@ -35,7 +35,7 @@ LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 ## Compile options common for all C compilation units.
 #CFLAGS += -Wall -gdwarf-2 -std=gnu99      -DF_CPU=6000000UL -Os -fsigned-char
 #CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS=-mthumb             \
+CFLAGS+=-mthumb             \
        -mcpu=cortex-m4     \
        -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
        -Os                 \
@@ -61,21 +61,21 @@ LDFLAGS += --entry ResetISR
 LDFLAGS += -T $(PATH_HAL)/XBD_BL.ld 
 
 ## Objects that must be built in order to link
-OBJECTS += $(PATH_AF)/XBD_crc.o
-OBJECTS += $(PATH_AF)/XBD_debug.o
-OBJECTS += $(PATH_AF)/XBD_util.o
-OBJECTS += $(PATH_AF)/XBD_commands.o
-OBJECTS += $(PATH_AF)/../xbd_bl/XBD_BL.o
-OBJECTS += $(PATH_HAL)/XBD_HAL.o
-OBJECTS += $(PATH_HAL)/drivers/startup_gcc.o
-OBJECTS += $(PATH_HAL)/drivers/i2c_comm.c
-OBJECTS += $(PATH_HAL)/drivers/sysctl.o 
-OBJECTS += $(PATH_HAL)/drivers/interrupt.o
-OBJECTS += $(PATH_HAL)/drivers/uart.o
-OBJECTS += $(PATH_HAL)/drivers/gpio.o
-OBJECTS += $(PATH_HAL)/drivers/i2c.o
-OBJECTS += $(PATH_HAL)/drivers/systick.o
-OBJECTS += $(PATH_HAL)/drivers/flash.o
+OBJECTS += af/XBD_crc.o
+OBJECTS += af/XBD_debug.o
+OBJECTS += af/XBD_util.o
+OBJECTS += af/XBD_commands.o
+OBJECTS += af/../xbd_bl/XBD_BL.o
+OBJECTS += hal/XBD_HAL.o
+OBJECTS += hal/drivers/startup_gcc.o
+OBJECTS += hal/drivers/i2c_comm.c
+OBJECTS += hal/drivers/sysctl.o 
+OBJECTS += hal/drivers/interrupt.o
+OBJECTS += hal/drivers/uart.o
+OBJECTS += hal/drivers/gpio.o
+OBJECTS += hal/drivers/i2c.o
+OBJECTS += hal/drivers/systick.o
+OBJECTS += hal/drivers/flash.o
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = '${LIBC}' '${LIBGCC}'
@@ -84,9 +84,17 @@ LINKONLYOBJECTS = '${LIBC}' '${LIBGCC}'
 ## Build
 all: XBD_version $(TARGET) 
 
+hal:
+	-mkdir hal
+
+af: 
+	-mkdir af 
 ## Compile
-%.o: %.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+hal/%.o: $(PATH_HAL)/%.c |hal
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
+
+af/%.o: $(PATH_AF)/%.c |af
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 #XBD_crc.o: $(PATH_AF)/XBD_crc.c
 #	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
@@ -150,7 +158,7 @@ $(TARGET): $(AXFFILE)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) $(PROJECT).elf dep/* $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
+	-rm -rf $(OBJECTS) af hal $(PROJECT).elf dep/* $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
 
 targz:
 	-tar czf $(PROJECT).tar.gz $(PROJECT).hex $(PROJECT).elf
