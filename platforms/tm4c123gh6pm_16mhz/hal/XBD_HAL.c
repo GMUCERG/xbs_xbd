@@ -1,6 +1,12 @@
+/**
+ * @file
+ * Modified from XBD_HAL.c from lm3s port 
+ */
 #include <XBD_HAL.h>
 #include <XBD_FRW.h>
 #include <XBD_debug.h>
+
+#include <inttypes.h>
 
 #include <string.h>
 /* device specific includes */
@@ -22,8 +28,10 @@
 #include "driverlib/uart.h"
 #include "driverlib/uart.h"
 
+#include "i2c_comm.h"
 
 
+#define SLAVE_ADDR 0x75
 
 /* your functions / global variables here */
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
@@ -31,8 +39,7 @@ extern uint8_t _end;  ///<Last used byte of the last segment in RAM (defined by 
 
 void writeByte(unsigned char byte);
 
-void XBD_init()
-{
+void XBD_init() {
   /* inititalisation code, called once */
     //
     // Set the clocking to run directly from the crystal. 16MHz
@@ -81,27 +88,23 @@ void XBD_init()
     GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_0);
  	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
 #endif
-                 
-
+    i2cInit(SLAVE_ADDR);
 }
 
 
-inline void XBD_sendExecutionStartSignal()
-{
+inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
  	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 0);
 
 }
 
-inline void XBD_sendExecutionCompleteSignal()
-{
+inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
  	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
 }
 
 
-void XBD_debugOut(char *message)
-{
+void XBD_debugOut(char *message) {
   /* if you have some kind of debug interface, write message to it */
   // OSRAM96x16x1StringDraw(message, 0, 0);
 
@@ -113,23 +116,9 @@ void XBD_debugOut(char *message)
 }
 
 
-/* read a byte from the serial port */
-unsigned char readByte()
-{
-	unsigned char  byte= UARTCharGet(UART1_BASE);
-
-  	return byte;
-}
 
 
-/* write a byte to the serial port */
-void writeByte(unsigned char byte)
-{
-	UARTCharPut(UART1_BASE, byte);
-}
-
-
-#include <XBD_streamcomm.i>
+//#include <XBD_streamcomm.i>
 /*
 * XBD_streamcomm.i
 * Provides emulation of TWI (I▓C) over stream oriented channel (e.g. UART).
@@ -151,15 +140,13 @@ void XBD_loadStringFromConstDataArea( char *dst, const char *src  ) {
 }
 
 
-void XBD_readPage( uint32_t pageStartAddress, uint8_t * buf )
-{
+void XBD_readPage( uint32_t pageStartAddress, uint8_t * buf ) {
   /* read PAGESIZE bytes from the binary buffer, index pageStartAddress
   to buf */
   memcpy(buf,(uint8_t *)pageStartAddress,PAGESIZE);
 }
 
-void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf )
-{
+void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
   /* copy data from buf (PAGESIZE bytes) to pageStartAddress of
   application binary */
 	//static uint32_t last_pageStartAddress=UINT32_MAX;
@@ -172,21 +159,18 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf )
 
 }
 
-void XBD_switchToApplication()
-{
+void XBD_switchToApplication() {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
    (*((void (*)(void))(*(unsigned long *)0x2000)))();
 }
 
 
-void XBD_switchToBootLoader()
-{
+void XBD_switchToBootLoader() {
     SysCtlReset();
 }
 
-uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles)
-{
+uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles) {
   /* wait for approximatly approxCycles, 
   * then return the number of cycles actually waited */
 
@@ -209,8 +193,7 @@ uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles)
 	return exactCycles;
 }
 
-void XBD_delayCycles(uint32_t approxCycles)
-{
+void XBD_delayCycles(uint32_t approxCycles) {
 	volatile uint32_t exactCycles;
 
  	SysTickDisable();
@@ -240,8 +223,7 @@ uint8_t inv_sc=0;
 //  return;
 //}
 
-void XBD_paintStack(void)
-{
+void XBD_paintStack(void) {
     register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
 	p = &_end; //bottom of stack, end of bss
@@ -257,8 +239,7 @@ void XBD_paintStack(void)
         } 
 }
 
-uint32_t XBD_countStack(void)
-{
+uint32_t XBD_countStack(void) {
 /* return stack measurement result */
     p = &_end;
     register uint32_t c = 0;
@@ -272,11 +253,15 @@ uint32_t XBD_countStack(void)
     return (uint32_t)c;
 } 
 
-void XBD_startWatchDog(uint32_t seconds)
-{
+
+
+void XBD_startWatchDog(uint32_t seconds) {
   (void)seconds;
 }
  
-void XBD_stopWatchDog()
-{
+void XBD_stopWatchDog() {
+}
+
+void XBD_serveCommunication() {
+    i2cHandle();
 }
