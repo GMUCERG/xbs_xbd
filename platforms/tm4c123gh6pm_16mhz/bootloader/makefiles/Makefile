@@ -115,7 +115,7 @@ $(TARGET): $(AXFFILE)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf  $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
+	-rm -rf *.d $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf  $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map *.axf *.bin
 
 targz:
 	-tar czf $(PROJECT).tar.gz $(PROJECT).hex $(PROJECT).elf
