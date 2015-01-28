@@ -56,7 +56,7 @@ ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
 LDFLAGS += -Wl,--gc-sections
-LDFLAGS += -Map=$(PROJECT).map
+LDFLAGS += -Wl,-Map=$(PROJECT).map
 LDFLAGS += --entry ResetISR
 LDFLAGS += -T $(PATH_HAL)/XBD_BL.ld 
 
@@ -66,8 +66,8 @@ OBJECTS += xbd_af/XBD_debug.o
 OBJECTS += xbd_af/XBD_util.o
 OBJECTS += xbd_af/XBD_commands.o
 OBJECTS += xbd_af/../xbd_bl/XBD_BL.o
+OBJECTS += startup_gcc.o
 OBJECTS += hal/XBD_HAL.o
-OBJECTS += hal/drivers/startup_gcc.o
 OBJECTS += hal/drivers/sysctl.o 
 OBJECTS += hal/drivers/interrupt.o
 OBJECTS += hal/drivers/uart.o
@@ -100,58 +100,11 @@ hal/%.o: $(PATH_HAL)/%.c |hal
 xbd_af/%.o: $(PATH_AF)/%.c |xbd_af xbd_bl
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
-#XBD_crc.o: $(PATH_AF)/XBD_crc.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#
-#XBD_debug.o: $(PATH_AF)/XBD_debug.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#	
-#XBD_commands.o: $(PATH_AF)/XBD_commands.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#	        
-#
-#XBD_util.o: $(PATH_AF)/XBD_util.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#
-#XBD_BL.o: $(PATH_AF)/../xbd_bl/XBD_BL.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#
-#XBD_HAL.o: $(PATH_HAL)/XBD_HAL.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#
-#startup_gcc.o: $(PATH_HAL)/drivers/startup_gcc.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-#	
-#osram96x16x1.o: $(PATH_HAL)/drivers/osram96x16x1.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#uart.o: $(PATH_HAL)/drivers/uart.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#interrupt.o: $(PATH_HAL)/drivers/interrupt.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#sysctl.o: $(PATH_HAL)/drivers/sysctl.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#gpio.o: $(PATH_HAL)/drivers/gpio.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#systick.o: $(PATH_HAL)/drivers/systick.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
-#
-#i2c.o: $(PATH_HAL)/drivers/i2c.c
-#	$(CC) $(INCLUDES) $(CFLAGS) -c  $<	
+startup_gcc.o: ../startup_gcc.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 
-
-
-
-
-
-
-
-	##Link
+##Link
 $(AXFFILE): $(OBJECTS)
 	 $(LD) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(AXFFILE)
 	 
@@ -162,7 +115,7 @@ $(TARGET): $(AXFFILE)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf dep/* $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
+	-rm -rf $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf  $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map
 
 targz:
 	-tar czf $(PROJECT).tar.gz $(PROJECT).hex $(PROJECT).elf
