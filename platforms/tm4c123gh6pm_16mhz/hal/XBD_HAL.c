@@ -36,7 +36,7 @@
 
 /* your functions / global variables here */
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
-extern uint8_t _end;  ///<Last used byte of the last segment in RAM (defined by the linker)
+extern uint8_t _ebss;  ///<Last used byte of the last segment in RAM (defined by the linker)
 
 void writeByte(unsigned char byte);
 
@@ -227,7 +227,7 @@ uint8_t inv_sc=0;
 void XBD_paintStack(void) {
     register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
-	p = &_end; //bottom of stack, end of bss
+	p = &_ebss; //bottom of stack, end of bss
 	inv_sc=!inv_sc;
 	//getSP(&p_stack);
     p_stack = __stackptr;
@@ -242,7 +242,7 @@ void XBD_paintStack(void) {
 
 uint32_t XBD_countStack(void) {
 /* return stack measurement result */
-    p = &_end;
+    p = &_ebss;
     register uint32_t c = 0;
 
     while(*p == STACK_CANARY && p <= p_stack)
