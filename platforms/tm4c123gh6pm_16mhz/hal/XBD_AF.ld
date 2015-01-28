@@ -37,6 +37,8 @@
  *
  *****************************************************************************/
 
+
+ENTRY(ResetISR)
 MEMORY
 {
     FLASH (rx) : ORIGIN = 0x00002000, LENGTH = 0x0003e000
@@ -48,7 +50,7 @@ SECTIONS
     .text :
     {
         _text = .;
-        KEEP(*(.isr_vector))
+        *(.text.ResetISR)
         *(.text*)
         *(.rodata*)
         _etext = .;
