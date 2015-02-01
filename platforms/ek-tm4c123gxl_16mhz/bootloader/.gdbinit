@@ -1,2 +1,11 @@
-target remote :3333
+target remote | openocd 
 file makefiles/TM4C123GH6PM_BL.axf
+
+define hook-step
+monitor reg primask 1
+end
+define hookpost-step
+monitor reg primask 0
+end
+
+
