@@ -1,5 +1,5 @@
 ###############################################################################
-# Makefile for the project LM3S811-EVB_BL
+# Makefile for the project TM4C123GH6PM_BL
 ###############################################################################
 
 ## General Flags
@@ -115,10 +115,10 @@ $(TARGET): $(AXFFILE)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf *.d $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf  $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map *.axf *.bin
+	-rm -rf *.d $(OBJECTS) xbd_af xbd_bl hal $(PROJECT).elf  $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss $(PROJECT).map *.axf *.bin *.tar.gz
 
 targz:
-	-tar czf $(PROJECT).tar.gz $(PROJECT).hex $(PROJECT).elf
+	tar czf $(PROJECT).tar.gz $(PROJECT).axf $(PROJECT).bin
 
 ## Other dependencies
 -include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
