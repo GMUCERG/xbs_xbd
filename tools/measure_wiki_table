@@ -1,0 +1,59 @@
+#!/bin/bash
+
+isTool=1
+
+
+
+. lib/settingsreader    
+
+if [ -z $1 ] 
+then
+  echo "$0 XBH-IP [XBH-Port]"
+  exit -1
+fi
+ 
+ 
+ 
+xbhIp=`echo $1 | tr -cd '[a-z][A-Z][0-9][\._\-]'`;
+
+if [ -z "$2" ]
+then
+  xbhPort=22595
+  else
+  xbhPort=`echo $2 | tr -cd '[0-9]'`;
+fi
+    
+
+resultdir="$XBXPATH/bench/${platform}_${xbhIp}_${xbhPort}"
+if [ ! -d "$resultdir" ]
+then
+  echo "No results in $resultdir"
+  exit -2
+fi
+
+echo "|| '''Cipher''' || '''Implementation''' || '''1 byte''' || '''32 bytes''' || '''512 bytes''' || '''1024 bytes''' || '''2048 bytes''' || ''' long messages ''' || '''Compiler''' ||"
+
+
+ciphers=`cat $resultdir/data | grep "^[^+].* cycles " | cut -d " " -f 6 | sort | uniq`
+for c in $ciphers
+do
+  cache=`cat $resultdir/data | grep "^[^+].* $c " `
+
+  implementationName=`echo -e "$cache" | grep "$c implementation " | cut -d " " -f 8 | head -n 1 | cut -d "/" -f 3-`
+  compiler=`echo -e "$cache" | grep "$c compiler " | cut -d " " -f 8 | head -n 1`
+  r1=`echo -e "$cache" | grep "$c cycles 1 " | cut -d " " -f 9 | head -n 1`
+  [ -z "$r1" ] && r1=0
+  r32=`echo -e "$cache" | grep "$c cycles 32 " | cut -d " " -f 9 | head -n 1`
+  [ -z "$r32" ] && r32=0
+  r512=`echo -e "$cache" | grep "$c cycles 512 " | cut -d " " -f 9 | head -n 1`
+  [ -z "$r512" ] && r512=0
+  r1024=`echo -e "$cache" | grep "$c cycles 1024 " | cut -d " " -f 9 | head -n 1`
+  [ -z "$r1024" ] && r1024=0
+  r2048=`echo -e "$cache" | grep "$c cycles 2048 " | cut -d " " -f 9 | head -n 1`
+  [ -z "$r2048" ] && r2048=0
+  rlong=$(( $r2048 - $r1024 ))
+  [ "$r2048" == 0 ] || [ "$r0124" == 0 ] && rlong=0
+  echo "|| $c || $implementationName || $r1 || $(( $r32 / 32 )) || $(( $r512 / 512)) || $(( $r1024 /1024 )) || $(( $r2048 / 2048 )) || $(( $rlong / 1024 )) || {{{ $compiler}}} ||"
+done
+
+

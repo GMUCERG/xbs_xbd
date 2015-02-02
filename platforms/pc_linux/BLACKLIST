@@ -1,0 +1,16 @@
+#sample blacklist file, keep empty if not required
+#note: there's a general BLACKLIST file in directory xbs and one per
+# platform /template platform
+
+#entry format:
+#implementationdir dirchecksum comment
+
+# implementations which will never work
+
+
+crypto_hash/keccak/armasm 9c1aa23cbfb23caed20c9b9c941c591ee36606bdc20b17de9d8e068ef7193c9b Used Thumb and Thumb-2
+crypto_hash/keccakc1024/armasm 2e473ba54acaabb75b5bd7397075082e089f05d9ae9e324b5ecdd4da17d541e5 Used Thumb and Thumb-2
+crypto_hash/keccakc256/armasm 7b0f48123c02f96d3c5087f8feb148956a569054cc42e0dc64acc76eaca4c0ab Used Thumb and Thumb-2
+crypto_hash/keccakc448/armasm f498ce97beb9adeb8c89023cc82c7bdf56a5d0aad0c8145232e8f706c5df7c0e Used Thumb and Thumb-2
+crypto_hash/keccakc512/armasm 80fc399ba6cd462237eea141c6b54c9fd5613a0eb913a177288a5882412a93a0 Used Thumb and Thumb-2
+crypto_hash/keccakc768/armasm 1c30784e6072be2c5a25cb39beaa188b2b6f081620b247488b2e5c58e402ccb7 Used Thumb and Thumb-2

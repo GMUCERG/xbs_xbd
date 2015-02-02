@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# what platform
+#platform="atmega644_8mhz"
+#platform="atmega1281_16mhz"
+#platform="sample"
+#platform="artila_m501"
+#platform=lm3s811-evb
+platform=pc_linux
+
+# compile again, although binaries exist? 
+# (absent => 1)
+recompile=1
+
+# enable to use only first working compiler/options pair and not every one
+# creates at max one binary per implementation
+# useful for fast runs or testing
+# (absent => 0)
+#only_one_binary=1
+
+
+# To get algorithms to benchmark the following steps are neccessary:
+# download and extract algorithm packs and/or supercop
+# use ./import_algopack <dir> to import each algopack and/or supercop
+
+
+# enable to compile/benchmark only a specific hash
+#onlyhash="0hash"
+#onlyhash="cubehash816"
+#onlyhash="skein512"
+#onlyhash="edonr256"
+#onlyhash="shabal512"
+#onlyhash="shavite3256"
+#onlyhash="shavite3512"
+#onlyhash="bmw256"
+#onlyhash="whirlpool"
+#onlyhash="echo256"
+#onlyhash="edonr256"
+#onlyhash="groestl256"
+#onlyhash="essence224"
+#onlyhash="hamsi"
+#onlyhash="blake32"
+#onlyhash="keccakr1024c576"
+#onlyhash="simd256"
+
+
+# ignore implementations matching this patters
+implIgnorePattern="^(asm64)|(sse)|(openssl)|(mmx)|(emmintrin)|(cryptopp)|(pentium4)|(athlon64)"
+
+# set to nonempy to use rsync for copying (ignoring .svn directories)
+fromsvn=
+
+# The algorithm base is where all algorithms to benchmark are located
+# change this if you want to use multiple algorithm bases
+# note: the import_algopack script always imports to "algobase"
+algobase="algobase"
+
+
+# activate to use ccache
+#CCACHE=ccache
+
+# ---- end of user options --- 
+

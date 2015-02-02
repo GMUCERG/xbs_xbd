@@ -1,0 +1,11 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+
+cat <<EOF
+gcc -g -pipe -Os $sizeOpts
+gcc -g -pipe -O0 $sizeOpts
+gcc -g -pipe -O1 $sizeOpts
+gcc -g -pipe -O2 $sizeOpts
+gcc -g -pipe -O3 $sizeOpts
+EOF

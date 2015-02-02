@@ -1,0 +1,15 @@
+#sample blacklist file, keep empty if not required
+#note: there's a general BLACKLIST file in directory xbs and one per
+# platform /template platform
+
+#entry format:
+#implementationdir dirchecksum comment
+crypto_hash/fsb256/clean d66095e9554945209adece1772181c1512c907b293c8e69829591707db20c5c9 fails to compile
+crypto_hash/fsb256/ref a09cfc9b4055a607333297f0a7baef5340b7ea057d0826c2f1952600cbb427c0 runs very very very long
+crypto_hash/fsb512/ref 6de0f18215c5c5adb75ac13b817c7796487ffa81ccef52ba1d3ed7a71a2777b3 same here
+crypto_hash/rfsb509/ref c98b1753834839e5899137c5bdc82dcec5948cc82686e0e1c9fb4f34292928d8 failes to compile
+
+
+
+# algorithms which will never work
+

@@ -1,0 +1,9 @@
+for dir in atelopus32 atelopus64 bmw256 bmw512 cheetah256 cheetah512 \
+cubehash161 cubehash1616 cubehash162 cubehash1632 cubehash164 cubehash168 cubehash81 cubehash816 cubehash82 cubehash832 cubehash84 cubehash88 \
+echo256 echo512 echosp256 echosp512 edonr256 edonr512 essence224 essence256 essence384 essence512 fsb256 fsb512 fugue256 fugue512 hamsi \
+jh224 jh384 keccak lane256 lane512 luffa256 luffa384 luffa512 lux256  lux512 mcssha4 mcssha5 mcssha6 md2 md4 md5 md6d224 md6d256 md6d384 md6d512 \
+nasha256 nasha512 ripemd160 sarmal256  sarmal512 sha224 sha384 shabal256 shabal512 shavite3256 shavite3512 simd256 simd512 skein256 tiger whirlpool \
+cubehash512 hamsi512 blake32 blake64 keccakc448 keccakc768 keccakc256 skein1024
+do
+  rm -rf "crypto_hash/$dir"; 
+done

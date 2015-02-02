@@ -1,0 +1,9 @@
+#!/bin/bash
+
+isTool=1
+
+
+. lib/settingsreader    
+
+cat bench/compile_$platform/data | cut -d " " -f 8,11- | grep -v "^$" | grep " .* "
+ 

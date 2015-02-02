@@ -1,0 +1,12 @@
+#define XBX_LITTLE_ENDIAN
+#define CONSTDATAAREA
+
+#define PAGESIZE 256
+#define FLASH_ADDR_MAX (0xffffff)
+#define PAGE_ALIGN_MASK 0xffffff00
+#define PLATFORM_STACK_SIZE (8192)
+
+#define DEVICE_SPECIFIC_SANE_TC_VALUE 212000000 
+#define TC_VALUE_SEC 1
+
+#define I_AM_OS_BASED

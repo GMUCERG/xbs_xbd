@@ -1,0 +1,12 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+generalOpts=""
+
+cat <<EOF
+mipsel-linux-uclibc-gcc -pipe -Os -fomit-frame-pointer $sizeOpts
+mipsel-linux-uclibc-gcc -pipe -O0 -fomit-frame-pointer $sizeOpts
+mipsel-linux-uclibc-gcc -pipe -O1 -fomit-frame-pointer $sizeOpts
+mipsel-linux-uclibc-gcc -pipe -O2 -fomit-frame-pointer $sizeOpts
+mipsel-linux-uclibc-gcc -pipe -O3 -fomit-frame-pointer $sizeOpts
+EOF

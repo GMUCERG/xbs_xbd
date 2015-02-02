@@ -1,0 +1,9 @@
+# uses linux default xbd
+templatePlatform="linux_common"
+
+# upload page size in bytes
+pagesize=256
+# use ethernet
+communicationMode="ethernet"
+#cycles per second
+cyclespersecond=266000000

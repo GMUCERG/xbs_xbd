@@ -1,0 +1,18 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+armccopts="--cpu ARM920T --arm"
+
+cat <<EOF
+arm-linux-gcc -Os -fomit-frame-pointer $sizeOpts
+arm-linux-gcc -O0 -fomit-frame-pointer $sizeOpts
+arm-linux-gcc -O1 -fomit-frame-pointer $sizeOpts
+arm-linux-gcc -O2 -fomit-frame-pointer $sizeOpts
+arm-linux-gcc -O3 -fomit-frame-pointer $sizeOpts
+armcc $armccopts -Ospace
+armcc $armccopts -O0
+armcc $armccopts -O1
+armcc $armccopts -O2
+armcc $armccopts -O3
+armcc $armccopts -Otime
+EOF

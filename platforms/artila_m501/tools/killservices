@@ -1,0 +1,8 @@
+#!/bin/bash
+/disk/webbox/tools/trigger_wd >/dev/null &
+killall cron
+killall startWebbox
+killall webbox
+killall startLinkmonitor
+killall linkmonitor
+killall mini_httpd

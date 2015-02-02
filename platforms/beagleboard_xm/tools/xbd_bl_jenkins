@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+START=80
+
+start() {
+        cd /tmp
+	wget http://192.168.1.67:8080/job/XBD%20Bootloaders/platform=beagleboard_xm/lastStableBuild/artifact/xbxmain/xbx/platforms/beagleboard_xm/bootloader/makefiles/XBD_BL_beagleboard_xm.tar.gz -O x.tar.gz
+	tar xzf x.tar.gz
+	./XBD_BL_beagleboard_xm.elf &
+}
+
+stop() {
+	killall XBD_BL_beagleboard_xm.elf
+}

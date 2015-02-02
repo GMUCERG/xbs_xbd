@@ -1,0 +1,12 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+
+
+cat <<EOF
+gcc -Os -fomit-frame-pointer $sizeOpts
+gcc -O0 -fomit-frame-pointer $sizeOpts
+gcc -O1 -fomit-frame-pointer $sizeOpts
+gcc -O2 -fomit-frame-pointer $sizeOpts
+gcc -O3 -fomit-frame-pointer $sizeOpts
+EOF

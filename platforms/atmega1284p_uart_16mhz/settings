@@ -1,0 +1,12 @@
+# bases on 8mhz atmega644
+templatePlatform="atmega_common"
+
+# upload page size in bytes
+pagesize=256
+
+# cycles per second
+cyclespersecond=16000000
+
+# use uart250k
+communicationMode="uart250k"
+

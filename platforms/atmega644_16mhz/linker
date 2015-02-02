@@ -1,0 +1,12 @@
+#!/bin/bash
+
+$CXX $LDFLAGS -o xbdprog.bin $@
+
+if [ -e xbdprog.bin ]
+then
+  HEX_FLASH_FLAGS="-R .eeprom -R .fuse -R .lock -R .signature"
+  avr-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
+else
+  exit -1
+fi
+

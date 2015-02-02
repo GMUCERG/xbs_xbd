@@ -1,0 +1,4 @@
+#!/bin/bash
+
+$templatePlatformDir/postlink 60000
+ 

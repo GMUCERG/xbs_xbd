@@ -1,0 +1,35 @@
+#sample blacklist file, keep empty if not required
+#note: there's a general BLACKLIST file in directory xbs and one per
+# platform /template platform
+
+#entry format:
+#implementationdir dirchecksum comment
+
+# algorithms we should have a look into
+
+# crypto_hash/edonr256/swpbe 3519b9047ad104801272e68ad31d8f9ea3749bd0a82389cefc354ccd545bfa69 compiler troubles with __builtin_bswap32
+# crypto_hash/edonr512/swpbe 2c4c1e421878a4edcd57dc94c7226f464e1b12d2e95965330ca605dfd6ea91f8 compiler troubles with __builtin_bswap32
+# crypto_hash/edonr256/optc 20fe61f15535af7f432847894de7b3213eed0ce1e54912bf3a0b65c71db30119 compiler troubles with __builtin_bswap32
+# crypto_hash/edonr512/optc a20e4ad580af011357ecb5c926650dc3ae77cc406a18655a4af402ec79690081 compiler troubles with __builtin_bswap32
+
+crypto_hash/fugue256/ref-xbx cf60f285084ee1d9cc6c6d026a93417e4f016ef08cb5e83dca0e5ac708664036 FAILED
+crypto_hash/fugue512/ref-xbx e7b339d752586b8f54a04917eb303538dd56154f90aa52e4711bb2c98a8ef739 FAILED
+crypto_hash/groestl256/ref-xbx 8dc5e45101d6f0cd7364941a6c9b1de96e15143361d0573a0eeffb629b28ee60 FAILED
+crypto_hash/groestl512/ref-xbx 63c184e3a61b90f4e2f03d46b6483b327f65042c5b1275a444daf0c265d0b604 FAILED
+crypto_hash/shavite3512/lower-mem 9e9c763e1cdc5921d0c529e15b0194902d849eb2827ab5aeb869b84699f8e3fc FAILED
+
+crypto_hash/atelopus32/ref b10343281bb720e9c3eaab039fd7f94901e0879e1ff63a0355efe0b84d39535c Trouble with c++ includes, code modification not permitted
+crypto_hash/atelopus64/ref 85c423a3317863e6957141931b48f1fcb952690b6067c2060e88ea4a45df36ff Trouble with c++ includes, code modification not permitted
+
+
+# implementations which will never work
+
+crypto_hash/simd256/vectarm d6519996ce33d9cec8286e14b86c23a4e4ee63d337fee05d21df24e26d2b9c25 Needs wmmx support
+
+
+crypto_hash/keccak/armasm 9c1aa23cbfb23caed20c9b9c941c591ee36606bdc20b17de9d8e068ef7193c9b Used Thumb and Thumb-2
+crypto_hash/keccakc1024/armasm 2e473ba54acaabb75b5bd7397075082e089f05d9ae9e324b5ecdd4da17d541e5 Used Thumb and Thumb-2
+crypto_hash/keccakc256/armasm 7b0f48123c02f96d3c5087f8feb148956a569054cc42e0dc64acc76eaca4c0ab Used Thumb and Thumb-2
+crypto_hash/keccakc448/armasm f498ce97beb9adeb8c89023cc82c7bdf56a5d0aad0c8145232e8f706c5df7c0e Used Thumb and Thumb-2
+crypto_hash/keccakc512/armasm 80fc399ba6cd462237eea141c6b54c9fd5613a0eb913a177288a5882412a93a0 Used Thumb and Thumb-2
+crypto_hash/keccakc768/armasm 1c30784e6072be2c5a25cb39beaa188b2b6f081620b247488b2e5c58e402ccb7 Used Thumb and Thumb-2

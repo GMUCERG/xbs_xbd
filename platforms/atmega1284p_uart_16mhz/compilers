@@ -1,0 +1,4 @@
+#!/bin/bash
+
+$templatePlatformDir/compilers atmega1284p 16000000L
+ 

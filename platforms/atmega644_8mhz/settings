@@ -1,0 +1,11 @@
+templatePlatform="atmega_common"
+
+
+# upload page size in bytes
+pagesize=256
+
+# cycles per second
+cyclespersecond=8000000
+
+
+

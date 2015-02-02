@@ -1,0 +1,9 @@
+
+function buildDirChecksum
+{
+  dir=$1
+
+  checksum=`cd "$dir"; find  -not \( -name .svn -prune \) -and -not -iname "*~" -and -type f -exec sha256sum -t {} \; | sort -k 2 -f -d | sha256sum -t | cut -d " " -f 1`
+  echo $checksum;
+ 
+}

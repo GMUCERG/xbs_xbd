@@ -1,0 +1,22 @@
+#!/bin/bash
+
+isTool=1
+
+. lib/settingsreader    
+
+echo "||'''Text'''|| '''Data''' || '''BSS''' || '''Total'''|| '''Hex'''|| '''Name''' || '''Impl''' || '''Compiler''' ||"
+find "$binaries/" -name "*.bin" -exec "$sizeTool" {} \; | grep bin | sort -k 4 -n \
+| while read text data bss total hex absfile
+do
+  dir=`echo $absfile | sed -r 's/[^\t ]+\/crypto_hash\///' | sed 's/.xbdprog.bin//'`
+  
+  name=$(dirToCipher $dir)
+  impl=$(dirToImpl $dir)
+  compiler=$(dirToCompiler $dir)
+  
+  echo "|| $text || $data || $bss || $total || $hex || $name || $impl || {{{ $compiler }}} ||"
+ 
+done
+
+#|  |  | \
+#sed 's/[\t ]/\|/g'  | sed 's/$/\|\|/' | sed -r 's/\|+/\|\|/g'

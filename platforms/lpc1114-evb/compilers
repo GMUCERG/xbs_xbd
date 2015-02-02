@@ -1,0 +1,15 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -fmessage-length=0 -fno-builtin"
+gccopts="-pipe -Wall -mthumb -mcpu=cortex-m0 -Dtarget=lpc11xx -std=c99 -T memconfig_app.ld  -Wl,-gc-sections"
+  
+libopts=""
+
+cat <<EOF
+arm-none-eabi-gcc $gccopts -fomit-frame-pointer $sizeOpts $libopts -Os
+arm-none-eabi-gcc $gccopts -fomit-frame-pointer $sizeOpts $libopts -O0
+arm-none-eabi-gcc $gccopts -fomit-frame-pointer $sizeOpts $libopts -O1
+EOF
+
+
+

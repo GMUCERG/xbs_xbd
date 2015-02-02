@@ -1,0 +1,45 @@
+#!/bin/bash
+
+
+isTool=1
+
+. lib/settingsreader
+. lib/blacklists
+
+failedonly=$1
+
+resultdir="$XBXPATH/bench/compile_${platform}"
+if [ ! -d "$resultdir" ]
+then
+  echo "No results in $resultdir"
+  exit -2
+fi
+
+
+#echo "|| '''Cipher''' || '''Implementation'''|| '''Checksumming Cycles''' || ''' Benchmark Cycles (1536 byte)'''|| '''Result''' || '''Compiler''' || "
+impls=`cat "$resultdir/data" | grep -E "^\+.* dirchecksum " | cut -d " " -f 8 | sort | uniq`
+
+for impl in $impls
+do
+  cache=`cat $resultdir/data | grep -E "^\+.*$impl "`
+  dirchecksum=`echo $cache | grep -E "^\+.* dirchecksum " | cut -d " " -f 9`
+  if echo $cache | grep -q -E "^\+.* compilesuccess "
+  then
+    if [ -z "$failedonly" ]
+    then
+      echo $impl $dirchecksum SUCCESS
+    fi
+  else
+    if inBlacklist $impl $dirchecksum
+    then
+  if [ -z "$failedonly" ]
+    then
+      echo $impl $dirchecksum BLACKLISTED
+    fi
+    else  
+      echo $impl $dirchecksum FAILED
+    fi
+  fi
+done
+
+
