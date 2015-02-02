@@ -1,0 +1,23 @@
+#!/bin/bash 
+
+cpu=$1
+fcpu=$2
+
+if [ -z "$cpu" ] || [ -z "$fcpu" ]
+then
+  echo "Invalid call, specify cpu and fcpu"
+  exit -1
+fi
+
+
+generalOpts="-pipe -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums "
+cpuOpts="-mmcu=$cpu -DF_CPU=$fcpu" 
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+
+cat <<EOF
+avr-gcc $generalOpts $cpuOpts $sizeOpts -Os
+avr-gcc $generalOpts $cpuOpts $sizeOpts -O0
+avr-gcc $generalOpts $cpuOpts $sizeOpts -O1
+avr-gcc $generalOpts $cpuOpts $sizeOpts -O2
+avr-gcc $generalOpts $cpuOpts $sizeOpts -O3
+EOF

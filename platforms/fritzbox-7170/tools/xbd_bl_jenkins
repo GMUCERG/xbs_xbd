@@ -1,0 +1,5 @@
+#!/bin/sh
+cd /var/tmp
+wget http://192.168.1.67:8080/job/XBD%20Bootloaders/platform=fritzbox-7170/lastSuccessfulBuild/artifact/xbxmain/xbx/platforms/fritzbox-7170/bootloader/makefiles/XBD_BL_fritzbox-7170.elf -O bl.elf
+chmod +x bl.elf
+./bl.elf &

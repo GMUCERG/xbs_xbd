@@ -1,0 +1,10 @@
+# upload page size in bytes
+pagesize=256
+templatePlatform="linux_common"
+# use uart
+communicationMode="ethernet"
+#cycles per second
+# todo: think up something
+cyclespersecond=1000000000
+
+

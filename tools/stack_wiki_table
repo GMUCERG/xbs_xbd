@@ -1,0 +1,43 @@
+#!/bin/bash
+
+isTool=1
+
+
+
+. lib/settingsreader    
+
+if [ -z $1 ] 
+then
+  echo "$0 XBH-IP [XBH-Port]"
+  exit -1
+fi
+ 
+ 
+ 
+xbhIp=`echo $1 | tr -cd '[a-z][A-Z][0-9][\._\-]'`;
+
+if [ -z "$2" ]
+then
+  xbhPort=22595
+  else
+  xbhPort=`echo $2 | tr -cd '[0-9]'`;
+fi
+    
+
+resultdir="$XBXPATH/bench/${platform}_${xbhIp}_${xbhPort}"
+if [ ! -d "$resultdir" ]
+then
+  echo "No results in $resultdir"
+  exit -2
+fi
+
+echo "|| '''Cipher''' || '''Implementation'''|| '''Stack Usage''' || '''Compiler''' || "
+cat "$resultdir/data" | grep -E "^\+.* stackUsage" \
+| while read line
+do  
+  echo $line | cut -d " " -f 6,8,9,10 | while read cipher stackUsage implementation compiler
+  do
+      implementation=`echo $implementation | sed 's/^.*crypto_hash\/[^\/]*\///'`;
+      echo "|| $cipher || $implementation || $stackUsage || {{{ $compiler }}} ||  "
+    done
+done

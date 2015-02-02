@@ -1,0 +1,5 @@
+#!/bin/sh
+cd /tmp/tmp_extra
+wget http://192.168.1.67:8080/job/XBD%20Bootloaders/platform=artila_m501/lastSuccessfulBuild/artifact/xbxmain/xbx/platforms/artila_m501/bootloader/makefiles/XBD_BL_artila_m501.tar.gz -O x.tar.gz
+tar xzf x.tar.gz
+./XBD_BL_artila_m501.elf &

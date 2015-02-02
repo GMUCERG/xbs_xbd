@@ -1,0 +1,352 @@
+#!/bin/bash
+
+. lib/settingsreader || exit -1
+. lib/dirchecksums || exit -1
+. lib/blacklists || exit -1
+
+rm -rf $work
+mkdir -p $work
+
+resultdir="$datadir/compile_${platform}"
+if [ ! -d "$resultdir" ]
+then
+  mkdir -p "$resultdir"
+fi
+exec > >(tee "$resultdir/log")
+exec 2>&1
+exec 5>"$resultdir/data"
+
+okcompilers="$resultdir/okcompilers"
+
+function assemble_files
+{
+  cpcommand="cp -ra"
+  if [ -n "$fromsvn" ]
+  then
+    cpcommand="rsync -a --cvs-exclude --include=core"
+  fi  
+  
+
+  op=$1
+  impldir=$2
+
+  rm -rf "$work/compile"
+  mkdir -p "$work/compile"
+
+
+  # copy operation specific part
+  if [ "$op" != "null" ]
+  then
+    $cpcommand $XBXPATH/embedded/xbd/xbd_af/$op/* "$work/compile"
+  fi
+   
+  # copy implementation
+  $cpcommand "$impldir"/* "$work/compile"
+  
+        
+  if [ -n "$templatePlatform" ]
+  then
+  # copy platform specific part from template
+    cp  $templatePlatformDir/hal/[!.]*.* "$work/compile"
+    
+    if [ -d $templatePlatformDir/hal/drivers ]
+    then
+      $cpcommand  $templatePlatformDir/hal/drivers/* "$work/compile"
+    fi
+  fi
+        
+  # copy platform specific part if present
+  if [ -d "$platformDir/hal" ]
+  then
+     cp $platformDir/hal/[!.]*.* "$work/compile"
+   fi
+
+  if [ -d $platformDir/hal/drivers ]
+  then
+    $cpcommand  $platformDir/hal/drivers/* "$work/compile"
+  fi
+
+  # copy application framework
+  cp $XBXPATH/embedded/xbd/xbd_af/[!.]*.* "$work/compile"
+
+        
+  # copy application
+  $cpcommand $XBXPATH/embedded/xbd/xbd_app/* "$work/compile"
+}
+
+# test compilers
+rm -f $okcompilers
+$compilers | while read compiler
+do
+  compilerword=`echo "$compiler" | tr ' ./*?' '_____'`
+  compilerversion=`lib/compilerversion $compiler`
+  
+  if [ "$only_one_binary" == "1" ]
+  then
+    if [ -e "$okcompilers" ]
+      then
+      echo "Skipping $compiler (only_one_compiler enabled)";
+      echo "+compile $compilerword ONLY_ONE_BINARY 1" >&5
+      continue
+    fi
+  fi
+  
+  
+  echo Testing $compiler
+  echo "+$compilerword COMPILERVERSION $compilerversion" >&5 
+  
+  assemble_files "null" "$XBXPATH/embedded/teststub/c"
+
+  cfiles=`ls "$work/compile" | grep '\.c$' || :`
+  (
+    cd "$work/compile"
+    ok=1
+    for f in $cfiles
+    do
+      if [ "$ok" = 1 ]
+      then
+        $CCACHE $compiler $frameworkcflags -c "$f" >../errors 2>&1 || ok=0
+        ( if [ `wc -l < ../errors` -lt 25 ]
+          then
+            cat ../errors
+           else
+             head ../errors
+             echo ...
+             tail ../errors
+           fi
+        ) \
+        | while read err
+        do
+           echo "+compile $compilerword err compiling $f $err" >&5
+           echo "$err"
+        done
+      fi
+    done
+           
+    [ "$ok" = 1 ] || continue
+    $compiler -o xbdprog.bin *.o >../errors 2>&1 || ok=0
+    cat ../errors \
+    | while read err
+    do
+      echo  "$compilerword err linking $err"
+    done
+    [ "$ok" = 1 ] || continue
+  
+    echo "==OK=="
+    echo  "$compiler" >> $okcompilers      
+     echo "+compile $compilerword COMPILERVERSION $compilerversion" >&5 
+  )
+done
+
+if [ ! -e $okcompilers ]
+then
+  echo "Found no working compilers"
+  exit
+fi
+
+# list operations
+cat $XBXPATH/OPERATIONS \
+| while read o macros prototypes
+do
+  [ -d "$algobase/$o" ] || continue
+  
+  # list algorithms
+  ls "$algobase/$o" \
+  | sort \
+  | while read p
+  do
+    [ -n "$onlyhash" ] && [ $p != "$onlyhash" ] && continue 
+    [ -d "$algobase/$o/$p" ] || continue
+    op="${o}_${p}"
+
+    startdate=`date +%Y%m%d`
+
+    echo "=== `date` === $abi $o/$p"
+      rm -rf "$work"
+      mkdir -p "$work"
+
+      # list implementations
+      find "$algobase/$o/$p" -follow -name "api.h" \
+      | sort \
+      | while read doth
+      do
+        fullimplementationdir=`dirname $doth`
+        implementationname=`echo $fullimplementationdir | sed 's/^.*\/'$o'\/'$p'\///' | tr ./- ___`
+        
+        implementationdir=`echo ${fullimplementationdir:$algobasePathLength} | sed 's/^\///'`;
+        
+        if echo $implementationname | grep -q -E -i "$implIgnorePattern" 
+        then
+          continue
+        fi
+        dirChecksum=$(buildDirChecksum "$fullimplementationdir")
+
+        if inBlacklist $implementationdir  $dirChecksum
+        then
+          continue
+        fi
+
+        opi="${o}_${p}_${implementationname}"
+  
+        echo "=== `date` === $abi $implementationdir"
+
+        assemble_files $o "$fullimplementationdir"
+        echo "+$version $shorthostname $abi $startdate $o $p dirchecksum $implementationdir $dirChecksum" >&5
+  
+      
+        cfiles=`ls "$work/compile" | grep '\.c$' || :`
+        sfiles=`ls "$work/compile" | grep '\.[sS]$' || :`
+        ccfiles=`ls "$work/compile" | grep '\.cc$' || :` 
+        cppfiles=`ls "$work/compile" | grep '\.cpp$' || :`
+        
+        language=c
+        [ "x$cppfiles" = x ] || language=cpp
+        [ "x$ccfiles" = x ] || language=cpp 
+        (
+          cd "$work/compile"
+          (
+            echo "#ifndef ${o}_H"
+            echo "#define ${o}_H"
+            echo ""
+            echo "#include \"${op}.h\""
+            echo ""
+            echo "$macros" | tr : '\012' | while read macro
+            do
+              echo "#define ${o}${macro} ${op}${macro}"
+            done
+            echo "#define ${o}_PRIMITIVE \"${p}\""
+            echo "#define ${o}_IMPLEMENTATION ${op}_IMPLEMENTATION"
+            echo "#define ${o}_VERSION ${op}_VERSION"
+            echo ""
+            echo "#endif"
+          ) > "$o.h"
+          (
+            echo "#ifndef ${op}_H"
+            echo "#define ${op}_H"
+            echo ""
+            sed 's/[    ]CRYPTO_/ '"${opi}"'_/g' < api.h
+            echo ''
+            echo '#ifdef __cplusplus'
+            echo 'extern "C" {'
+            echo '#endif'
+            echo "$prototypes" | tr : '\012' | while read prototype
+            do
+              echo "extern int ${opi}${prototype};"
+            done
+            echo '#ifdef __cplusplus'
+            echo '}'
+            echo '#endif'
+            echo ""
+            echo "$macros" | tr : '\012' | while read macro
+            do
+              echo "#define ${op}${macro} ${opi}${macro}"
+           done
+            echo "#define ${op}_IMPLEMENTATION \"${implementationdir}\""
+            echo "#ifndef ${opi}_VERSION"
+            echo "#define ${opi}_VERSION \"-\""
+            echo "#endif"
+            echo "#define ${op}_VERSION ${opi}_VERSION"
+            echo ""
+            echo "#endif"
+          ) > "$op.h"
+
+             
+          cat "$okcompilers" \
+          | while read compiler
+          do
+            compilerword=`echo "$compiler" | tr ' ./*?' '_____'`
+            targetPath="$binaries/$implementationdir/$compilerword"
+    
+            [ "$recompile" = 0 ] && [ -d $targetPath ] && continue
+            rm -rf $targetPath
+
+          
+            echo "=== `date` === $abi $implementationdir $compiler"
+                                                           
+            ok=1
+            for f in $cfiles $sfiles $ccfiles $cppfiles
+            do
+              if [ "$ok" = 1 ]
+              then
+                $CCACHE $compiler $frameworkcflags -c "$f" >../errors 2>&1 || ok=0
+                ( if [ `wc -l < ../errors` -lt 25 ]
+                  then
+                    cat ../errors
+                  else
+                    head ../errors
+                    echo ...
+                    tail ../errors
+                  fi
+                ) \
+                | while read err
+                do
+                  echo "$version $shorthostname $abi $startdate $o $p fromcompiler $implementationdir $compilerword $f $err" >&5
+                done
+              fi
+            done
+            [ "$ok" = 1 ] || {
+              echo "+$version $shorthostname $abi $startdate $o $p compilefailed $implementationdir 1" >&5
+              continue
+            }
+
+            $compiler -o xbdprog.bin *.o >../errors 2>&1 || ok=0
+            cat ../errors \
+            | while read err
+            do
+              echo "$version $shorthostname $abi $startdate $o $p fromcompiler $implementationdir $compilerword try.$language $err" >&5
+            done
+            [ "$ok" = 1 ] || {
+              echo "+$version $shorthostname $abi $startdate $o $p linkfailed $implementationdir 1" >&5
+              continue
+            }
+            
+            $postlink xbdprog.bin > ../errors 2>&1 || ok=0
+            cat ../errors \
+            | while read err
+            do
+              echo "+$version $shorthostname $abi $startdate $o $p fromcompiler $implementationdir $compilerword try.postlink $err" >&5
+            done
+            [ "$ok" = 1 ] || {
+              echo "+$version $shorthostname $abi $startdate $o $p postlinkfailed $implementationdir 1" >&5
+              continue
+            }
+      
+            mkdir -p $targetPath
+            cp "xbdprog.bin" $targetPath
+            if [ -e "xbdprog.hex" ]
+            then
+              cp "xbdprog.hex" $targetPath
+            fi
+            
+            sizeInfo=`$sizeTool xbdprog.bin | tail -n 1`
+            textSize=""
+            dataSize=""
+            bssSize=""
+            
+            if [ -n "$sizeInfo" ]
+            then
+              textSize=`echo $sizeInfo | awk '{print $1}'`
+              dataSize=`echo $sizeInfo | awk '{print $2}'`
+              bssSize=`echo $sizeInfo | awk '{print $3}'`
+            fi
+            
+            compilerversion=`$XBXPATH/lib/compilerversion $compiler`
+            (
+              echo "COMPILERVERSION $compilerversion"
+              echo "TEXT $textSize"
+              echo "DATA $dataSize"
+              echo "BSS $bssSize"
+              echo "DIRCHECKSUM $dirChecksum"
+            ) > $targetPath/xbdprog.txt
+            
+            echo "+$version $shorthostname $abi $startdate $o $p compilesuccess $implementationdir 1" >&5
+            echo "=== `date` === $abi $implementationdir $compilerword COMPILED"
+          done
+        )
+    done
+  done  
+done
+
+zipfilename="xbxdata-$shorthostname-compile-`date +"%s"`.gz"
+cat "$resultdir/data" | gzip > "$zipfilename"
+echo "Compressed result file is $zipfilename"

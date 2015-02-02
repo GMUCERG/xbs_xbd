@@ -1,0 +1,15 @@
+#!/bin/bash
+
+compiler="$1"
+command=`echo $compiler | cut -d " " -f 1`
+
+if echo $command| grep -q "gcc" 
+then
+  versionstring="`$command -v 2>&1 | tail -n 1`"
+  versionstring=`echo $versionstring | sed 's/gcc.version //i'`
+  echo "$versionstring"
+# add more cases using else if here
+else
+  versionstring=`$command -v`
+  echo "GUESSED: $versionstring"
+fi

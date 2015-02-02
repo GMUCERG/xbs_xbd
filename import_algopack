@@ -1,0 +1,32 @@
+#!/bin/bash
+set -o errexit
+
+SOURCE=$1
+
+if [ -z "$SOURCE" ]
+then
+  echo "Please specify a source directory"
+  exit -1
+fi
+
+
+
+if [ ! -d "$SOURCE" ]
+then
+  echo "Specified directory does not exist"
+  exit -1
+fi
+
+
+
+if [ ! -d "$SOURCE/crypto_hash" ]
+then
+  echo "Source directory does not contain a crypto_hash directory"
+  exit -1
+fi
+
+
+rsync -aC "$SOURCE/crypto_hash" algobase
+echo "Imported $SOURCE"
+
+

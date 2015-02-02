@@ -1,0 +1,42 @@
+#sample blacklist file, keep empty if not required       
+#note: there's a general BLACKLIST file in directory xbs and one per   
+# platform /template platform           
+              
+#entry format:             
+#implementationdir dirchecksum comment            
+crypto_hash/simd256/vectarm d6519996ce33d9cec8286e14b86c23a4e4ee63d337fee05d21df24e26d2b9c25 needs arm platform       
+crypto_hash/bmw512/arm/neon/SSEmap_v1 e9e580482d8bc088833ffe1598b0bb9ab989e063c18d5edaf0a38e0907acdf78 needs arm with neon
+   
+crypto_hash/keccakc512/opt32u2 86bc39489a20ab38b08a804056c0192f61bb32dc9fbf7b58d217006b501255be needs at least 128k ram        
+crypto_hash/keccakc512/opt32u6 2eea4857867552510fd39340f7123eab5f658eb6da5acbaedd159493ac13ddcd needs at least 128k ram        
+crypto_hash/keccakc512/opt64u24 390874b4790baf4695b1752c6c341af96d1969e5d308402f5bef0a4225d974b1 massively unrolled           
+crypto_hash/keccakc512/opt64u6 2c7ed50b245c07ead764ff3daaeb84726e12647769ee42b42d0c83646c954f0d massively unrolled           
+crypto_hash/keccak/opt32u2 c3b14a3c54ae0e50c6c83992a7e67dcf37bf9d062e7327858592ba2ba28116b0 needs at least 128k ram        
+crypto_hash/keccak/opt32u6 05c879603d9eea07dab3bd7085a7fe7ae85b5ddccf4eb33aa17e1599b010327a needs at least 128k ram        
+crypto_hash/keccak/opt64u24 7843e7dbe1b412e2428774c4e0dd0ae65867600f352829750229a83133cf1caa massively unrolled           
+crypto_hash/keccak/opt64u6 d29288560bd118c3eb042c5cd6a62daeca72f9a42b2b6def99351a8db4a3e338 massively unrolled           
+              
+crypto_hash/fugue256/ANSI_opt32 99b2640bd1adce87ff5e42c62bc4393b11e9495480c207859804c8f713065bca massively unrolled, replaced by reference implementation       
+crypto_hash/fugue256/ANSI_opt64 a54edc0fc7ae9231f51f85af44f5838cb8813f7013da129bd028002641e4a365  massively unrolled, replaced by reference implementation      
+              
+crypto_hash/skein512/opt af3c769fe2c7027e356bb3e11ee1b47bd5852a4d73e9af603b12e60d55e7376c replaced by opt-pruned-rolled (removed code for 256 and 1024 bit, set don't unroll flag)
+              
+crypto_hash/groestl256/opt64 2f02605967ebe5e39e89c75bc6b079048c666547e02d2dbc9d6af743b643ead6 too large           
+crypto_hash/groestl256/opt32 163dbd20586416645e11115ca17d53e8d9dbf2c4f9d6d95f696677a4ed9758ff replaced by opt32-rolled          
+              
+crypto_hash/groestl512/opt32 40d061438074254d09d6d5d191a460fbb4a40abaacb23fd9fd8219ac19b41ad6 too large           
+crypto_hash/groestl512/opt64 306edb7185e47e137bc74c12bb8f9360527fa76cb33751272e1eddf5dd213e5a too large           
+              
+              
+crypto_hash/shavite3512/different-order 81e6406dfe804a58bbceba6d8f74d97e224e905c2f02f748237ca8b3bb82f754 too large           
+crypto_hash/shavite3512/lower-mem 9e9c763e1cdc5921d0c529e15b0194902d849eb2827ab5aeb869b84699f8e3fc does not compile          
+crypto_hash/shavite3512/no-salt 1cbd05465e61b35012b07087915b99e2e9b6369c495d39003e15a0d403a307a7 too large           
+crypto_hash/shavite3512/with-salt 6cd388f7eeb7fe184aad8b3aa49766f909ae36ffeeadf69a45f9c99057f48466 too large           
+              
+              
+# not checked, but not compiling on atmega1284p
+crypto_hash/atelopus32/ref b10343281bb720e9c3eaab039fd7f94901e0879e1ff63a0355efe0b84d39535c does not build using avr-gcc 
+crypto_hash/atelopus64/ref 85c423a3317863e6957141931b48f1fcb952690b6067c2060e88ea4a45df36ff does not build using avr-gcc 
+crypto_hash/groestl256/thumb-asm-fast db4ba2a4136bfa49ade822aec4c5000dd3b613d480d0d6c279aef761574e0d82 thumb code, confusing as of avr-gcc
+crypto_hash/groestl256/thumb-asm-small 595f4acde81e2c09e5554a18b10864c1a02edf66da97544b5b7b3e06725daa8e thumb code, confusing as of avr-gcc
+

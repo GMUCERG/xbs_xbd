@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+START=80
+
+start() {
+        cd /tmp
+	wget http://192.168.1.67:8080/job/XBD%20Bootloaders/platform=nslu2-openwrt/lastStableBuild/artifact/xbxmain/xbx/platforms/nslu2-openwrt/bootloader/makefiles/XBD_BL_nslu2-openwrt.tar.gz -O x.tar.gz
+	tar xzf x.tar.gz
+	./XBD_BL_nslu2-openwrt.elf &
+}
+
+stop() {
+	killall XBD_BL_nslu2-openwrt.elf
+}

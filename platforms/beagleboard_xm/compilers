@@ -1,0 +1,18 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+generalOpts="-mcpu=cortex-a8 -mfpu=neon"
+
+
+cat <<EOF
+arm-none-linux-gnueabi-gcc -pipe -Os -fomit-frame-pointer $sizeOpts $generalOpts
+arm-none-linux-gnueabi-gcc -pipe -O0 -fomit-frame-pointer $sizeOpts $generalOpts
+arm-none-linux-gnueabi-gcc -pipe -O1 -fomit-frame-pointer $sizeOpts $generalOpts
+arm-none-linux-gnueabi-gcc -pipe -O2 -fomit-frame-pointer $sizeOpts $generalOpts
+arm-none-linux-gnueabi-gcc -pipe -O3 -fomit-frame-pointer $sizeOpts $generalOpts
+arm-none-linux-gnueabi-gcc -pipe -Os -fomit-frame-pointer $sizeOpts $generalOpts -mthumb
+arm-none-linux-gnueabi-gcc -pipe -O0 -fomit-frame-pointer $sizeOpts $generalOpts -mthumb
+arm-none-linux-gnueabi-gcc -pipe -O1 -fomit-frame-pointer $sizeOpts $generalOpts -mthumb
+arm-none-linux-gnueabi-gcc -pipe -O2 -fomit-frame-pointer $sizeOpts $generalOpts -mthumb
+arm-none-linux-gnueabi-gcc -pipe -O3 -fomit-frame-pointer $sizeOpts $generalOpts -mthumb
+EOF

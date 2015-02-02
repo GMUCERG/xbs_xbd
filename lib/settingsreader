@@ -1,0 +1,161 @@
+#!/bin/bash
+
+# read the command line of the calling script
+MYSELF=$(readlink -f $0)
+MYPATH=`dirname $MYSELF`
+
+if [ -n "$isTool" ]
+then
+  MYPATH="$MYPATH/../"
+fi
+
+#determine paths
+XBXPATH=$(readlink -f "$MYPATH/")
+
+if [ ! -f "$XBXPATH/settings" ]
+then
+ echo "Could not found settings file ($XBXPATH/settings)."
+ echo "Please take the provided settings files 'settings.sample' and copy it to 'settings'"
+ exit -1
+fi
+
+# default values
+
+fromsvn=
+
+
+. "$XBXPATH/settings"
+
+shorthostname=`hostname | sed 's/\..*//' | tr -cd '[a-z][A-Z][0-9]'`
+
+work="$XBXPATH/work/$platform"
+lib="$XBXPATH/libs"
+
+platformDir="$XBXPATH/platforms/$platform/";
+# load custom settings 
+
+#default communication mode, overwritable by platform settings
+communicationMode="i2c"
+
+. "$platformDir/settings"
+communicationMode=`echo $communicationMode | tr '[A-Z]' '[a-z]'`
+
+
+frameworkcflags="-I ."
+abi="xbx-$platform"
+compilers="$platformDir/compilers"
+binaries="$XBXPATH/binaries/$platform/"
+xbhtool="$XBXPATH/xbhtool/xbhtool.pl -s $pagesize ";
+datadir="$XBXPATH/bench";
+tooldir="$XBXPATH/tools"
+
+if [  -z "$algobase" ]
+then
+  echo "algorithm base setting (algobase) not found."
+  exit -1
+fi
+
+
+
+if [ ! -d $algobase ]
+then
+  echo "algorithm base not found."
+  exit -1
+fi
+
+version=`cat lib/version`
+
+algobasePathLength=${#algobase}
+
+if [ ! -d "$platformDir" ]
+then
+  echo Platform $platform not found.
+  exit -2
+fi
+
+templatePlatformDir=$platformDir
+if [ -n "$templatePlatform" ]
+then
+  templatePlatform=`echo $templatePlatform | tr -cd '[a-z][A-Z][0-9]\._-'`
+  templatePlatformDir="$XBXPATH/platforms/$templatePlatform/";
+  if [ ! -d "$templatePlatformDir" ]
+  then
+    echo "Template platform $templatePlatform not found"
+    exit -2
+  fi
+fi
+export templatePlatformDir
+
+sizeTool="$platformDir/size"
+if [ ! -e "$sizeTool" ]
+then
+  sizeTool="$templatePlatformDir/size"
+fi
+
+postlink="$platformDir/postlink"
+if [ ! -e "$postlink" ]
+then
+  postlink="$templatePlatformDir/postlink"
+fi
+
+if [ -z "$pagesize" ]
+then
+  echo Pagesize not specified in platform settings.
+  exit -3
+fi
+
+if [ -z "$cyclespersecond" ]
+then
+  echo cyclespersecond not specified in platform settings.
+  exit -3
+fi
+
+
+if [ "$communicationMode" == "i2c" ]
+then
+  communicationMode="I"
+elif [ "$communicationMode" == "uart" ]
+then
+  communicationMode="U"
+elif [ "$communicationMode" == "uart250k" ]
+then
+  communicationMode="O"
+elif [ "$communicationMode" == "ethernet" ]
+then
+  communicationMode="E"
+else
+  echo "Communication mode must be i2c,uart,uart250k or ethernet, but is $communicationMode";
+  exit -3
+fi
+
+
+if [ ! -d "$datadir" ]
+then
+  mkdir -p "$datadir"
+fi
+
+if [ ! -d "$work" ]
+then
+  mkdir -p "$work"
+fi
+
+
+# function definitions
+
+function dirToCipher
+{
+  local dir=$1
+  echo $dir |sed -r 's/[^\t ]+\/crypto_hash\///'| sed -r 's/^([^\/]+)\/(.+)\/([^\/]+)$/\1/'
+}
+
+function dirToImpl
+{
+  local dir=$1
+  echo $dir | sed -r 's/[^\t ]+\/crypto_hash\///' | sed -r 's/^([^\/]+)\/(.+)\/([^\/]+)$/\2/'
+}
+
+function dirToCompiler
+{
+  local dir=$1
+  echo $dir | sed -r 's/[^\t ]+\/crypto_hash\///' | sed -r 's/^([^\/]+)\/(.+)\/([^\/]+)$/\3/'
+}

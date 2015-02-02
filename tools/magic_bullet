@@ -1,0 +1,1 @@
+sed -i "s/unsigned int/uint32_t/g" echo32.h

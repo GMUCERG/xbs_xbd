@@ -1,0 +1,6 @@
+#sample blacklist file, keep empty if not required
+#note: there's a general BLACKLIST file in directory xbs and one per
+# platform /template platform
+
+#entry format:
+#implementationdir dirchecksum comment

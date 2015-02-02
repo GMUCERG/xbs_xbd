@@ -1,0 +1,4 @@
+#!/bin/bash
+# only needed for statistics
+arm-none-eabi-size $@
+

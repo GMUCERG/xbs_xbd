@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ -e xbdprog.bin ]
+then
+  arm-none-eabi-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
+fi
+

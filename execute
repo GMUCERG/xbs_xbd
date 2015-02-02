@@ -1,0 +1,321 @@
+#!/bin/bash
+
+. lib/settingsreader || exit -1
+
+if [ -z $1 ]
+then
+  echo "$0 XBH-IP [XBH-Port]"
+  exit -1
+fi
+
+# remove invalid characters
+xbhIp=`echo $1 | tr -cd '[a-z][A-Z][0-9][\._\-]'`;
+
+if [ -z "$2" ]
+then
+  xbhPort=22595
+else 
+  xbhPort=`echo $2 | tr -cd '[0-9]'`;
+fi
+
+
+#debug
+xbhCall="$xbhtool  -v -i $xbhIp -p $xbhPort"
+#silent
+#xbhCall="$xbhtool -q -i $xbhIp -p $xbhPort"
+
+xbhRevision=`$xbhCall --xbhRev | head -n 1 | cut -d ":" -f 2`
+if [ -z "$xbhRevision" ]
+then
+  echo "XBH at $xbhIp:$xbhPort not ready."
+  echo "Exiting.";
+  exit -2
+fi
+
+
+$xbhCall --comm $communicationMode 
+if [ "$?" != "0" ]
+then
+  echo "Unable to set communication mode on XBH."
+  echo "Exiting.";
+  exit -3
+fi
+
+
+
+status=`$xbhCall -r` 
+if [ "$status" != "XBD03BLo" ] && [ "$status" != "XBD03AFo" ]
+then
+  echo "Status request failed. XBD communication troubles?."
+  echo "Exiting.";
+  exit -4
+fi
+
+blRevision=`$xbhCall --blRev | head -n 1 | cut -d ":" -f 2`
+if [ -z "$blRevision" ]
+then
+  echo "Boot loader at $xbhIp:$xbhPort not ready."
+  echo "Exiting.";
+  exit -5
+fi
+
+
+ORIG_PROMPT_COMMAND="$PROMPT_COMMAND"
+unset PROMPT_COMMAND
+function title {
+   echo -ne "\033]0;XBX: $1\007"
+   #also set as screen window title when running in screen
+   if [ ! -z ${STY} ]; then
+      echo -ne "\033kXBX: $1\033\\"
+   fi
+}
+
+title "Starting up"
+
+
+function doDriftMeasurement
+{  
+  doTimeStamp
+  drift="`$xbhCall --drift --cycles $cyclespersecond`"
+  nominal=`echo "$drift" | grep "Nominal cycles:" | cut -d ":" -f 2 | cut -b 2-`
+  measured=`echo "$drift" | grep "Measured cycles:" | cut -d ":" -f 2 | cut -b 2-`
+  time=`date +"%s"`;
+  echo "+$version $shorthostname $abi $startdate no op drift $time $nominal $measured" >&5
+}
+
+function doManyDriftMeasurements
+{
+  doDriftMeasurement
+  doDriftMeasurement
+  doDriftMeasurement
+  doDriftMeasurement
+  doDriftMeasurement
+}
+
+function doTimeStamp
+{
+  date
+}
+
+resultdir="$XBXPATH/bench/${platform}_${xbhIp}_${xbhPort}"
+if [ -d "$resultdir" ]
+then
+  rm -rf "$resultdir"
+fi
+mkdir -p "$resultdir"
+
+exec > >(tee "$resultdir/log")
+exec 2>&1
+exec 5>"$resultdir/data"
+
+compilerword=`echo "$compilerdesc" | tr ' ' '_'`
+
+startdate=`date +%Y%m%d`
+
+echo "+$version $shorthostname $abi $startdate no op xbhrevision $xbhRevision " >&5
+echo "+$version $shorthostname $abi $startdate no op bootloaderrevision $blRevision " >&5
+
+
+doManyDriftMeasurements 
+
+
+cat $XBXPATH/OPERATIONS \
+| while read o macros prototypes
+do
+  opPath="$binaries/$o";
+  [ -d "$opPath" ] || continue
+  ls "$opPath" \
+  | sort \
+  | while read p
+  do
+    [ -n "$onlyhash" ] && [ $p != "$onlyhash" ] && continue
+    [ -d "$opPath/$p" ] || continue
+      doDriftMeasurement
+      expectedchecksum=''
+      [ -f "$algobase/$o/$p/checksum_128b" ] && expectedchecksum=`cat "$algobase/$o/$p/checksum_128b" | tr A-Z a-z`
+      op="${o}_${p}"
+                     
+      echo "=== `date` === $abi $o/$p"
+      outputBytes=""
+      bestMedian=""
+      bestBinary=""
+      lastBinary=""
+      bestName=""
+      binaries=`find "$opPath/$p" -follow -name "xbdprog.bin" | sort`
+      binarySwitch="-f bin"
+      for binary in $binaries
+      do
+        fullimplementationdir=`dirname $binary`
+        if [ -e "$fullimplementationdir/xbdprog.hex" ]
+        then
+          binarySwitch="";
+          binary="$fullimplementationdir/xbdprog.hex";
+        fi
+        
+        shortimplementationdir=`echo $fullimplementationdir | sed -r 's/^.*\/'$o'\/'$p'\///'`
+        implementationname=`echo $shortimplementationdir | sed -r 's/\/[^\/]+\/?$//' | tr "./ " ___`
+        compilerword=`echo $shortimplementationdir | sed -r 's/.*\///'| tr "./ " ___`
+        
+	# fetch info file
+	compilerversion=""
+	textSize=""
+	dataSize=""
+	bssSize=""
+	infofile="$fullimplementationdir/xbdprog.txt"
+	
+	
+	if [ -e "$infofile" ]
+	then
+	  compilerversion=`cat $infofile | grep "^COMPILERVERSION " | cut -d " " -f 2-`
+	  textSize=`cat $infofile | grep "^TEXT " | cut -d " " -f 2`
+	  dataSize=`cat $infofile | grep "^DATA " | cut -d " " -f 2`
+	  bssSize=`cat $infofile | grep "^BSS " | cut -d " " -f 2`
+	  dirchecksum=`cat $infofile | grep "^DIRCHECKSUM " | cut -d " " -f 2`
+	fi
+	echo "+$version $shorthostname $abi $startdate $o $p compilerversion $compilerversion " >&5
+	echo "+$version $shorthostname $abi $startdate $o $p sizeinfo $textSize $dataSize $bssSize" >&5
+        echo "+$version $shorthostname $abi $startdate $o $p dirchecksum $dirchecksum" >&5
+        
+        echo "=== `date` === $abi $o/$p $implementationname $compilerword ($binarySwitch)"
+        doTimeStamp
+        title "$o/$p $implementationname $compilerword"
+        $xbhCall $binarySwitch -u "$binary"
+        if [ "$?" != "0" ]
+        then
+          echo "$version $shorthostname $abi $startdate $o $p tryfails $o/$p/$implementationname $compilerword error upload_failed" >&5
+          echo "$o $p $implementationname: Upload failed"
+          lastBinary=""
+          # try to fetch status twice to cope for a xbh reset
+          doTimeStamp
+          status=`$xbhCall --comm $communicationMode -r` 
+          status=`$xbhCall --comm $communicationMode -r` 
+          continue
+        fi
+        lastBinary=$binary
+        
+        # test checksum
+        outputfile=`tempfile`
+        doTimeStamp
+        $xbhCall -c -e > "$outputfile"
+        returnCode=`head -n 1 "$outputfile"`
+        checksum=`head -n 2 "$outputfile" | tail -n 1 | tr A-Z a-z`
+        rm -f "$outputfile"
+        
+        #echo "Result is $returnCode --- $checksum";
+        if [ "$returnCode" != "00" ]
+        then
+          echo "$version $shorthostname $abi $startdate $o $p tryfails $o/$p/$implementationname $compilerword error $returnCode" >&5
+          echo "Unable to execute $o $p $implementationname: $returncode";
+           # try to fetch status twice to cope for a xbh reset
+          status=`$xbhCall --comm $communicationMode -r` 
+          status=`$xbhCall --comm $communicationMode -r` 
+          continue
+        fi
+
+        checksumok=fails
+        
+        doTimeStamp
+        checksumcycles=`$xbhCall --cycles $cyclespersecond -t`
+        # short benchmark, we only do it 5 times
+        doTimeStamp
+        measurementout=`$xbhCall -n 1536 5 --cycles $cyclespersecond`
+        cycles=`echo "$measurementout" | head -n 1 | cut -d " " -f 1`
+        stackUsage=`echo "$measurementout" | tail -n 1 | cut -d " " -f 1`
+        
+       # echo "MO"
+       # echo $measurementout
+       # echo "CY"
+       # echo $cycles
+       # echo "ST"
+       # echo $stackUsage
+        
+        [ -z "$cycles" ] && cycles=0
+        [ -z "$checksumcycles" ] && cycles=0
+        if [ "$cycles" == "0" ] || [ "$checksumcycles" == "0" ]
+        then
+          echo "$version $shorthostname $abi $startdate $o $p tryfails $o/$p/$implementationname $compilerword error unable to fetch results" >&5
+          echo "Unable to execute $o $p $implementationname: Duration is 0";
+           # try to fetch status twice to cope for a xbh reset
+          doTimeStamp
+          status=`$xbhCall --comm $communicationMode -r` 
+          status=`$xbhCall --comm $communicationMode -r` 
+          continue
+        fi
+        
+        [ "x$expectedchecksum" = "x$checksum" ] && checksumok=ok
+        [ "x$expectedchecksum" = "x" ] && checksumok=unknown
+        
+        echo "Benchmark took $cycles cycles, checksum: $checksumok"
+        
+       
+        echo "+$version $shorthostname $abi $startdate $o $p stackUsage $stackUsage $o/$p/$implementationname $compilerword" >&5
+        echo "$version $shorthostname $abi $startdate $o $p try $checksum $checksumok $cycles $checksumcycles $cyclespersecond $o/$p/$implementationname $compilerword" >&5
+        [ "$checksumok" = fails ] && continue
+        
+        outputBytes=$(( ${#checksum} / 2 ))
+        
+        if [ -z "$bestBinary" ] || [ $cycles -le $bestCycles ]
+        then
+          bestCycles=$cycles
+          bestBinary="$binary"
+          bestName=$implementationname
+          bestCompiler=$compilerword
+          bestDirchecksum=$dirchecksum
+        fi
+      done
+      
+      if [ -n "$bestBinary" ]
+      then
+        echo "=== `date` === $abi $o/$p measuring $bestName, $bestCompiler ($bestCycles)"
+        if [ "$lastBinary" != "$bestBinary" ]
+        then
+          title "Measuring $o/$p $bestName, $bestCompiler"
+          echo "Uploading $bestName"
+          doTimeStamp
+          $xbhCall $binarySwitch -u "$bestBinary"
+          if [ "$?" != "0" ]
+          then
+            echo "$o $p $bestName: Upload for measurement failed"
+            status=`$xbhCall --comm $communicationMode -r` 
+            status=`$xbhCall --comm $communicationMode -r` 
+            continue
+          fi
+        fi
+        
+        echo "$version $shorthostname $abi $startdate $o $p implementation $o/$p/$bestName $bestDirchecksum" >&5
+        echo "$version $shorthostname $abi $startdate $o $p outputbytes $outputBytes "  >&5
+        echo "$version $shorthostname $abi $startdate $o $p cpuid $platform"  >&5
+        echo "$version $shorthostname $abi $startdate $o $p cpucycles_persecond $cyclespersecond"  >&5
+        echo "$version $shorthostname $abi $startdate $o $p cpucycles_implementation XBX" >&5
+        echo "$version $shorthostname $abi $startdate $o $p compiler $bestCompiler" >&5
+        
+        repeat=8
+        lengths="0 1 2 4 8 16 32 64 128 256 512 576 1024 1536 2048"
+        for l in $lengths; do
+          echo "measuring $l bytes"
+          doTimeStamp
+          measurementout=`$xbhCall -n $l $repeat --cycles $cyclespersecond` 
+          cycles=`echo "$measurementout" | head -n 1`
+          stackUsage=`echo "$measurementout" | tail -n 1` 
+          echo "$version $shorthostname $abi $startdate $o $p cycles $l $cycles" >&5
+          echo "+$version $shorthostname $abi $startdate $o $p stack $l $stackUsage" >&5
+        done
+      fi
+  done
+done
+
+title "Finalising"
+doManyDriftMeasurements
+
+sed 's/^/+ /' <"$resultdir/log" >&5
+
+
+echo "=== `date` === completed"
+echo "Results stored in $resultdir/data"
+
+zipfilename="xbxdata-$shorthostname-$xbhIp-`date +"%s"`.gz"
+cat "$resultdir/data" | gzip > "$zipfilename"
+echo "Compressed result file is $zipfilename"
+title ""
+PROMPT_COMMAND="$ORIG_PROMPT_COMMAND"
+

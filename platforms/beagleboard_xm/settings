@@ -1,0 +1,11 @@
+# uses linux default xbd
+templatePlatform="linux_common"
+
+# upload page size in bytes
+pagesize=256
+# use uart
+communicationMode="uart"
+# try ethernet instead
+#communicationMode="ethernet"
+#cycles per second
+cyclespersecond=1000000000

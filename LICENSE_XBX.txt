@@ -1,0 +1,32 @@
+Copyright (C) 2009,2010 
+Christian Wenzel-Benner <c-w-b@web.de>
+Jens Gräf <jgraef@linetco.com>
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, see <http://www.gnu.org/licenses>.
+
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this Program, or any covered work, by linking or combining it
+with libraries to access the hardware of devices under test, containing
+parts covered by the terms of a different license, the licensors of
+this Program grant you additional permission to convey the resulting work.
+
+
+This program contains code from the following other projects:
+
+This program contains parts of SUPERCOP which is originally in the public domain.
+xbx\platforms\lpc1114-evb\microbuilder_sdk	LPC1114 Code Base, microBuilder SARL, Roel Verdult, originally 3-clause BSD License
+xbh\atmega644	AVR Webserver, Ulrich Radig, originally GPLv2 or later
+xbx\platforms\atmega_common\hal\drivers Procyon AVRlib,Pascal Stang, originally GPLv2 or later
+ 

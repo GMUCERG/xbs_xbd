@@ -1,0 +1,33 @@
+function inBlacklist
+{
+  dir=$1
+  dirchecksum=$2
+
+  if grep -q -F "$dir $dirchecksum" $XBXPATH/BLACKLIST
+  then
+    return 0
+  fi    
+
+  if [ -e "$platformDir/BLACKLIST" ]
+  then 
+
+    if grep -q -F "$dir $dirchecksum" $platformDir/BLACKLIST
+    then
+      return 0
+    fi
+   fi
+ 
+
+  if [ -n "$templatePlatformDir" ]
+  then 
+    if [ -e "$templatePlatformDir/BLACKLIST" ]
+    then
+      if grep -q -F "$dir $dirchecksum" $templatePlatformDir/BLACKLIST
+      then
+        return 0
+      fi
+    fi
+  fi
+
+  return 1
+}
