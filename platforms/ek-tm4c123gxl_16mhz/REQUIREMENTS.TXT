@@ -3,3 +3,6 @@ submodule is checked out and ensure the symlinks in hal/drivers to the
 hal/tivaware contents work.
 
 Run git submodule init and git submodule update
+
+Obtain lm4flash and use it to flash the bootloader
+

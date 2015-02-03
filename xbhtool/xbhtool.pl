@@ -476,8 +476,8 @@ if($doStatus) {
 if($doXBHRev) {
   my ($gitrev,$mac)=$xbh->getXBHRev();
   defined($gitrev) || bailOut("get xbh git revision failed");
-  print "Git Revision:".$gitrev."\n";
-  print "MAC Address:".$mac."\n"; 
+  print "Git Revision: ".$gitrev."\n";
+  print "MAC Address: ".$mac."\n"; 
 }
 
 if($doBLRev) {
