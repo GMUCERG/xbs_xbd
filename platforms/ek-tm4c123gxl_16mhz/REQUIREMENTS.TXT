@@ -1,45 +1,5 @@
-In order to get this hal running, you will need to place the following files 
-from the developer/evaluation kit in the hal/drivers subdirectory
+In order to get this hal running, you will need to initialize the hal/tivaware
+submodule is checked out and ensure the symlinks in hal/drivers to the
+hal/tivaware contents work.
 
-Important:
-The header-files (*.h) have to be placed in the appropriate subdirectories of
-hal/drivers while the implementation files (*.c) must reside directly in the hal/drivers
-directory.
-
-
-The files can be found at the following locations in the kit:
-
-startup_gcc.c 
-driverlib/sysctl.c 
-driverlib/interrupt.c 
-driverlib/cpu.c
-driverlib/uart.c 
-driverlib/gpio.c 
-driverlib/i2c.c 
-drivers/osram96x16x1.c 
-driverlib/watchdog.c 
-driverlib/systick.c
-driverlib/sysctl.h 
-driverlib/interrupt.h 
-driverlib/cpu.h
-driverlib/uart.h 
-driverlib/gpio.h 
-driverlib/i2c.h
-driverlib/timer.h
-driverlib/debug.h 
-driverlib/watchdog.h
-driverlib/systick.h
-drivers/osram96x16x1.h
-inc/hw_gpio.h 
-inc/hw_ints.h 
-inc/hw_memmap.h
-inc/hw_sysctl.h 
-inc/hw_types.h 
-inc/hw_i2c.h
-inc/hw_nvic.h
-inc/hw_uart.h
-inc/hw_flash.h
-inc/hw_watchdog.h
-inc/hw_timer.h
-
-
+Run git submodule init and git submodule update
