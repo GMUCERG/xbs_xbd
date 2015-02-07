@@ -205,7 +205,7 @@ void XBD_BL_HandleTargetRevisionRequest(){
 		XBD_response[XBD_COMMAND_LEN+i]='0';
 	}
 	XBD_loadStringFromConstDataArea((char *)&XBD_response[XBD_COMMAND_LEN+i], XBD_Rev);
-	realTXlen=XBD_COMMAND_LEN+5+CRC16SIZE;
+	realTXlen=XBD_COMMAND_LEN+gitRevLen+CRC16SIZE;
 }
 
 void FRW_msgRecHand(uint8_t len, uint8_t* data) {
