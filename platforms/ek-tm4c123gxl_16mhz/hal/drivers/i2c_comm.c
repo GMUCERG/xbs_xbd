@@ -15,8 +15,7 @@
 #include "i2c_comm.h"
 
 
-static uint8_t I2cSendData[I2C_SEND_DATA_BUFFER_SIZE];
-static uint8_t I2cReceiveData[I2C_RECEIVE_DATA_BUFFER_SIZE];
+static uint8_t I2cBuff[I2C_BUFFER_SIZE];
 
 // function pointer to i2c receive routine
 //! I2cSlaveReceive is called when this processor
@@ -93,6 +92,7 @@ void i2cHandle(void){
                     }else if(status == I2C_SLAVE_ACT_TREQ){
                         I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_START);
                         state = STATE_TX;
+                        i2cSlaveTransmit(I2C_BUFFER_SIZE, I2cBuff);
                         break;
                     }
                 }
@@ -101,35 +101,32 @@ void i2cHandle(void){
                 if(status == I2C_SLAVE_ACT_RREQ ||
                         status == I2C_SLAVE_ACT_RREQ_FBR){
                     // If invalid, keep reading but discard
-                    if(rx_idx >= I2C_RECEIVE_DATA_BUFFER_SIZE){
+                    if(rx_idx >= I2C_BUFFER_SIZE){
                         rx_idx = 0;
                         invalid = true;
                     }
-                    I2cReceiveData[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
+                    I2cBuff[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
                 }
                 if(I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
                     I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
                     state = STATE_START;
                     if(!invalid){
-                        i2cSlaveReceive(rx_idx, I2cReceiveData);
+                        i2cSlaveReceive(rx_idx, I2cBuff);
                     }
                 }
                 break;
             case STATE_TX:
                 if(status == I2C_SLAVE_ACT_TREQ){
-                    // If invalid, keep reading but discard
-                    if(tx_idx >= I2C_SEND_DATA_BUFFER_SIZE){
+                    // If overflow, just reset counter
+                    if(tx_idx >= I2C_BUFFER_SIZE){
                         tx_idx = 0;
                         invalid = true;
                     }
-                    MAP_I2CSlaveDataPut(I2C1_BASE, I2cSendData[tx_idx++]);
+                    MAP_I2CSlaveDataPut(I2C1_BASE, I2cBuff[tx_idx++]);
                 }
                 if(I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
                     I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
                     state = STATE_START;
-                    if(!invalid){
-                        i2cSlaveTransmit(I2C_SEND_DATA_BUFFER_SIZE, I2cSendData);
-                    }
                 }
                 break;
         }
@@ -138,11 +135,11 @@ void i2cHandle(void){
         status = I2CSlaveStatus(I2C1_BASE) & ~(I2C_SLAVE_ACT_RREQ_FBR & (~I2C_SLAVE_ACT_RREQ));
 
         // Protect against buffer overflows
-        if(rx_idx >= I2C_RECEIVE_DATA_BUFFER_SIZE){
+        if(rx_idx >= I2C_BUFFER_SIZE){
             rx_idx = 0;
             invalid = true;
         }
-        if(tx_idx >= I2C_SEND_DATA_BUFFER_SIZE){
+        if(tx_idx >= I2C_BUFFER_SIZE){
             tx_idx = 0;
             invalid = true;
         }
@@ -150,21 +147,21 @@ void i2cHandle(void){
         // If state transition, perform appropriate actions
         if(status != last_status){
             if(last_status == I2C_SLAVE_ACT_RREQ){
-                i2cSlaveReceive(rx_idx, I2cReceiveData);
+                i2cSlaveReceive(rx_idx, I2cBuff);
                 rx_idx = 0;
             }
             if(status == I2C_SLAVE_ACT_TREQ){
                 tx_idx = 0;
-                i2cSlaveTransmit(I2C_SEND_DATA_BUFFER_SIZE, I2cSendData);
+                i2cSlaveTransmit(I2C_BUFFER_SIZE, I2cBuff);
             }
         }
 
         switch(status){
             case I2C_SLAVE_ACT_RREQ:
-                I2cReceiveData[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
+                I2cBuff[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
                 break;
             case I2C_SLAVE_ACT_TREQ:
-                MAP_I2CSlaveDataPut(I2C1_BASE, I2cSendData[tx_idx++]);
+                MAP_I2CSlaveDataPut(I2C1_BASE, I2cBuff[tx_idx++]);
                 break;
             default:
                 break;
