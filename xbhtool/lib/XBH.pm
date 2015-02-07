@@ -101,15 +101,15 @@ sub execXBHCommand {
     $self->{cmdPending}=$command;  
     $self->{error}=0;
     $self->{lastAnswerData}=0;
-    if($self->{proto} eq "tcp"){
-        # TCP is streambased, need to delineate messages
-        my $msg = "XBH".$protoVersion.$command."r".$data;
-        $msg = sprintf("%0".$CMDLEN_SZ."x:", length $msg).$msg;
-        $self->{sock}->send($msg);
-
-    } else{
+#    if($self->{proto} eq "tcp"){
+#        # TCP is streambased, need to delineate messages
+#        my $msg = "XBH".$protoVersion.$command."r".$data;
+#        $msg = sprintf("%0".$CMDLEN_SZ."x:", length $msg).$msg;
+#        $self->{sock}->send($msg);
+#
+#    } else{
         $self->{sock}->send("XBH".$protoVersion.$command."r".$data);
-    }
+#    }
 
 }
 
