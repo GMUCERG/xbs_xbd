@@ -127,3 +127,6 @@ targz:
 ## Generate and autoupdate XBD_version.h
 xbxdir = ../../../..
 include ../../../../embedded/xbd/xbd_af/version.mk
+-include *.d
+-include xbd_af/*.d
+-include xbd_bl/*.d
