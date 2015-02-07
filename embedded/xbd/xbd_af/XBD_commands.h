@@ -10,7 +10,7 @@
 
 #include <XBD_HAL.h>
 
-#define XBD_PROTO_VERSION "03"
+#define XBD_PROTO_VERSION "04"
 
 
 #define REVNSIZE 7
