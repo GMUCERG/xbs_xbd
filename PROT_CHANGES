@@ -1,0 +1,5 @@
+XBD (03->04): 
+    REVNSIZE/REVISIZE changed from 5 to 7 to support use of git
+
+XBH (03->04):
+
