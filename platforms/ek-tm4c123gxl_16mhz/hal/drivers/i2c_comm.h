@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include <inc/hw_memmap.h>
 
-#define I2C_SEND_DATA_BUFFER_SIZE   32
-#define I2C_RECEIVE_DATA_BUFFER_SIZE   160
+//#define I2C_SEND_DATA_BUFFER_SIZE   32
+#define I2C_BUFFER_SIZE   160
 
 
 
