@@ -195,17 +195,18 @@ void XBD_BL_HandleTimingCalibrationRequest(){
 
 void XBD_BL_HandleTargetRevisionRequest(){
 	uint8_t i;
-	uint8_t gitRevLen = strlen(XBD_Rev);
+	uint8_t revLen = strlen(XBD_Rev);
+
+    revLen = (revLen > REVNSIZE) ? REVNSIZE: revLen;
 
 	XBD_loadStringFromConstDataArea((char *)XBD_response, XBDtro);
 	
-	// Report git Rev in 40 digits length
-	for(i=0;i<40-gitRevLen;++i)
+	for(i=0;i<REVNSIZE-revLen;++i)
 	{
 		XBD_response[XBD_COMMAND_LEN+i]='0';
 	}
 	XBD_loadStringFromConstDataArea((char *)&XBD_response[XBD_COMMAND_LEN+i], XBD_Rev);
-	realTXlen=XBD_COMMAND_LEN+gitRevLen+CRC16SIZE;
+	realTXlen=XBD_COMMAND_LEN+REVNSIZE+CRC16SIZE;
 }
 
 void FRW_msgRecHand(uint8_t len, uint8_t* data) {
@@ -302,6 +303,7 @@ void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 }
 
 uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
+    size_t txLen;
  	if(maxlen <= CRC16SIZE) {
         	XBD_debugOut("MsgTraHand: Maxlen too small: ");
         	XBD_debugOutHexByte(maxlen);
@@ -316,9 +318,12 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 		maxlen = XBD_ANSWER_MAXLEN;
 	}
 
-	memcpy((char*) data, (char *)XBD_response, maxlen-CRC16SIZE);
-	crc = crc16buffer(data, realTXlen-CRC16SIZE);                
-	uint8_t *target=data+realTXlen-CRC16SIZE;             
+    // Truncate transmission if greater than maxlen
+    txLen = realTXlen > maxlen ? maxlen: realTXlen;
+
+	memcpy((char*) data, (char *)XBD_response, txLen-CRC16SIZE);
+	crc = crc16buffer(data, txLen-CRC16SIZE);                
+	uint8_t *target=data+txLen-CRC16SIZE;             
 	PACK_CRC(crc,target);
 	//XBD_debugOutBuffer("FRW_msgTraHand", data, maxlen);
 	return maxlen;

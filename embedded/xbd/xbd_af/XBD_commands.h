@@ -13,7 +13,7 @@
 #define XBD_PROTO_VERSION "03"
 
 
-#define REVNSIZE 40
+#define REVNSIZE 7
 #define TIMESIZE 4
 #define ADDRSIZE 4
 #define SEQNSIZE 4
