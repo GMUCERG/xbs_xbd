@@ -33,7 +33,7 @@
 #define FLASH_ADDR_MAX (0x0003FFFF)
 
 /** minimum flash address, if boot loader resides below app */
-#define FLASH_ADDR_MIN (0x2400)
+#define FLASH_ADDR_MIN (0x2800)
 
 #define DEVICE_SPECIFIC_SANE_TC_VALUE 600000
 
