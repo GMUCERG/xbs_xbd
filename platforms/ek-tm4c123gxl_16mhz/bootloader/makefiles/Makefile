@@ -47,7 +47,8 @@ CFLAGS+=-mthumb             \
        -DPART_${PART}      \
        -c
 CFLAGS += -I$(PATH_HAL)/ -I$(PATH_AF) -I$(PATH_HAL)/drivers/
-CFLAGS += -Dgcc
+CFLAGS += -Dgcc 
+CFLAGS += -ggdb3 -O0
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
