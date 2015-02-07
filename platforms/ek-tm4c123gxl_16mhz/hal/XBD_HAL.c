@@ -38,6 +38,7 @@
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
 extern uint8_t _ebss;  ///<Last used byte of the last segment in RAM (defined by the linker)
 
+void XBD_switchToBootLoader(void) ;
 void XBD_init() {
   /* inititalisation code, called once */
     //
@@ -69,6 +70,13 @@ void XBD_init() {
     MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
+
+
+    // Configure Software reset pin
+    MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_5);
+    MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_5, GPIO_HIGH_LEVEL);
+    GPIOIntRegister(GPIO_PORTA_BASE, XBD_switchToBootLoader);
+    MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_5);
 
     // Configure execution signal pin
     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_6);
