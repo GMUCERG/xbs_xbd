@@ -296,6 +296,7 @@ void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 
 	//no known command recognized
 	XBD_loadStringFromConstDataArea((char *)XBD_response, XBDunk);
+    realTXlen = strlen(XBDunk);
 	#ifdef XBX_DEBUG_BL
 	XBD_debugOut((char *)XBD_response);
 	XBD_debugOut("\n");
@@ -319,7 +320,7 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 	}
 
     // Truncate transmission if greater than maxlen
-    txLen = realTXlen > maxlen ? maxlen: realTXlen;
+    txLen = (realTXlen > maxlen) ? maxlen: realTXlen;
 
 	memcpy((char*) data, (char *)XBD_response, txLen-CRC16SIZE);
 	crc = crc16buffer(data, txLen-CRC16SIZE);                
