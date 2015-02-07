@@ -38,36 +38,34 @@
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
 extern uint8_t _ebss;  ///<Last used byte of the last segment in RAM (defined by the linker)
 
-void writeByte(unsigned char byte);
-
 void XBD_init() {
   /* inititalisation code, called once */
     //
     // Set the clocking to run directly from the crystal. 16MHz
     //
-    SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
+    MAP_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
                        SYSCTL_XTAL_16MHZ);
 
 	/* enable uart0 for debug output */
    //
     // Enable the peripherals used by this example.
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
     //Configure UART pins
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
+    MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
+    MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
 
     //
     // Set GPIO A0 and A1 as UART pins.
     //
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
     //
     // Configure the UART for 115200, 8-N-1 operation.
     //
-    UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+    MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
 
@@ -89,19 +87,21 @@ void XBD_init() {
     GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_0);
  	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
 #endif
+    i2cSetSlaveReceiveHandler(FRW_msgRecHand);
+    i2cSetSlaveTransmitHandler(FRW_msgTraHand);
     i2cInit(SLAVE_ADDR);
 }
 
 
 inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
- 	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 0);
+ 	MAP_GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 0);
 
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
- 	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
+ 	MAP_GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
 }
 
 
@@ -111,9 +111,12 @@ void XBD_debugOut(char *message) {
 
 
    char *m=message;
-	while(*m) UARTCharPut(UART0_BASE, *m++);
-
-   
+	while(*m){
+        if(*m == '\n'){
+            UARTCharPut(UART0_BASE, '\r');
+        }
+        UARTCharPut(UART0_BASE, *m++);
+    }
 }
 
 
@@ -163,7 +166,7 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
 void XBD_switchToApplication() {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
-   (*((void (*)(void))(*(unsigned long *)0x2000)))();
+   (*((void (*)(void))(*(unsigned long *)FLASH_ADDR_MIN)))();
 }
 
 
@@ -177,17 +180,17 @@ uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles) {
 
 	volatile uint32_t exactCycles;
 
- 	SysTickDisable();
-	SysTickIntDisable();
-	SysTickPeriodSet(approxCycles+10000);
+ 	MAP_SysTickDisable();
+	MAP_SysTickIntDisable();
+	MAP_SysTickPeriodSet(approxCycles+10000);
 	HWREG(NVIC_ST_CURRENT)=0;
 
-	SysTickEnable();
+	MAP_SysTickEnable();
 	XBD_sendExecutionStartSignal();
 
 	while( (exactCycles=SysTickValueGet()) > 10000);
 
-	SysTickDisable();
+	MAP_SysTickDisable();
 	XBD_sendExecutionCompleteSignal();
 
 	exactCycles = (approxCycles+10000)-SysTickValueGet();
@@ -197,16 +200,16 @@ uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles) {
 void XBD_delayCycles(uint32_t approxCycles) {
 	volatile uint32_t exactCycles;
 
- 	SysTickDisable();
-	SysTickIntDisable();
-	SysTickPeriodSet(approxCycles+10000);
+ 	MAP_SysTickDisable();
+	MAP_SysTickIntDisable();
+	MAP_SysTickPeriodSet(approxCycles+10000);
 	HWREG(NVIC_ST_CURRENT)=0;
 
-	SysTickEnable();
+	MAP_SysTickEnable();
 
 	while( (exactCycles=SysTickValueGet()) > 10000);
 
-	SysTickDisable();
+	MAP_SysTickDisable();
 
 	return;
 }

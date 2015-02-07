@@ -7,7 +7,7 @@
 #platform="atmega1281_16mhz"
 #platform="sample"
 #platform="artila_m501"
-platform=tm4c123gh6pm_16mhz
+platform=ek-tm4c123gxl_16mhz
 #platform=pc_linux
 
 # compile again, although binaries exist? 
