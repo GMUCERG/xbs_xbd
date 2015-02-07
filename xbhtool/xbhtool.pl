@@ -483,7 +483,7 @@ if($doXBHRev) {
 if($doBLRev) {
   my $gitrev=$xbh->getBLRev();
   defined($gitrev) || bailOut("get bl git revision failed");
-  print "Git Revision:".$gitrev."\n";
+  print "Git Revision: ".$gitrev."\n";
 }
 
 
