@@ -78,19 +78,19 @@ void i2cHandle(void){
     size_t tx_idx;
 
     while(true){
-        status = I2CSlaveStatus(I2C1_BASE);
+        status = MAP_I2CSlaveStatus(I2C1_BASE);
 
         switch(state){
             case STATE_START:
-                if(I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_START){
+                if(MAP_I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_START){
                     rx_idx = 0;
                     tx_idx = 0;
                     invalid = false;
                     if(status == I2C_SLAVE_ACT_RREQ_FBR){
-                        I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_START);
+                        MAP_I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_START);
                         state = STATE_RX;
                     }else if(status == I2C_SLAVE_ACT_TREQ){
-                        I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_START);
+                        MAP_I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_START);
                         state = STATE_TX;
                         i2cSlaveTransmit(I2C_BUFFER_SIZE, I2cBuff);
                         break;
@@ -107,8 +107,8 @@ void i2cHandle(void){
                     }
                     I2cBuff[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
                 }
-                if(I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
-                    I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
+                if(MAP_I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
+                    MAP_I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
                     state = STATE_START;
                     if(!invalid){
                         i2cSlaveReceive(rx_idx, I2cBuff);
@@ -124,51 +124,12 @@ void i2cHandle(void){
                     }
                     MAP_I2CSlaveDataPut(I2C1_BASE, I2cBuff[tx_idx++]);
                 }
-                if(I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
-                    I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
+                if(MAP_I2CSlaveIntStatusEx(I2C1_BASE, false) & I2C_SLAVE_INT_STOP){
+                    MAP_I2CSlaveIntClearEx(I2C1_BASE, I2C_SLAVE_INT_STOP);
                     state = STATE_START;
                 }
                 break;
         }
-#if 0
-/*{{{*/
-        status = I2CSlaveStatus(I2C1_BASE) & ~(I2C_SLAVE_ACT_RREQ_FBR & (~I2C_SLAVE_ACT_RREQ));
-
-        // Protect against buffer overflows
-        if(rx_idx >= I2C_BUFFER_SIZE){
-            rx_idx = 0;
-            invalid = true;
-        }
-        if(tx_idx >= I2C_BUFFER_SIZE){
-            tx_idx = 0;
-            invalid = true;
-        }
-
-        // If state transition, perform appropriate actions
-        if(status != last_status){
-            if(last_status == I2C_SLAVE_ACT_RREQ){
-                i2cSlaveReceive(rx_idx, I2cBuff);
-                rx_idx = 0;
-            }
-            if(status == I2C_SLAVE_ACT_TREQ){
-                tx_idx = 0;
-                i2cSlaveTransmit(I2C_BUFFER_SIZE, I2cBuff);
-            }
-        }
-
-        switch(status){
-            case I2C_SLAVE_ACT_RREQ:
-                I2cBuff[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
-                break;
-            case I2C_SLAVE_ACT_TREQ:
-                MAP_I2CSlaveDataPut(I2C1_BASE, I2cBuff[tx_idx++]);
-                break;
-            default:
-                break;
-        }
-
-        last_status = status;/*}}}*/
-#endif
     }
 }
 
