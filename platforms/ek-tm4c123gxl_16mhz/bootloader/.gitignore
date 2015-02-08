@@ -1,1 +1,3 @@
-ignore openocd.log
+openocd.log
+flash_bootloader.sh
+openocd.cfg
