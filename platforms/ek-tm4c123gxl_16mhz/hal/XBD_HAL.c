@@ -53,7 +53,7 @@ void XBD_init() {
     //
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
 
     //Configure UART pins
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
@@ -79,7 +79,8 @@ void XBD_init() {
     MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_5);
 
     // Configure execution signal pin
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_6);
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5);
+ 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
 
 #if 0 //we use i2c instead
    /* enable uart1 for xbd<-> xbh comm */
@@ -107,13 +108,13 @@ void XBD_init() {
 
 inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
- 	MAP_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_6, 0);
+ 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
 
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
- 	MAP_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_6, GPIO_PIN_6);
+ 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
 }
 
 
