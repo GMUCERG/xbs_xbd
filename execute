@@ -195,7 +195,7 @@ do
         lastBinary=$binary
         
         # test checksum
-        outputfile=`tempfile`
+        outputfile=`mktemp`
         doTimeStamp
         $xbhCall -c -e > "$outputfile"
         returnCode=`head -n 1 "$outputfile"`
