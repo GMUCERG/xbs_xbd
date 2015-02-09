@@ -12,6 +12,8 @@
 #include <driverlib/sysctl.h>
 #include <driverlib/i2c.h>
 
+#include <XBD_HAL.h>
+
 #include "i2c_comm.h"
 
 
@@ -104,6 +106,7 @@ void i2cHandle(void){
                     if(rx_idx >= I2C_BUFFER_SIZE){
                         rx_idx = 0;
                         invalid = true;
+                        XBD_debugOut("I2C RX Overflow!!\n");
                     }
                     I2cBuff[rx_idx++] = MAP_I2CSlaveDataGet(I2C1_BASE);
                 }
@@ -121,6 +124,7 @@ void i2cHandle(void){
                     if(tx_idx >= I2C_BUFFER_SIZE){
                         tx_idx = 0;
                         invalid = true;
+                        XBD_debugOut("I2C TX Overflow!!\n");
                     }
                     MAP_I2CSlaveDataPut(I2C1_BASE, I2cBuff[tx_idx++]);
                 }
