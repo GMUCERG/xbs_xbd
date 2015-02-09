@@ -2,6 +2,7 @@
 
 . lib/settingsreader || exit -1
 
+PROTOVER="04"
 if [ -z $1 ]
 then
   echo "$0 XBH-IP [XBH-Port]"
@@ -44,7 +45,7 @@ fi
 
 
 status=`$xbhCall -r` 
-if [ "$status" != "XBD03BLo" ] && [ "$status" != "XBD03AFo" ]
+if [ "$status" != "XBD${PROTOVER}BLo" ] && [ "$status" != "XBD${PROTOVER}AFo" ]
 then
   echo "Status request failed. XBD communication troubles?."
   echo "Exiting.";
