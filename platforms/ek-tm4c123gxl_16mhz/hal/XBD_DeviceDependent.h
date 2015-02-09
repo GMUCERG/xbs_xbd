@@ -26,7 +26,7 @@
 #define PAGESIZE (1024)
 /** mask for alignment of page boundaries, keep at this value if there is no
 * page concept */
-#define PAGE_ALIGN_MASK ~PAGESIZE
+#define PAGE_ALIGN_MASK 0xfffffc00
 
 
 /** maximum flash / binary storage size */
@@ -35,7 +35,7 @@
 /** minimum flash address, if boot loader resides below app */
 #define FLASH_ADDR_MIN (0x2800)
 
-#define DEVICE_SPECIFIC_SANE_TC_VALUE 600000
+#define DEVICE_SPECIFIC_SANE_TC_VALUE (1000000)
 
 // Use extern end to find end of .bss instead
 //#define TM4C123GH6PM_STACKTOP ((uint8_t *)0x20002000)
