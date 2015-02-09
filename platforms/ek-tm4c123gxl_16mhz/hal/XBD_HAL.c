@@ -133,6 +133,10 @@ void XBD_debugOut(char *message) {
 }
 
 
+// For driverlib w/ -DDEBUG, no-op here
+void __error__(char* filename, uint32_t line){
+}
+
 
 
 //#include <XBD_streamcomm.i>
