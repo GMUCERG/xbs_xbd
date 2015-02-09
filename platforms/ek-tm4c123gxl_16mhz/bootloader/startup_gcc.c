@@ -71,7 +71,7 @@ static uint32_t pui32Stack[64];
 // ensure that it ends up at physical address 0x0000.0000.
 //
 //*****************************************************************************
-__attribute__ ((section(".isr_vector")))
+__attribute__ ((used,section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
     (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)),
@@ -244,7 +244,7 @@ extern uint32_t _data;
 extern uint32_t _edata;
 extern uint32_t _bss;
 extern uint32_t _ebss;
-extern uint32_t __exidx_end;
+extern uint32_t _ldata;
 
 //*****************************************************************************
 //
@@ -264,7 +264,7 @@ ResetISR(void)
     //
     // Copy the data segment initializers from flash to SRAM.
     //
-    pui32Src = &__exidx_end;
+    pui32Src = &_ldata;
     for(pui32Dest = &_data; pui32Dest < &_edata; )
     {
         *pui32Dest++ = *pui32Src++;
