@@ -166,16 +166,17 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
     FlashProgram((uint32_t *)buf, pageStartAddress, PAGESIZE);
 
 }
-
+ __attribute__ ( ( naked ) )
 void XBD_switchToApplication() {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
-   (*((void (*)(void))(*(unsigned long *)FLASH_ADDR_MIN)))();
+   //((void(*)(void))FLASH_ADDR_MIN)();
+   asm("mov pc,%[addr] "::[addr] "r" (FLASH_ADDR_MIN));
 }
 
 
 void XBD_switchToBootLoader() {
-    SysCtlReset();
+    MAP_SysCtlReset();
 }
 
 uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles) {
