@@ -61,13 +61,14 @@ SECTIONS
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
         __exidx_end = .;
     } > FLASH
-    .data : AT(ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx))
+    .data : /* AT(ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx))*/
     {
         _data = .;
         *(vtable)
         *(.data*)
         _edata = .;
-    } > SRAM
+    } > SRAM AT >FLASH 
+    _ldata = LOADADDR(.data);
     .bss :
     {
         _bss = .;
