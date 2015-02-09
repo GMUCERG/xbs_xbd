@@ -55,7 +55,13 @@ SECTIONS
         *(.rodata*)
         _etext = .;
     } > FLASH
-    .data : AT(ADDR(.text) + SIZEOF(.text))
+/* Needed for 64-bit divide */
+    .ARM.exidx : { 
+        __exidx_start = .;
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
+        __exidx_end = .;
+    } > FLASH
+    .data : AT(ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx))
     {
         _data = .;
         *(vtable)

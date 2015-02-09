@@ -65,6 +65,7 @@ extern uint32_t _data;
 extern uint32_t _edata;
 extern uint32_t _bss;
 extern uint32_t _ebss;
+extern uint32_t __exidx_end;
 
 //*****************************************************************************
 //
@@ -83,7 +84,7 @@ ResetISR(void) {
     //
     // Copy the data segment initializers from flash to SRAM.
     //
-    pui32Src = &_etext;
+    pui32Src = &__exidx_end;
     for(pui32Dest = &_data; pui32Dest < &_edata; )
     {
         *pui32Dest++ = *pui32Src++;
