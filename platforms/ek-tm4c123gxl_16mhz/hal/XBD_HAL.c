@@ -139,19 +139,6 @@ void __error__(char* filename, uint32_t line){
 
 
 
-//#include <XBD_streamcomm.i>
-/*
-* XBD_streamcomm.i
-* Provides emulation of TWI (I▓C) over stream oriented channel (e.g. UART).
-* May be included by HALs that want to use it, otherwise unused.
-* Requires the HAL to provide
-*
-* unsigned char readByte();
-* and
-* void writeByte(unsigned char byte);
-*
-* (both blocking)
-*/
 
 void XBD_loadStringFromConstDataArea( char *dst, const char *src  ) {
   /* copy a zero terminated string from src (CONSTDATAAREA) to dst 
