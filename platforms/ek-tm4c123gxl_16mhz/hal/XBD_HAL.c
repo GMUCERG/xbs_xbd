@@ -36,7 +36,7 @@
 
 /* your functions / global variables here */
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
-extern uint8_t _ebss;  ///<Last used byte of the last segment in RAM (defined by the linker)
+extern uint32_t pui32Stack[1024];
 
 void XBD_switchToBootLoader(void) ;
 void XBD_init() {
@@ -171,7 +171,7 @@ void XBD_switchToApplication() {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
    //((void(*)(void))FLASH_ADDR_MIN)();
-   asm("mov pc,%[addr] "::[addr] "r" (FLASH_ADDR_MIN));
+   asm("mov pc,%[addr]"::[addr] "r" (FLASH_ADDR_MIN));
 }
 
 
@@ -235,7 +235,7 @@ uint8_t inv_sc=0;
 void XBD_paintStack(void) {
     register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
-	p = &_ebss; //bottom of stack, end of bss
+	p = (uint8_t *)pui32Stack; 
 	inv_sc=!inv_sc;
 	//getSP(&p_stack);
     p_stack = __stackptr;
@@ -250,7 +250,7 @@ void XBD_paintStack(void) {
 
 uint32_t XBD_countStack(void) {
 /* return stack measurement result */
-    p = &_ebss;
+    p = (uint8_t *)pui32Stack;
     register uint32_t c = 0;
 
     while(*p == STACK_CANARY && p <= p_stack)
