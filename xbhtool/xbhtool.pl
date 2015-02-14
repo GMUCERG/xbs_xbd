@@ -161,7 +161,7 @@ sub printHelp
   print "  -z, --stackUsage\t Stack Usage report\n";
   print "  -y, --timingCal\t Timing Calibration report\n";
   print "\nOPTIONS:\n";
-  print "  -i, --ip IP\t\t Connect to XBH at this address ($targetIp)\n";
+  print "  -i, --ip IP\t\t Connect to XBH at this address ($targetIp), or hostname\n";
   print "  -p, --port PORT\t Connect to XBH at this port 22594 => UDP, 22595 => TCP ($targetPort)\n";
   print "  -s, --pagesize SIZE\t Page size of the device's flash ($pageSize)\n"; 
   print "  -f, --filetype TYPE\t Type of application file to upload: hex (default), bin\n";
