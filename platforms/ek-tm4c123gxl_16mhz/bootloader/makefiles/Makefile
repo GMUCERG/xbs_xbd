@@ -48,7 +48,7 @@ CFLAGS+=-mthumb             \
        -c
 CFLAGS += -I$(PATH_HAL)/ -I$(PATH_AF) -I$(PATH_HAL)/drivers/
 CFLAGS += -DTARGET_IS_TM4C123_RA1
-CFLAGS += -Dgcc -DXBD_BL
+CFLAGS += -Dgcc -DBOOTLOADER
 #CFLAGS += -flto
 CFLAGS += -ggdb3 -Os -DDEBUG -DDEBUG_BL -DDEBUG_APP
 

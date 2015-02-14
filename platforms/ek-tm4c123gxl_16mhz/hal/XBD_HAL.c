@@ -71,7 +71,7 @@ void XBD_init() {
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
 
-#ifdef XBD_BL
+#ifdef BOOTLOADER
     IntEnable(INT_GPIOA);
     // Configure Software reset pin
     MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_5);
