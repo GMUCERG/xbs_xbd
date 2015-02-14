@@ -69,6 +69,13 @@ extern uint32_t _ldata;
 
 //*****************************************************************************
 //
+// Reserve 4kB space for the system stack.
+//
+//*****************************************************************************
+uint32_t pui32Stack[1024];
+
+//*****************************************************************************
+//
 // This is the code that gets called when the processor first starts execution
 // following a reset event.  Only the absolutely necessary set is performed,
 // after which the application supplied entry() routine is called.  Any fancy
@@ -77,9 +84,14 @@ extern uint32_t _ldata;
 // application.
 //
 //*****************************************************************************
-void
-ResetISR(void) {
+void ResetISR(void) {
     uint32_t *pui32Src, *pui32Dest;
+
+    //
+    // Set stack pointer
+    //
+    asm("mov sp,%[addr] "::[addr] "r" (((uint8_t*)pui32Stack)+sizeof(pui32Stack)));
+
 
     //
     // Copy the data segment initializers from flash to SRAM.
