@@ -108,7 +108,7 @@ startup_gcc.o: ../startup_gcc.c
 
 
 ##Link
-$(AXFFILE): $(OBJECTS)
+$(AXFFILE): $(OBJECTS) $(PATH_HAL)/XBD_BL.ld 
 	 $(LD) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(AXFFILE)
 	 
 $(TARGET): $(AXFFILE)
