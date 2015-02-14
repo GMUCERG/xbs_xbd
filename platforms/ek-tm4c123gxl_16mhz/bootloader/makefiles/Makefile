@@ -48,9 +48,9 @@ CFLAGS+=-mthumb             \
        -c
 CFLAGS += -I$(PATH_HAL)/ -I$(PATH_AF) -I$(PATH_HAL)/drivers/
 CFLAGS += -DTARGET_IS_TM4C123_RA1
-CFLAGS += -Dgcc 
-CFLAGS += -flto
-#CFLAGS += -ggdb3 -Os -DDEBUG -DDEBUG_BL -DDEBUG_APP
+CFLAGS += -Dgcc -DXBD_BL
+#CFLAGS += -flto
+CFLAGS += -ggdb3 -Os -DDEBUG -DDEBUG_BL -DDEBUG_APP
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)

@@ -71,12 +71,14 @@ void XBD_init() {
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
 
-
+#ifdef XBD_BL
+    IntEnable(INT_GPIOA);
     // Configure Software reset pin
     MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_5);
     MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_5, GPIO_HIGH_LEVEL);
-    GPIOIntRegister(GPIO_PORTA_BASE, XBD_switchToBootLoader);
+//    GPIOIntRegister(GPIO_PORTA_BASE, XBD_switchToBootLoader);
     MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_5);
+#endif
 
     // Configure execution signal pin
     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5);
@@ -174,6 +176,9 @@ void XBD_switchToApplication() {
    asm("mov pc,%[addr]"::[addr] "r" (FLASH_ADDR_MIN));
 }
 
+void isr_PortA(void){
+    MAP_SysCtlReset();
+}
 
 void XBD_switchToBootLoader() {
     MAP_SysCtlReset();
