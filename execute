@@ -5,7 +5,7 @@
 PROTOVER="04"
 if [ -z $1 ]
 then
-  echo "$0 XBH-IP [XBH-Port]"
+  echo "$0 XBH-Address [XBH-Port]"
   exit -1
 fi
 
