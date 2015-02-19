@@ -101,7 +101,19 @@ void XBD_init() {
     // Configure i2c
     i2cSetSlaveReceiveHandler(FRW_msgRecHand);
     i2cSetSlaveTransmitHandler(FRW_msgTraHand);
-    i2cInit(SLAVE_ADDR);
+    i2cInit(SLAVE_ADDR); // uses PA6 and PA7
+
+    //TODO: Find out if grounding GPIO is necessary
+    //This is not indicated in documentation unlike MSP430
+#if 0
+    //Ground unused pins on PortA
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_2|GPIO_PIN_3|GPIO|PIN_4);
+    MAP_GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_2|GPIO_PIN_3|GPIO|PIN_4,0);
+    // Configure execution signal pin
+    // Enable all pins on ports as GPIO outs and set to 0 except pin 5
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_ALL & ~GPIO_PIN_5);
+ 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_ALL & ~GPIO_PIN_5, 0);
+#endif
 }
 
 
