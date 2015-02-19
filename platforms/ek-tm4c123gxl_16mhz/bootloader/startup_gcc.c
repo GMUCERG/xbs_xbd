@@ -64,7 +64,7 @@ extern int main(void);
 // Reserve space for the system stack.
 //
 //*****************************************************************************
-static uint32_t pui32Stack[64];
+static uint32_t pui32Stack[64] __attribute__((aligned(8)));
 
 //*****************************************************************************
 //
