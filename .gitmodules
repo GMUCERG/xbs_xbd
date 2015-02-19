@@ -1,9 +1,9 @@
 [submodule "platforms/ek-tm4c123gxl_16mhz/hal/tivaware"]
 	path = platforms/ek-tm4c123gxl_16mhz/hal/tivaware
-	url = git@github.com:jhnphm/TivaWare_driverlib.git
+	url = https://github.com/jhnphm/TivaWare_driverlib.git
 [submodule "platforms/tools/tiva-c_xtools"]
 	path = platforms/tools/tiva-c_xtools
-	url = git@github.com:jhnphm/tiva-c_xtools.git
+	url = https://github.com/jhnphm/tiva-c_xtools.git
 [submodule "platforms/tools/crosstool-ng"]
 	path = platforms/tools/crosstool-ng
-	url = git@github.com:crosstool-ng/crosstool-ng.git
+	url = https://github.com/jhnphm/crosstool-ng/crosstool-ng.git
