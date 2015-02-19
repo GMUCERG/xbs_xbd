@@ -98,21 +98,7 @@ void XBD_init() {
     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_AHB_BASE, GPIO_PIN_5);
  	MAP_GPIOPinWrite(GPIO_PORTC_AHB_BASE, GPIO_PIN_5, GPIO_PIN_5);
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-    GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_2 | GPIO_PIN_3);
-
-
-    UARTConfigSetExpClk(UART1_BASE, SysCtlClockGet(), 250000,
-                        (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                         UART_CONFIG_PAR_NONE));
-    
-    writeByte('A');
-
-	/* Set PORTD Pin 0 as Output for XBH timing acquisition */
-    GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_0);
- 	GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_0, 1);
-#endif
+    // Configure i2c
     i2cSetSlaveReceiveHandler(FRW_msgRecHand);
     i2cSetSlaveTransmitHandler(FRW_msgTraHand);
     i2cInit(SLAVE_ADDR);
