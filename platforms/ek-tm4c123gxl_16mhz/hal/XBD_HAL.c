@@ -12,33 +12,44 @@
 #include <string.h>
 /* device specific includes */
 
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
+#include <driverlib/rom.h>
+#include <driverlib/rom_map.h>
 
-#include "inc/hw_ints.h"
-#include "inc/hw_flash.h"
-#include "inc/hw_memmap.h"
-#include "inc/hw_nvic.h"
-#include "inc/hw_types.h"
-#include "driverlib/debug.h"
-#include "driverlib/gpio.h"
-#include "driverlib/flash.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/systick.h"
-#include "driverlib/uart.h"
+#include <inc/hw_ints.h>
+#include <inc/hw_flash.h>
+#include <inc/hw_memmap.h>
+#include <inc/hw_nvic.h>
+#include <inc/hw_gpio.h>
+#include <inc/hw_types.h>
+#include <driverlib/debug.h>
+#include <driverlib/gpio.h>
+#include <driverlib/flash.h>
+#include <driverlib/interrupt.h>
+#include <driverlib/pin_map.h>
+#include <driverlib/sysctl.h>
+#include <driverlib/systick.h>
+#include <driverlib/uart.h>
 
 #include "i2c_comm.h"
 
-
 #define SLAVE_ADDR 0x75
-
 /* your functions / global variables here */
 #define STACK_CANARY (inv_sc?0x3A:0xC5)
+
+#define GPIO_PIN_ALL ( \
+        GPIO_PIN_0| \
+        GPIO_PIN_1| \
+        GPIO_PIN_2| \
+        GPIO_PIN_3| \
+        GPIO_PIN_4| \
+        GPIO_PIN_5| \
+        GPIO_PIN_6| \
+        GPIO_PIN_7) 
+
 extern uint32_t pui32Stack[1024];
 
 void XBD_switchToBootLoader(void) ;
+
 void XBD_init() {
   /* inititalisation code, called once */
     //
@@ -81,11 +92,11 @@ void XBD_init() {
 #endif
 
     // Configure execution signal pin
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5);
- 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
-
-#if 0 //we use i2c instead
-   /* enable uart1 for xbd<-> xbh comm */
+    // Enable for AHB
+    // Enable all pins on ports as GPIO outs and set to 0 except pin 5
+    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOC);
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_AHB_BASE, GPIO_PIN_5);
+ 	MAP_GPIOPinWrite(GPIO_PORTC_AHB_BASE, GPIO_PIN_5, GPIO_PIN_5);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -110,13 +121,17 @@ void XBD_init() {
 
 inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
- 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
+    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = 0;
+    //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = 0;
+ 	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
 
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
- 	MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
+    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = GPIO_PIN_5;
+    //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = GPIO_PIN_5;
+ 	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
 }
 
 
