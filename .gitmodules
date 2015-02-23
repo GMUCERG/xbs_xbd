@@ -1,5 +1,5 @@
 [submodule "platforms/ek-tm4c123gxl_16mhz/hal/tivaware"]
-	path = platforms/ek-tm4c123gxl_16mhz/hal/tivaware
+	path = external/tiva-c_driverlib
 	url = https://github.com/jhnphm/TivaWare_driverlib.git
 [submodule "platforms/tools/tiva-c_xtools"]
 	path = platforms/tools/tiva-c_xtools
