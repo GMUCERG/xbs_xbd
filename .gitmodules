@@ -1,9 +1,15 @@
-[submodule "platforms/ek-tm4c123gxl_16mhz/hal/tivaware"]
+[submodule "external/tiva-c_driverlib"]
 	path = external/tiva-c_driverlib
-	url = https://github.com/jhnphm/TivaWare_driverlib.git
-[submodule "platforms/tools/tiva-c_xtools"]
-	path = platforms/tools/tiva-c_xtools
+	url = https://github.com/jhnphm/tiva-c_driverlib.git
+[submodule "external/xbx_supercop"]
+	path = external/xbx_supercop
+	url = https://github.com/jhnphm/xbx_supercop.git
+[submodule "external/tiva-c_xtools"]
+	path = external/tiva-c_xtools
 	url = https://github.com/jhnphm/tiva-c_xtools.git
-[submodule "platforms/tools/crosstool-ng"]
-	path = platforms/tools/crosstool-ng
-	url = https://github.com/jhnphm/crosstool-ng/crosstool-ng.git
+[submodule "external/crosstool-ng"]
+	path = external/crosstool-ng
+	url = https://github.com/crosstool-ng/crosstool-ng.git
+[submodule "xbh"]
+	path = xbh
+	url = https://github.com/jhnphm/xbh.git
