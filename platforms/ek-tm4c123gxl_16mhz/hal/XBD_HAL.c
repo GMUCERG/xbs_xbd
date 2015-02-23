@@ -238,28 +238,28 @@ void XBD_delayCycles(uint32_t approxCycles) {
 }
 
 
-uint8_t *p_stack = NULL;
+volatile uint8_t *p_stack = NULL;
 uint8_t *p = NULL;
 uint8_t inv_sc=0;
 
 
-//void getSP(uint8_t **var_SP)
-//{
-//  volatile uint8_t beacon;
-//  *var_SP=&beacon;
-//  return;
-//}
+void getSP(volatile uint8_t **var_SP)
+{
+  volatile uint8_t beacon;
+  *var_SP=&beacon;
+  return;
+}
 
 void XBD_paintStack(void) {
-    register void * __stackptr asm("sp");   ///<Access to the stack pointer
+    //register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
 	p = (uint8_t *)pui32Stack; 
 	inv_sc=!inv_sc;
-	//getSP(&p_stack);
-    p_stack = __stackptr;
+	getSP(&p_stack);
+    //p_stack = __stackptr;
 
     
-	while(p <= p_stack)
+	while(p < p_stack)
         {
         *p = STACK_CANARY;
         ++p;
