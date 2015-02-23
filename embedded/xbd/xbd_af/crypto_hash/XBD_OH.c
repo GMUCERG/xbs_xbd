@@ -7,6 +7,12 @@
 volatile uint32_t burner;
 volatile uint32_t afterburner;
 
+
+#ifdef __GNUC__
+//Prevent LTO from inlining this function, breaking things, probably related to
+//paintstack
+__attribute__(("no-inline"))
+#endif
 uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer, uint8_t* resultBuffer, uint32_t *p_stackUse) {
 	
 	if( XBD_TYPE_EBASH == parameterType )
