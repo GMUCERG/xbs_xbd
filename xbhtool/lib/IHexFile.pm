@@ -34,6 +34,8 @@ sub read
   
   $self->{data}="";
   my $startAddress=undef;
+  my $lastAddress=undef;
+  my $lastLength=0;
   
   while(<IHEX>) {
     chomp;
@@ -46,21 +48,31 @@ sub read
       my $currentAddress=hex($2);
       if(!defined($startAddress)) {
         $startAddress=$currentAddress;
+        $lastAddress=$currentAddress;
+        $lastLength=0;
       }
       my $data=$3;
+      my $hole_bytes = ($currentAddress - $lastAddress)-$lastLength;
+
       
       if(length($data) != $rowLength*2) {
         die("Invalid length of ihex data: supposed: $rowLength, real:".(length($data)/2)."\n");
       }
+      for(my $i = 0; $i < $hole_bytes; $i++){
+          $self->{data}.="00";
+      }
+
       my $checksum=$4;
       $self->{data}.=$data;
-      # $self->log("$currentAddress: $data");
+      #$self->log("$currentAddress: $data");
+      $lastAddress=$currentAddress;
+      $lastLength = $rowLength;
     } 
   }
   close IHEX;
   $self->{size}=length($self->{data})/2;
   $self->{startAddress}=$startAddress;
-  $self->log("Size of programm code: ".$self->{size}." beginning at ".$startAddress);
+  $self->log("Size of program code: ".$self->{size}." beginning at ".$startAddress);
   return 1;
 }
 
