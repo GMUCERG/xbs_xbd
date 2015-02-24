@@ -57,17 +57,14 @@ SECTIONS
     } > FLASH
 /* Needed for 64-bit divide */
     .ARM.exidx : { 
-        . = ALIGN(8);
+        . = ALIGN(4);
         __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
         __exidx_end = .;
     } > FLASH
     /* Needed to align lma address of .data */
-    .ldata_padding : { 
-        . = ALIGN(8);
-    } > FLASH
-    .data : {
-        . = ALIGN(8);
+    .data : ALIGN(4) {
+        . = ALIGN(4);
         _data = .;
         *(vtable)
         *(.data*)
@@ -75,7 +72,7 @@ SECTIONS
     } > SRAM AT >FLASH 
     _ldata = LOADADDR(.data);
     .bss : {
-        . = ALIGN(8);
+        . = ALIGN(4);
         _bss = .;
         *(.bss*)
         *(COMMON)

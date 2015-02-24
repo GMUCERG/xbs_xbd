@@ -60,10 +60,7 @@ SECTIONS
         __exidx_end = .;
     } > FLASH
     /* Needed to align lma address of .data */
-    .ldata_padding : { 
-        . = ALIGN(4);
-    } > FLASH
-    .data : {
+    .data : ALIGN(4) {
         _data = .;
         *(vtable)
         *(.data*)
