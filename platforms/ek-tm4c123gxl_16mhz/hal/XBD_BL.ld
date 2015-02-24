@@ -59,16 +59,18 @@ SECTIONS
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
         __exidx_end = .;
     } > FLASH
-    .data : /* AT(ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx)) */
-    {
+    /* Needed to align lma address of .data */
+    .ldata_padding : { 
+        . = ALIGN(4);
+    } > FLASH
+    .data : {
         _data = .;
         *(vtable)
         *(.data*)
         _edata = .;
     } > SRAM AT >FLASH 
     _ldata = LOADADDR(.data);
-    .bss :
-    {
+    .bss : {
         _bss = .;
         *(.bss*)
         *(COMMON)
