@@ -5,6 +5,12 @@
 #include <stdint.h>
 
 
+#ifdef DEBUG
+#define XBD_DEBUG(x) XBD_debugOut(x)
+#else
+#define XBD_DEBUG(x) 
+#endif
+
 /** output of checksumming steps (influences checksum duration!)*/
 //#define XBX_DEBUG_CHECKSUMS
 /** output of ebash specific routines */
