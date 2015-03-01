@@ -1,24 +1,32 @@
-/*
+/** 
+ * @file
  * try-anything.c version 20140425
  * D. J. Bernstein
  * Some portions adapted from TweetNaCl by Bernstein, Janssen, Lange, Schwabe.
+ * Modified by John Pham for XBX from SUPERCOP as of 20150222
  * Public domain.
  */
 
-#include <stdio.h>
+/*
+ * Modifications: 
+ * Disabled functions not applicable to microcontrollers
+ * Timing functionality is removed; that's done in measurement phase
+ * Added function to return state to original start
+ */
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/resource.h>
-#include "cpucycles.h"
+#include <stdbool.h>
+
 #include "crypto_uint8.h"
 #include "crypto_uint32.h"
 #include "crypto_uint64.h"
+#include "XBD_debug.h"
 #include "try.h"
 
+
+static unsigned char testvector_n[8];
+
+bool try_failed;
 typedef crypto_uint8 u8;
 typedef crypto_uint32 u32;
 typedef crypto_uint64 u64;
@@ -118,10 +126,10 @@ void randombytes(unsigned char *x,unsigned long long xlen)
   increment(randombytes_n);
 }
 
+
 static void testvector(unsigned char *x,unsigned long long xlen)
 {
   const static unsigned char testvector_k[33] = "generate inputs for test vectors";
-  static unsigned char testvector_n[8];
   salsa20(x,xlen,testvector_n,testvector_k);
   increment(testvector_n);
 }
@@ -152,48 +160,55 @@ static void canary(unsigned char *x,unsigned long long xlen)
 
 void double_canary(unsigned char *x2,unsigned char *x,unsigned long long xlen)
 {
-  canary(x - 16,16);
-  canary(x + xlen,16);
-  memcpy(x2 - 16,x - 16,16);
-  memcpy(x2 + xlen,x + xlen,16);
+  canary(x - CANARY_SZ,CANARY_SZ);
+  canary(x + xlen,CANARY_SZ);
+  memcpy(x2 - CANARY_SZ,x - CANARY_SZ,CANARY_SZ);
+  memcpy(x2 + xlen,x + xlen,CANARY_SZ);
 }
 
 void input_prepare(unsigned char *x2,unsigned char *x,unsigned long long xlen)
 {
   testvector(x,xlen);
-  canary(x - 16,16);
-  canary(x + xlen,16);
-  memcpy(x2 - 16,x - 16,xlen + 32);
+  canary(x - CANARY_SZ,CANARY_SZ);
+  canary(x + xlen,CANARY_SZ);
+  memcpy(x2 - CANARY_SZ,x - CANARY_SZ,xlen + CANARY_SZ*2);
 }
 
 void input_compare(const unsigned char *x2,const unsigned char *x,unsigned long long xlen,const char *fun)
 {
-  if (memcmp(x2 - 16,x - 16,xlen + 32)) {
-    printf("%s overwrites input\n",fun);
-    exit(111);
+  if (memcmp(x2 - CANARY_SZ,x - CANARY_SZ,xlen + CANARY_SZ*2)) {
+      XBD_DEBUG(fun);
+      XBD_DEBUG(" overwrites input");
+      fail("");
   }
 }
 
 void output_prepare(unsigned char *x2,unsigned char *x,unsigned long long xlen)
 {
-  canary(x - 16,xlen + 32);
-  memcpy(x2 - 16,x - 16,xlen + 32);
+  canary(x - CANARY_SZ,xlen + 32);
+  memcpy(x2 - CANARY_SZ,x - CANARY_SZ,xlen + 32);
 }
 
 void output_compare(const unsigned char *x2,const unsigned char *x,unsigned long long xlen,const char *fun)
 {
-  if (memcmp(x2 - 16,x - 16,16)) {
-    printf("%s writes before output\n",fun);
-    exit(111);
+  if (memcmp(x2 - CANARY_SZ,x - CANARY_SZ,CANARY_SZ)) {
+      XBD_DEBUG(fun);
+      XBD_DEBUG(" writes before output");
+      fail("");
   }
-  if (memcmp(x2 + xlen,x + xlen,16)) {
-    printf("%s writes after output\n",fun);
-    exit(111);
+  if (memcmp(x2 + xlen,x + xlen,CANARY_SZ)) {
+      XBD_DEBUG(fun);
+      XBD_DEBUG(" writes after output");
+      fail("");
   }
 }
 
-static unsigned char checksum_state[64];
-static char checksum_hex[65];
+unsigned char checksum_state[64];
+//static char checksum_hex[65];
+void test_reset(void){
+    memset(testvector_n,0,sizeof(testvector_n));
+    memset(checksum_state,0,sizeof(checksum_state));
+}
 
 void checksum(const unsigned char *x,unsigned long long xlen)
 {
@@ -211,44 +226,15 @@ void checksum(const unsigned char *x,unsigned long long xlen)
   core(checksum_state,block,checksum_state);
 }
 
-static void printword(const char *s)
-{
-  if (!*s) putchar('-');
-  while (*s) {
-    if (*s == ' ') putchar('_');
-    else if (*s == '\t') putchar('_');
-    else if (*s == '\r') putchar('_');
-    else if (*s == '\n') putchar('_');
-    else putchar(*s);
-    ++s;
-  }
-  putchar(' ');
-}
-
-static void printnum(long long x)
-{
-  printf("%lld ",x);
-}
-
 void fail(const char *why)
 {
-  printf("%s\n",why);
-  exit(111);
+  XBD_DEBUG(why);
+  XBD_DEBUG("\n");
+  try_failed = true;
 }
+// Below code unused and inapplicable for microcontroller
 
-unsigned char *alignedcalloc(unsigned long long len)
-{
-  unsigned char *x = (unsigned char *) calloc(1,len + 256);
-  long long i;
-  if (!x) fail("out of memory");
-  /* will never deallocate so shifting is ok */
-  for (i = 0;i < len + 256;++i) x[i] = random();
-  x += 64;
-  x += 63 & (-(unsigned long) x);
-  for (i = 0;i < len;++i) x[i] = 0;
-  return x;
-}
-
+#if 0/*{{{*/
 #define TIMINGS 63
 static long long cycles[TIMINGS + 1];
 
@@ -325,3 +311,4 @@ int main()
   printf("\n");
   return 0;
 }
+#endif/*}}}*/

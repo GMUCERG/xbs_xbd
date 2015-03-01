@@ -1,8 +1,10 @@
 #include <stdint.h>
-#include <crypto_hash.h>
-#include <XBD_commands.h>
-#include <XBD_debug.h>
-#include <crypto_hash_checksum.h>
+#include <strings.h>
+#include "crypto_hash.h"
+#include "XBD_commands.h"
+#include "XBD_debug.h"
+#include "crypto_hash_checksum.h"
+#include "try.h"
 
 volatile uint32_t burner;
 volatile uint32_t afterburner;
@@ -86,9 +88,12 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 	XBD_paintStack();
 	*p_stackUse=XBD_countStack();
 	
+    test_reset();
+    test_allocate(parameterBuffer);
+
 	/** Sends the signal "start-of-execution" to the XBH */
 	XBD_sendExecutionStartSignal();
-	uint8_t ret = checksum_compute_hash(resultBuffer+4, parameterBuffer);
+    test();
 	
 	/** Sends the signal "end-of-execution" to the XBH */
 	XBD_sendExecutionCompleteSignal();
@@ -96,7 +101,12 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 	/* Report Stack usage measurement */
 	*p_stackUse=*p_stackUse-XBD_countStack();
 
-	resultBuffer[0]=ret;
+    // Copy back first 32 bytes of checksum state
+    memcpy(resultBuffer+4, checksum_state, 32);
+
+    // If try_failed is true, error has occured
+    // Currently don't report why failed other than via serial port
+	resultBuffer[0]=try_failed?1:0;
 	resultBuffer[1]=0;
 	resultBuffer[2]=0;
 	resultBuffer[3]=0;
@@ -104,11 +114,10 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 	/* stop the watchdog */
 	XBD_stopWatchDog();
 	
-	#ifdef XBX_DEBUG_EBASH
-   	XBD_debugOut("\ncrypto_hash ret="), XBD_debugOutHexByte(ret);
+	#ifdef XBX_DEBUG
 	XBD_debugOutBuffer("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
-        #endif
+    #endif
 
 	//prepare 'OK' response to XBH
-	return 0;
+	return resultBuffer[0];
 }
