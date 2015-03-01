@@ -8,7 +8,6 @@
 #include <XBD_crc.h>
 #include "XBD_multipacket.h"
 
-
 uint8_t XBD_response[XBD_COMMAND_LEN+1];
 
 #define XBD_PARAMLENG_MAX (2048+ADDRSIZE)
@@ -204,7 +203,7 @@ void XBD_AF_HandleParameterDownloadRequest(uint8_t len, uint8_t* data) {
 		XBD_loadStringFromConstDataArea(buf, XBDpdf);
 	}
 
-        #ifdef XBX_DEBUG_APP
+    #ifdef XBX_DEBUG_APP
 	XBD_debugOutChar('\n');
 	XBD_debugOut(buf);
 	XBD_debugOutChar('\n');
@@ -599,8 +598,10 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 	crc = crc16buffer(data, realTXlen-CRC16SIZE);
 	uint8_t *target=data+realTXlen-CRC16SIZE; 
 	PACK_CRC(crc,target);	
+#ifdef XBX_DEBUG_APP
 	// do not remove this debug out, there's a timing problem otherwise with i2c
         XBD_debugOutBuffer("FRW_msgTraHand", data, realTXlen);
+#endif
         return maxlen;
 }
 
