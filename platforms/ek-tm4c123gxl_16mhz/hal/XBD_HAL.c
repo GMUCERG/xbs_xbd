@@ -243,6 +243,7 @@ uint8_t *p = NULL;
 uint8_t inv_sc=0;
 
 
+ __attribute__ ( ( noinline ) )
 void getSP(volatile uint8_t **var_SP)
 {
   volatile uint8_t beacon;
