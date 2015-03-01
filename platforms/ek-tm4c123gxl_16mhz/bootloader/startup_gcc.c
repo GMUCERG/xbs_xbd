@@ -50,7 +50,7 @@ void ResetISR(void);
 static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
-extern void isr_PortA(void);
+extern void soft_reset(void);
 
 //*****************************************************************************
 //
@@ -82,7 +82,7 @@ void (* const g_pfnVectors[])(void) =
 #ifdef DEBUG                                // If not debug, reset the whole thing
     FaultISR,                               // The hard fault handler
 #else
-    ResetISR,
+    soft_reset,
 #endif
     IntDefaultHandler,                      // The MPU fault handler
     IntDefaultHandler,                      // The bus fault handler
@@ -96,7 +96,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
     IntDefaultHandler,                      // The SysTick handler
-    isr_PortA,                              // GPIO Port A
+    soft_reset,                             // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
     IntDefaultHandler,                      // GPIO Port C
     IntDefaultHandler,                      // GPIO Port D

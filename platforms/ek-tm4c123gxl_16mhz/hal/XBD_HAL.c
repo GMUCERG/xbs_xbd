@@ -189,7 +189,7 @@ void XBD_switchToApplication() {
    asm("mov pc,%[addr]"::[addr] "r" (FLASH_ADDR_MIN));
 }
 
-void isr_PortA(void){
+void soft_reset(void){
     MAP_SysCtlReset();
 }
 
