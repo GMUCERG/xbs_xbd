@@ -66,6 +66,7 @@ void XBD_init() {
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
 
+#ifdef DEBUG
     //Configure UART pins
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
     MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
@@ -81,6 +82,7 @@ void XBD_init() {
     MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                          UART_CONFIG_PAR_NONE));
+#endif
 
 #ifdef BOOTLOADER
     IntEnable(INT_GPIOA);
@@ -134,6 +136,7 @@ inline void XBD_sendExecutionCompleteSignal() {
 
 
 void XBD_debugOut(char *message) {
+#ifdef DEBUG
   /* if you have some kind of debug interface, write message to it */
   // OSRAM96x16x1StringDraw(message, 0, 0);
 
@@ -145,6 +148,7 @@ void XBD_debugOut(char *message) {
         }
         UARTCharPut(UART0_BASE, *m++);
     }
+#endif
 }
 
 
