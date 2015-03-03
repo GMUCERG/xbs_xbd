@@ -47,10 +47,11 @@ CFLAGS+=-mthumb             \
        -DPART_${PART}      \
        -c
 CFLAGS += -I$(PATH_HAL)/ -I$(PATH_AF) -I$(PATH_HAL)/drivers/
-CFLAGS += -DTARGET_IS_TM4C123_RA1
+#CFLAGS += -DTARGET_IS_TM4C123_RA1
 CFLAGS += -Dgcc -DBOOTLOADER
+CFLAGS += -ggdb3
 #CFLAGS += -flto
-CFLAGS += -ggdb3 -Os -DDEBUG -DDEBUG_BL -DDEBUG_APP
+#CFLAGS += -ggdb3 -Og -DDEBUG -DDEBUG_BL -DDEBUG_APP
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
@@ -61,7 +62,7 @@ ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -Wl,-Map=$(PROJECT).map
 LDFLAGS += --entry ResetISR -fuse-linker-plugin
-LDFLAGS += -T $(PATH_HAL)/XBD_BL.ld 
+LDFLAGS += -T ../XBD_BL.ld 
 
 ## Objects that must be built in order to link
 OBJECTS += xbd_af/XBD_crc.o
@@ -108,7 +109,7 @@ startup_gcc.o: ../startup_gcc.c
 
 
 ##Link
-$(AXFFILE): $(OBJECTS) $(PATH_HAL)/XBD_BL.ld 
+$(AXFFILE): $(OBJECTS) ../XBD_BL.ld 
 	 $(LD) $(LDFLAGS) $(OBJECTS) $(LINKONLYOBJECTS) $(LIBDIRS) $(LIBS) -o $(AXFFILE)
 	 
 $(TARGET): $(AXFFILE)
