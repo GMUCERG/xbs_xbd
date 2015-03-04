@@ -18,7 +18,7 @@ COMMON = -mmcu=$(MCU) -I${SUPPORT_DIR}
 CFLAGS += $(COMMON)
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 CFLAGS += -Wall -ggdb3 -std=gnu99 -Os -DBOOTLOADER -ffunction-sections -fdata-sections
-CFLAGS += -O0 #-DXBX_DEBUG_BL 
+#CFLAGS += -O0 #-DXBX_DEBUG_BL 
 
 ## Assembly specific flags
 AFLAGS = $(COMMON)
@@ -28,8 +28,8 @@ AFLAGS += -x assembler-with-cpp -Wa,-ggdb3
 ## Linker flags
 LDFLAGS = $(COMMON)
 LDFLAGS +=  -Wl,-Map=bl.map
-LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xd800
-#LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xe000
+#LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xd800
+LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xe000
 
 
 
