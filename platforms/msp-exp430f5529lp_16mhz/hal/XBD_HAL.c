@@ -38,10 +38,9 @@ void XBD_init() {
 
 #ifdef DEBUG
     usart_init();
-#endif
-
     XBD_debugOut("START MSP430F5529 HAL\r\n");
     XBD_debugOut("\r\n");
+#endif
 
     i2cInit();
     i2cSetLocalDeviceAddr(SLAVE_ADDR, 0);
