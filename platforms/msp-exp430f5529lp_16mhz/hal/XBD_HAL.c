@@ -32,14 +32,15 @@ void XBD_init() {
     __dint();
     WDTCTL = WDTPW|WDTHOLD;                   // Stop WDT
 
+#ifdef BOOTLOADER
     initClocks();
+#endif
 
 #ifdef DEBUG
     usart_init();
-#endif
-
     XBD_debugOut("START MSP430F5529 HAL\r\n");
     XBD_debugOut("\r\n");
+#endif
 
     i2cInit();
     i2cSetLocalDeviceAddr(SLAVE_ADDR, 0);
@@ -169,7 +170,7 @@ void XBD_switchToBootLoader() {
     /* execute the code in the binary buffer */
     // pointer called reboot that points to the reset vector
     // app is located at 0x3200
-    void (*reboot)( void ) = (void*)(FLASH_ADDR_MAX+1); // defines the function reboot to location 0x0000
+    void (*reboot)( void ) = (void*)(FLASH_ADDR_MAX+1); // defines the function reboot to location 0xe000
     reboot();	// calls function reboot function, did not need to change unless change location to 0x1000, at flash info memory
 }
 
@@ -247,6 +248,7 @@ void XBD_stopWatchDog()
 {
 }
 
+#ifdef BOOTLOADER
 /**
  * Soft reset using interrupt lines from XBH
  */
@@ -268,3 +270,4 @@ __attribute__((__interrupt__(PORT2_VECTOR))) void soft_reset(void){
     return;
 }
 
+#endif
