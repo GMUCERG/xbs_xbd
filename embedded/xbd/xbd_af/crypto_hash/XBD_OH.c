@@ -20,8 +20,8 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		uint8_t *p_in=&parameterBuffer[sizeof(uint32_t)];
 
 		#ifdef XBX_DEBUG_EBASH
-		XBD_debugOut("\ninlen="),XBD_debugOutHex32Bit(inlen);
-		XBD_debugOutBuffer("*p_in", p_in, inlen);
+		XBD_DEBUG("\ninlen=");XBD_DEBUG_32B(inlen);
+		XBD_DEBUG_BUF("*p_in", p_in, inlen);
 		#endif
                 /* watch out for the dogs */
 		XBD_startWatchDog(100);
@@ -65,9 +65,9 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		XBD_stopWatchDog();
 		
 		#ifdef XBX_DEBUG_EBASH
-		XBD_debugOut("\ncrypto_hash ret="), XBD_debugOutHexByte(ret);
-		XBD_debugOutBuffer("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
-                #endif
+		XBD_DEBUG("\ncrypto_hash ret="); XBD_DEBUG_BYTE(ret);
+		XBD_DEBUG_BUF("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
+        #endif
 
 		//prepare 'OK' response to XBH
 		return 0;
@@ -93,7 +93,7 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 
 	/** Sends the signal "start-of-execution" to the XBH */
 	XBD_sendExecutionStartSignal();
-    test();
+    	test();
 	
 	/** Sends the signal "end-of-execution" to the XBH */
 	XBD_sendExecutionCompleteSignal();
@@ -115,7 +115,7 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 	XBD_stopWatchDog();
 	
 	#ifdef XBX_DEBUG
-	XBD_debugOutBuffer("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
+	XBD_DEBUG_BUF("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
     #endif
 
 	//prepare 'OK' response to XBH
