@@ -35,7 +35,7 @@
 /** minimum flash address, if boot loader resides below app */
 #define FLASH_ADDR_MIN (0x2800)
 
-#define DEVICE_SPECIFIC_SANE_TC_VALUE (1000000)
+#define DEVICE_SPECIFIC_SANE_TC_VALUE (16000000)
 
 // Use extern end to find end of .bss instead
 //#define TM4C123GH6PM_STACKTOP ((uint8_t *)0x20002000)
