@@ -1,4 +1,5 @@
 #include <msp430.h>
+#include <inttypes.h>
 
 void WriteFlash( unsigned int *uintAddress, unsigned int uintData)
 {
@@ -7,7 +8,7 @@ void WriteFlash( unsigned int *uintAddress, unsigned int uintData)
 	while(BUSY & FCTL3);		//	Wait until flash ready
 	FCTL3 = FWKEY;	//	Clear lock bits (LOCK & LOCKA)
 	FCTL1 = FWKEY + WRT;	//	Enable byte/word write mode
-	u16 u;
+	uint16_t u;
 	*uintAddress = uintData;
 	FCTL1 = FWKEY;
 	FCTL3 ^= (FXKEY + LOCK);
