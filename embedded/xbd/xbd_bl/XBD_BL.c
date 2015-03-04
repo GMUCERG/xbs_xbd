@@ -65,8 +65,8 @@ void XBD_BL_DisregardBlock(uint8_t len, uint8_t *data) {
 		XBD_DEBUG_BYTE(data[ctr]);
 	}
 	XBD_DEBUG("\n");
-	XBD_DEBUG_BYTE(crc >> 8), XBD_DEBUG_BYTE(crc & 0xff), XBD_DEBUG_CHAR('_');
-	XBD_DEBUG_BYTE(rx_crc >> 8), XBD_DEBUG_BYTE(rx_crc & 0xff);
+	XBD_DEBUG_BYTE(crc >> 8); XBD_DEBUG_BYTE(crc & 0xff); XBD_DEBUG_CHAR('_');
+	XBD_DEBUG_BYTE(rx_crc >> 8); XBD_DEBUG_BYTE(rx_crc & 0xff);
 	XBD_DEBUG("\n---------------------\n");
 	return;
 }
@@ -108,8 +108,8 @@ void XBD_BL_HandleProgramFlashRequest(uint8_t len, uint8_t *data) {
 		XBD_loadStringFromConstDataArea((char *)buf, XBDpfo);
 	} else {
 		XBD_DEBUG("Rec'd W-R-O-N-G request to flash:");
-		XBD_DEBUG("\nADDR="), XBD_DEBUG_32B(sw_flashaddr);
-		XBD_DEBUG("\nLENG="), XBD_DEBUG_32B(sw_flashleng);
+		XBD_DEBUG("\nADDR="); XBD_DEBUG_32B(sw_flashaddr);
+		XBD_DEBUG("\nLENG="); XBD_DEBUG_32B(sw_flashleng);
 		//prepare 'FAIL' response to XBH
 		XBD_loadStringFromConstDataArea((char *)buf, XBDpff);
 	}
