@@ -1,0 +1,4 @@
+#!/bin/bash
+
+$CXX $LDFLAGS -o xbdprog.bin $@
+
