@@ -1,0 +1,6 @@
+Changes listed in PROT_CHANGES
+checksumsmall files from SUPERCOP used instead of checksum128b
+Support for AEAD
+Commented some debug statements with warnings about I2C to slightly increase
+download speed, as that warning is probably AVR specific and likely to be a bug
+
