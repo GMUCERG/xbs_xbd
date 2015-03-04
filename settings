@@ -7,8 +7,9 @@
 #platform="atmega1281_16mhz"
 #platform="sample"
 #platform="artila_m501"
-platform=ek-tm4c123gxl_16mhz
+#platform=ek-tm4c123gxl_16mhz
 #platform=pc_linux
+platform=msp-exp430f5529lp_16mhz
 
 # compile again, although binaries exist? 
 # (absent => 1)
@@ -27,7 +28,7 @@ only_one_binary=0
 
 
 # enable to compile/benchmark only a specific hash
-onlyhash="0hash"
+#onlyhash="0hash"
 #onlyhash="cubehash816"
 #onlyhash="skein512"
 #onlyhash="edonr256"
@@ -46,12 +47,15 @@ onlyhash="0hash"
 #onlyhash="simd256"
 #onlyhash="groestl256"
 #onlyhash="blake32"
-#onlyhash="keccakc512"
+onlyhash="keccakc512"
 #onlyhash="skein256"
 #onlyhash="jh256"
 
 # ignore implementations matching this patters
-implIgnorePattern="^(asm64)|(sse)|(openssl)|(mmx)|(emmintrin)|(cryptopp)|(pentium4)|(athlon64)"
+#implIgnorePattern="^(asm64)|(sse)|(openssl)|(mmx)|(emmintrin)|(cryptopp)|(pentium4)|(athlon64)"
+
+implIgnorePattern="^(avr8)|(avr8asmc)|(avr8asmf)|(compact)|(compact8)|(gil)|(inplace-armv7a-neon)|(inplace)|(inplace32bi-armv6m)|(inplace32bi-armv7a)|(inplace32bi-armv7m)|(inplace32bi)|(mmxu1)|(opt32bi-rvku2)|(opt32)|(opt32bi-s2lcu4)|(opt32biT-s2lcu4)|(opt64lcu24)|(opt64lcu24shld)|(opt64lcu6)|(opt64u6)|(simple32bi)|(sphlib-small)|(sphlib)|(sseu2)|(x86_64_asm)|(x86_64_shld)|(xopu24)"
+
 
 # set to nonempy to use rsync for copying (ignoring .svn directories)
 fromsvn=
