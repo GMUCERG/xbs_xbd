@@ -173,8 +173,10 @@ void XBD_switchToBootLoader() {
     reboot();	// calls function reboot function, did not need to change unless change location to 0x1000, at flash info memory
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+__attribute__((optimize("no-strict-aliasing")))
 /**
- * Broken
  */
 uint32_t XBD_busyLoopWithTiming(volatile uint32_t approxCycles) {
     /* wait for approximatly approxCycles,
@@ -199,6 +201,7 @@ uint32_t XBD_busyLoopWithTiming(volatile uint32_t approxCycles) {
 
     return exactCycles;
 }
+#pragma GCC diagnostic pop
 
 void XBD_paintStack(void) {
     /* initialise stack measurement */
