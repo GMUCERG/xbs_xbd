@@ -18,8 +18,8 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		uint8_t *p_in=&parameterBuffer[sizeof(uint32_t)];
 
 		#ifdef XBX_DEBUG_EBASH
-		XBD_debugOut("\ninlen="),XBD_debugOutHex32Bit(inlen);
-		XBD_debugOutBuffer("*p_in", p_in, inlen);
+		XBD_DEBUG("\ninlen=");XBD_DEBUG_32B(inlen);
+		XBD_DEBUG_BUF("*p_in", p_in, inlen);
 		#endif
                 /* watch out for the dogs */
 		XBD_startWatchDog(100);
@@ -63,17 +63,17 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		XBD_stopWatchDog();
 		
 		#ifdef XBX_DEBUG_EBASH
-		XBD_debugOut("\ncrypto_hash ret="), XBD_debugOutHexByte(ret);
-		XBD_debugOutBuffer("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
-                #endif
+		XBD_DEBUG("\ncrypto_hash ret="); XBD_DEBUG_BYTE(ret);
+		XBD_DEBUG_BUF("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
+        #endif
 
 		//prepare 'OK' response to XBH
 		return 0;
 	} 
 	else
 	{
-		XBD_debugOut("Rec'd W-R-O-N-G EXecute req:");
-		XBD_debugOut("\nparameterType="), XBD_debugOutHex32Bit(parameterType);
+		XBD_DEBUG("Rec'd W-R-O-N-G EXecute req:");
+		XBD_DEBUG("\nparameterType="), XBD_DEBUG_32B(parameterType);
 		//prepare 'FAIL' response to XBH
 		return 1;
 	}
@@ -104,10 +104,9 @@ uint8_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t* resultBuffer
 	/* stop the watchdog */
 	XBD_stopWatchDog();
 	
-	#ifdef XBX_DEBUG_EBASH
-   	XBD_debugOut("\ncrypto_hash ret="), XBD_debugOutHexByte(ret);
-	XBD_debugOutBuffer("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
-        #endif
+	#ifdef XBX_DEBUG
+	XBD_DEBUG_BUF("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
+    #endif
 
 	//prepare 'OK' response to XBH
 	return 0;
