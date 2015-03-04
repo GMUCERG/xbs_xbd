@@ -133,7 +133,7 @@ do
     [ -d "$opPath/$p" ] || continue
       doDriftMeasurement
       expectedchecksum=''
-      [ -f "$algobase/$o/$p/checksum_128b" ] && expectedchecksum=`cat "$algobase/$o/$p/checksum_128b" | tr A-Z a-z`
+      [ -f "$algobase/$o/$p/checksumsmall" ] && expectedchecksum=`cat "$algobase/$o/$p/checksumsmall" | tr A-Z a-z`
       op="${o}_${p}"
                      
       echo "=== `date` === $abi $o/$p"

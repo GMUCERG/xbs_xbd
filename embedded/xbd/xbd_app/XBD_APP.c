@@ -27,9 +27,9 @@ uint32_t xbd_parameter_buffer_aligned[(XBD_PARAMLENG_MAX+3)/4];
 uint32_t xbd_result_buffer_aligned[(XBD_RESULTBUF_LENG+3)/4];
 uint32_t xbd_answer_buffer_aligned[(XBD_ANSWERLENG_MAX+3)/4];
 
-uint8_t * const xbd_parameter_buffer=(uint8_t *)&xbd_parameter_buffer_aligned;
-uint8_t * const xbd_result_buffer=(uint8_t *)&xbd_result_buffer_aligned;
-uint8_t * const xbd_answer_buffer=(uint8_t *)&xbd_answer_buffer_aligned;
+uint8_t *xbd_parameter_buffer=(uint8_t *)&xbd_parameter_buffer_aligned;
+uint8_t *xbd_result_buffer=(uint8_t *)&xbd_result_buffer_aligned;
+uint8_t *xbd_answer_buffer=(uint8_t *)&xbd_answer_buffer_aligned;
 
 uint32_t xbd_stack_use;
 
