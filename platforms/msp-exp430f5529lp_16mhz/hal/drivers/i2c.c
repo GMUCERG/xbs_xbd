@@ -147,7 +147,7 @@ void twi_isr(){
         case START:
             if(UCB1IFG&UCSTTIFG){		//start condition?
 #ifdef DEBUG_I2C
-                XBD_debugOut("Start\r\n");
+                XBD_DEBUG("Start\r\n");
 #endif
                 UCB1IFG &= ~UCSTTIFG;  //yes: clear start flag
                 I2cSendDataIndex = 0;	//reset counters
@@ -169,10 +169,10 @@ void twi_isr(){
                         I2cReceiveDataIndex++;
                     }
 #ifdef DEBUG_I2C
-                    XBD_debugOut("RX byte\r\n");
+                    XBD_DEBUG("RX byte\r\n");
 #endif
                 } else {
-                    XBD_debugOut("NACK\r\n");
+                    XBD_DEBUG("NACK\r\n");
                     // receive data byte and return NACK
                     //I2cReceiveData[I2cReceiveDataIndex] = UCB1RXBUF;
                     UCB1IFG &= ~UCRXIFG;
@@ -183,7 +183,7 @@ void twi_isr(){
             if(UCB1IFG&UCSTPIFG){
                 // i2c receive is complete, call i2cSlaveReceive
 #ifdef DEBUG_I2C
-                XBD_debugOut("RX done\r\n");
+                XBD_DEBUG("RX done\r\n");
 #endif
                 if(i2cSlaveReceive) i2cSlaveReceive(I2cReceiveDataIndex, I2cReceiveData);
                 UCB1IFG &= ~UCSTPIFG;
@@ -194,7 +194,7 @@ void twi_isr(){
             if(UCB1IFG&UCTXIFG){       
                 if(I2cSendDataIndex==0){
 #ifdef DEBUG_I2C
-                    XBD_debugOut("TX start\r\n");
+                    XBD_DEBUG("TX start\r\n");
 #endif
                     // request data from application
 
@@ -202,7 +202,7 @@ void twi_isr(){
                     }
                 }
 #ifdef DEBUG_I2C
-                XBD_debugOut("TX byte\r\n");
+                XBD_DEBUG("TX byte\r\n");
 #endif
                 
                 UCB1TXBUF=I2cSendData[I2cSendDataIndex];
@@ -213,7 +213,7 @@ void twi_isr(){
                 state=START;
             }
             if(UCB1IFG&UCNACKIFG){
-                XBD_debugOut("I2C NAK\r\n");
+                XBD_DEBUG("I2C NAK\r\n");
                 state=START;
             };
             break;
