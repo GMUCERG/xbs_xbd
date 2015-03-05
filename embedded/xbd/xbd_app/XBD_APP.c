@@ -1,11 +1,13 @@
-#include <XBD_HAL.h>
-#include "XBD_APP.h"
-#include <XBD_debug.h>
+#include <stdalign.h>
 #include <string.h>
-#include <XBD_commands.h>
-#include <XBD_OH.h>
-#include <crypto_operation.h>
-#include <XBD_crc.h>
+
+#include "crypto_operation.h"
+#include "XBD_APP.h"
+#include "XBD_HAL.h"
+#include "XBD_OH.h"
+#include "XBD_commands.h"
+#include "XBD_crc.h"
+#include "XBD_debug.h"
 #include "XBD_multipacket.h"
 
 uint8_t XBD_response[XBD_COMMAND_LEN+1];
@@ -23,13 +25,10 @@ uint8_t XBD_response[XBD_COMMAND_LEN+1];
 #define XBD_RESULTBUF_LENG (XBD_COMMAND_LEN+XBD_RESULTLEN+CRC16SIZE)
 
 /* we do that to get aligned buffers */
-uint32_t xbd_parameter_buffer_aligned[(XBD_PARAMLENG_MAX+3)/4];
-uint32_t xbd_result_buffer_aligned[(XBD_RESULTBUF_LENG+3)/4];
-uint32_t xbd_answer_buffer_aligned[(XBD_ANSWERLENG_MAX+3)/4];
+static alignas(sizeof(uint32_t)) uint8_t xbd_parameter_buffer[XBD_PARAMLENG_MAX];
+static alignas(sizeof(uint32_t)) uint8_t xbd_result_buffer[XBD_RESULTBUF_LENG];
+static alignas(sizeof(uint32_t)) uint8_t xbd_answer_buffer[XBD_ANSWERLENG_MAX];
 
-uint8_t * const xbd_parameter_buffer=(uint8_t *)&xbd_parameter_buffer_aligned;
-uint8_t * const xbd_result_buffer=(uint8_t *)&xbd_result_buffer_aligned;
-uint8_t * const xbd_answer_buffer=(uint8_t *)&xbd_answer_buffer_aligned;
 
 uint32_t xbd_stack_use;
 

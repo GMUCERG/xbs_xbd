@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -17,7 +18,7 @@
 #include "i2c_comm.h"
 
 
-static uint8_t I2cBuff[I2C_BUFFER_SIZE];
+static alignas(sizeof(uint32_t)) uint8_t I2cBuff[I2C_BUFFER_SIZE];
 
 // function pointer to i2c receive routine
 //! I2cSlaveReceive is called when this processor

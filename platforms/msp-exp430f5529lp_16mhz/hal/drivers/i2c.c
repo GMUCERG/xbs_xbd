@@ -3,6 +3,7 @@
 //#include <interrupt.h>
 //#include <io430xG46x.h>
 #include <msp430.h>
+#include <stdalign.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -15,8 +16,8 @@
 */
 
 #include "i2c.h"
-#include <XBD_HAL.h>
-#include <XBD_debug.h>
+#include "XBD_HAL.h"
+#include "XBD_debug.h"
 
 //#include "uart2.h"
 
@@ -37,37 +38,29 @@
 // I2C state and address variables
 
 
-
-//static uint8_t I2cDeviceAddrRW;
-
-// send/transmit buffer (outgoing data)
-
-static uint8_t I2cSendData[I2C_SEND_DATA_BUFFER_SIZE];
-
 static uint8_t I2cSendDataIndex=0;
-
 static uint8_t I2cSendDataLength=0;
-
-// receive buffer (incoming data)
-
-static uint8_t I2cReceiveData[I2C_RECEIVE_DATA_BUFFER_SIZE];
-
 static uint8_t I2cReceiveDataIndex=0;
 
-//static uint8_t I2cReceiveDataLength;
+
+// Use same buffer for send and receive because tx i2c handler has it's own
+// buffer
+static alignas(sizeof(uint32_t)) uint8_t I2cBuffer[I2C_SEND_DATA_BUFFER_SIZE];
+//static alignas(sizeof(uint32_t)) uint8_t I2cSendData[I2C_SEND_DATA_BUFFER_SIZE];
+//static alignas(sizeof(uint32_t)) uint8_t I2cReceiveData[I2C_RECEIVE_DATA_BUFFER_SIZE];
+#define I2cSendData I2cBuffer
+#define I2cReceiveData I2cBuffer
+
 
 
 
 // function pointer to i2c receive routine
-
-//! I2cSlaveReceive is called when this processor
-
+// I2cSlaveReceive is called when this processor
 // is addressed as a slave for writing
 
 static void (*i2cSlaveReceive)(uint8_t receiveDataLength, uint8_t* recieveData);
 
-//! I2cSlaveTransmit is called when this processor
-
+// I2cSlaveTransmit is called when this processor
 // is addressed as a slave for reading
 
 static uint8_t (*i2cSlaveTransmit)(uint8_t transmitDataLengthMax, uint8_t* transmitData);

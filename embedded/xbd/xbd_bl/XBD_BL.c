@@ -6,23 +6,22 @@
 
 
 
+#include <string.h>
+#include <stdalign.h>
 
 #include "XBD_BL.h"
-#include <XBD_HAL.h>
-#include <XBD_commands.h>
-
-#include <XBD_debug.h>
-#include <string.h>
-#include <XBD_crc.h>
-#include <XBD_util.h>
-#include <XBD_version.h>
+#include "XBD_HAL.h"
+#include "XBD_commands.h"
+#include "XBD_crc.h"
+#include "XBD_debug.h"
+#include "XBD_util.h"
+#include "XBD_version.h"
 
 const char XBD_Rev[] CONSTDATAAREA = XBX_REVISION;
 
 #define XBD_ANSWER_MAXLEN (XBD_COMMAND_LEN+REVNSIZE+CRC16SIZE)
 //#define XBD_ANSWER_MAXLEN 254	//for I2C maximum data length comm tests
-uint32_t XBD_alignedResponse[256/sizeof(uint32_t)];
-uint8_t *XBD_response = (uint8_t*)XBD_alignedResponse;
+uint8_t alignas(sizeof(uint32_t)) XBD_response[256];
 
 typedef enum enum_XBD_State{
 	idle = 0, flash
@@ -187,10 +186,11 @@ void XBD_BL_HandleVersionInformationRequest(){
 
 void XBD_BL_HandleTimingCalibrationRequest(){
 	uint32_t cycles_elapsed = XBD_busyLoopWithTiming(DEVICE_SPECIFIC_SANE_TC_VALUE);
+	uint32_t cycles_elapsed_n = HTONL(cycles_elapsed);
 
-	XBD_loadStringFromConstDataArea((char *)XBD_response, XBDtco);
-	*(uint32_t *)&XBD_response[XBD_COMMAND_LEN]=HTONL(cycles_elapsed);
-		realTXlen=XBD_COMMAND_LEN+TIMESIZE+CRC16SIZE;
+    XBD_loadStringFromConstDataArea((char *)XBD_response, XBDtco);
+    memcpy(XBD_response+XBD_COMMAND_LEN,&cycles_elapsed_n, sizeof(cycles_elapsed_n));
+    realTXlen=XBD_COMMAND_LEN+TIMESIZE+CRC16SIZE;
 }
 
 void XBD_BL_HandleTargetRevisionRequest(){
