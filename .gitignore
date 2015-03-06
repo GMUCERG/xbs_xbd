@@ -31,6 +31,21 @@
 *.bin
 
 # Compile artifacts
+*.map
+*.d
+*.lss
+*.eep
+*.x
+
+# Vim swap files
+.*sw*
+
+# Benchmark artifacts
+/bench
 /work
 /binaries
 /algobase
+
+# Backups
+*.old
+*.orig
