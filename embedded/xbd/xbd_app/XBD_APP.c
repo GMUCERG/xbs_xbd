@@ -87,11 +87,11 @@ void XBD_AF_HandleProgramParametersRequest(uint8_t len, uint8_t* data) {
 	xbd_parameter_leng = NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE)) );
 	
 	#ifdef XBX_DEBUG_APP
-	XBD_DEBUG("\ntype="), XBD_DEBUG_32B(xbd_parameter_type);
-	XBD_DEBUG("\naddr="), XBD_DEBUG_32B(xbd_parameter_addr);
-	XBD_DEBUG("\nleng="), XBD_DEBUG_32B(xbd_parameter_leng);
-	XBD_DEBUG("\ndataptr="), XBD_DEBUG_32B(data);
-	XBD_DEBUG("\ndataptr+offset="), XBD_DEBUG_32B(data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE);
+	XBD_DEBUG("\ntype="); XBD_DEBUG_32B(xbd_parameter_type);
+	XBD_DEBUG("\naddr="); XBD_DEBUG_32B(xbd_parameter_addr);
+	XBD_DEBUG("\nleng="); XBD_DEBUG_32B(xbd_parameter_leng);
+	XBD_DEBUG("\ndataptr="); XBD_DEBUG_32B((uint32_t)data);
+	XBD_DEBUG("\ndataptr+offset="); XBD_DEBUG_32B((uint32_t)(data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE));
 	#endif
 
 	if ((XBD_TYPE_EBASH == xbd_parameter_type)
@@ -260,7 +260,7 @@ void XBD_AF_HandleResultDataRequest(uint8_t len, uint8_t* data) {
 			xbd_state = reportuploaded;
 
                 #ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nxbd_genmp_dataleft="), XBD_DEBUG_32B(xbd_genmp_dataleft);
+		XBD_DEBUG("\nxbd_genmp_dataleft="); XBD_DEBUG_32B(xbd_genmp_dataleft);
 
 		XBD_DEBUG("\nxbd_result_buffer:");
 		for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
@@ -304,8 +304,8 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 				&xbd_stack_use );
 
 		#ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nOH_handleExecuteRequest ret="), XBD_DEBUG_BYTE(ret);
-		XBD_DEBUG("\nOH_handleExecuteRequest stack use="), XBD_DEBUG_32B(xbd_stack_use);
+		XBD_DEBUG("\nOH_handleExecuteRequest ret="); XBD_DEBUG_BYTE(ret);
+		XBD_DEBUG("\nOH_handleExecuteRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
 		#endif
 
 		xbd_state = executed;
@@ -361,8 +361,8 @@ void XBD_AF_HandleChecksumComputeRequest(uint8_t len, uint8_t* data) {
 	xbd_state = checksummed;
 
         #ifdef XBX_DEBUG_APP
-	XBD_DEBUG("\nOH_handleCCRequest ret="), XBD_DEBUG_BYTE(ret);
-	XBD_DEBUG("\nOH_handleCCRequest stack use="), XBD_DEBUG_32B(xbd_stack_use);
+	XBD_DEBUG("\nOH_handleCCRequest ret="); XBD_DEBUG_BYTE(ret);
+	XBD_DEBUG("\nOH_handleCCRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
 
 	XBD_DEBUG("\nxbd_result_buffer:");
 	for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
