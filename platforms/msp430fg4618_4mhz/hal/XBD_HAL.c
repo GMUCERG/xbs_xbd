@@ -101,7 +101,7 @@ inline void XBD_sendExecutionCompleteSignal() {
 }
 
 
-void XBD_debugOut(char *message) {
+void XBD_debugOut(const char *message) {
     /* if you have some kind of debug interface, write message to it */
     usart_puts(message);
 }

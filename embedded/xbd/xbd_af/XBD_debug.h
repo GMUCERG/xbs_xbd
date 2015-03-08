@@ -31,6 +31,8 @@
 
 
 
+//Defined in XBD_HAL.c
+extern void XBD_debugOut(const char *message) ;
 
 /** outputs one byte as hex to the debug interface of the device
 * @param byte The byte to output

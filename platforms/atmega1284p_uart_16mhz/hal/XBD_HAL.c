@@ -49,7 +49,7 @@ inline void XBD_sendExecutionCompleteSignal()
 
 
 //volatile char *p_monitor;
-void XBD_debugOut(char *message)
+void XBD_debugOut(const char *message)
 {
 	//p_monitor=message;
 	//p_monitor++;

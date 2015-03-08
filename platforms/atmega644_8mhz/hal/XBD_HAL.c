@@ -57,7 +57,7 @@ inline void XBD_sendExecutionCompleteSignal()
 }
 
 
-void XBD_debugOut(char *message)
+void XBD_debugOut(const char *message)
 {
 	usart_puts(message);	
 }

@@ -62,7 +62,7 @@ inline void XBD_sendExecutionCompleteSignal()
 	PORTD |= _BV(PD2);	//rising edge for ICP on XBH
 }
 
-void XBD_debugOut(char *message)
+void XBD_debugOut(const char *message)
 {
 	usart_puts(message);	
 }

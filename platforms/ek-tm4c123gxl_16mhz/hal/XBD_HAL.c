@@ -135,13 +135,13 @@ inline void XBD_sendExecutionCompleteSignal() {
 }
 
 
-void XBD_debugOut(char *message) {
+void XBD_debugOut(const char *message) {
 #ifdef DEBUG
   /* if you have some kind of debug interface, write message to it */
   // OSRAM96x16x1StringDraw(message, 0, 0);
 
 
-   char *m=message;
+   const char *m=message;
 	while(*m){
         if(*m == '\n'){
             UARTCharPut(UART0_BASE, '\r');

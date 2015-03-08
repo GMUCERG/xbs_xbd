@@ -70,7 +70,7 @@ void usart_putbyte(uint8_t val) {
 
 }
 
-void usart_puts(char *data) {
+void usart_puts(const char *data) {
   int len, count;
   
   len = strlen(data);

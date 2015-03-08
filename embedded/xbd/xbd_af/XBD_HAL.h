@@ -69,7 +69,7 @@ void XBD_delayCycles(uint32_t approxCycles);
 /** Outputs a single char to the debug interface of the device 
 * @param message The char to output
 */
-void XBD_debugOut( char * message );
+void XBD_debugOut(const char * message );
 
 /** Reads a block of application code to the buffer 
 * @param pageStartAddress The start address of the page in byte
