@@ -106,13 +106,20 @@ class Xbh:
             self.switch_to_app()
         return
     
-    def upload_pg(self, hexaddr, data):
-        self.req_bl()
+    def upload_pages(self, hexaddr, hexdata):
+        """Upload program data to XBD
 
-        if self.verbose:
-            self.log("Uploading a page to address "+hexaddr)
+        Parameters:
+        hexaddr     Start address to upload to
+        hexdata     Should contain program data that is integer multiple of page
+                    size. Hex should total less than XBH buffer size (1500)"""
+            
+            self.req_bl()
 
-        self._exec("cd",hexaddr.encode()+data)
+            if self.verbose:
+                self.log("Uploading a page to address "+hexaddr)
+
+        self._exec("cd",hexaddr.encode()+hexdata)
         self._xbh_response()
 
     def exec_and_time(self):
@@ -170,7 +177,7 @@ class Xbh:
             self._bl_mode = True
         elif msg.decode() == "XBD"+PROTO_VERSION+"AFo":
             self._bl_mode = False
-        else
+        else:
             self._bl_mode = None
 
         return self._bl_mode
