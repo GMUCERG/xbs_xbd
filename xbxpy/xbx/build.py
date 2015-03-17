@@ -24,19 +24,17 @@ class Build:
     
     Parameters:
         config          xbx.Config object
-        cc              c compiler and flags
-        cxx             c++ compiler and flags
-        comp_index      compiler index
+        index      compiler index
         implementation  xbx.Config.Implementation instance
         warn_comp_err   If false, Compiler errs have DEBUG loglevel instead of
                         WARN
     """
 
-    def __init__(self, config, cc, cxx, index, implementation,# {{{
+    def __init__(self, config, index, implementation,# {{{
             warn_comp_err=False):
         self.config = config
-        self.cc = cc
-        self.cxx = cxx
+        self.cc = config.platform.compilers[index]['cc']
+        self.cxx = config.platform.compilers[index]['cxx']
         self.index = index
         self.implementation = implementation
         self.workpath = os.path.join(
@@ -177,7 +175,6 @@ class Build:
         if not os.path.isfile(crypto_op_h):
             self._gen_crypto_op_h(crypto_op_h, self.implementation)
     # }}}
-                
         
     def _genmake(self, filename):# {{{
         #self.logger.debug("Generating Makefile...", extra=self.log_attr)
@@ -244,6 +241,59 @@ class Build:
     # }}}
 
 
-def build_hal(config):
-    pass
+def build_hal(config, index):
+    logger = logging.getLogger(__name__)
 
+    logger.info("Building HAL for platform {}, compindex {}".format(
+            config.platform.name,
+            str(index)))
+
+
+    workpath = os.path.join(
+            config.work_path,
+            config.platform.name,
+            'HAL',
+            str(index))
+
+    tmpl_path = config.platform.tmpl_path
+
+    try:
+        os.makedirs(workpath)
+    except OSError:
+        pass
+
+    makefile = os.path.join(workpath, 'Makefile')
+
+    if True: #not os.path.isfile(makefile):
+        with open(makefile, 'w') as f:
+            f.write(buildfiles.HAL_MAKEFILE)
+
+    env = os.environ.copy()
+
+    env.update({'CC': config.platform.compilers[index]['cc'],
+        'templatePlatformDir': tmpl_path if tmpl_path else '',
+        'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
+        'HAL_PATH': os.path.join(config.platform.path,'hal'),
+        'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else '',
+        'HAL_OBJS': workpath})
+
+    makecmd = ['make', '-j']
+
+    old_pwd = os.getcwd()
+    os.chdir(workpath)
+    #process = subprocess.Popen(makecmd, env=env)
+    process = subprocess.Popen(makecmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    os.chdir(old_pwd)
+
+    def read_thread(fd, log_fn):
+        for l in iter(fd.readline, b''):
+            log_fn(l.decode().strip("\n"))
+
+    stdout_t = threading.Thread(target=read_thread, args=(process.stdout, logger.debug))
+    stderr_t = threading.Thread(target=read_thread, args=(process.stderr, logger.debug))
+
+    stdout_t.daemon = True
+    stderr_t.daemon = True
+    stdout_t.start()
+    stderr_t.start()
+    process.wait()

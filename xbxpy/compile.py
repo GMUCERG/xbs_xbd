@@ -28,44 +28,45 @@ def setup_logging():
 
 def build():
     builds = []
-    threads = []
-    processes = []
 
-    queue = mp.JoinableQueue()
-    exit_event = mp.Event()
+    num_compilers = len(CONFIG.platform.compilers)
+    for i in range(num_compilers):
+        xbxb.build_hal(CONFIG, i)
 
     for p in CONFIG.primitives:
-        for i in p.impls:
-            index = 0
-            for compiler in CONFIG.platform.compilers:
-                build = xbxb.Build(CONFIG, compiler['cc'],  compiler['cxx'], 
-                        index, i )
+        for i in range(num_compilers):
+            for j in p.impls:
+                build = xbxb.Build(CONFIG, i, j )
                 builds += build,
-                index += 1
-                if CONFIG.one_compiler:
-                    break
+
+            if CONFIG.one_compiler:
+                break
+
+    #for b in builds:
+    #    b.compile()
+
+    q = mp.JoinableQueue()
+
+    def worker(q):
+        for build in iter(q.get, None):
+            build.compile()
+            q.task_done()
+
+    processes = [mp.Process(target=worker, args=(q,)) for i in range(CPU_COUNT)]
+    for p in processes:
+        p.start()
+
+    for b in builds:
+        q.put(b)
+
+    q.join()
+
+    for p in processes:
+        q.put(None)
+
+    q.close()
 
 
-#    def worker(queue, exit_event):
-#        while not exit_event.is_set():
-#            build = queue.get()
-#            build.compile()
-#            queue.task_done()
-#
-#    for i in range(0, CPU_COUNT):
-#        p = mp.Process(target=worker, args=(queue, exit_event))
-#        p.start()
-#        processes += p,
-#
-#
-#    for b in builds:
-#        queue.put(b)
-#
-#    queue.join()
-#    exit_event.set()
-#    for p in processes:
-#        p.join()
-#
 
 
 
@@ -73,8 +74,6 @@ def build():
     #    b.compile()
     #for b in builds:
     #    threading.Thread(target=th, args=(b,)).start()
-    for b in builds:
-        b.compile()
 
 
 
