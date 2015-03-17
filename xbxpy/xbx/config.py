@@ -55,10 +55,10 @@ class Implementation:
         return self.name < other.name
 
 
-class Config:# {{{
+class Config:
     """Configuration for running benchmarks on a single operation on a single platform"""
 
-    def __init__(self, filename):# {{{
+    def __init__(self, filename):
         config = configparser.ConfigParser()
         config.read(filename)
 
@@ -69,8 +69,6 @@ class Config:# {{{
         self.work_path      = os.path.abspath(config.get('paths','work'))
 
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
-
-        self.loglevel = Config.__loglevel(config.get('run','loglevel'))
 
 
         # XBH address
@@ -108,19 +106,6 @@ class Config:# {{{
                 self.algopack_path)
 
 
-    # }}}
-    @staticmethod
-    def __loglevel(name):# {{{
-        if name == "DEBUG":
-            return logging.DEBUG
-        elif name == "INFO":
-            return logging.INFO
-        elif name == "WARNING":
-            return logging.WARNING
-        elif name == "ERROR":
-            return logging.ERROR
-        elif name == "CRITICAL":
-            return logging.CRITICAL
 
     @staticmethod
     def __enum_platform(name, platforms_path):# {{{
@@ -146,8 +131,6 @@ class Config:# {{{
                 compilers)
 
     # }}}
-
-
 
     @staticmethod
     def __enum_compilers(platform_path, tmpl_path):# {{{
@@ -275,6 +258,6 @@ class Config:# {{{
         return Operation(name, macros, prototypes)
     # }}}
 
-# }}}
+
 
 

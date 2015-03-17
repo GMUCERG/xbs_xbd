@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import logging
+import logging.config
 import sys
 import xbx.config as xbxc
 import xbx.build as xbxb
@@ -11,18 +11,19 @@ CPU_COUNT = mp.cpu_count()
 CONFIG = xbxc.Config("config.ini")
 
 def setup_logging():
-    # Setup basic logging w/ DEBUG verbosity
-    logging.basicConfig(stream=sys.stdout, level=CONFIG.loglevel, format="%(levelname)s: %(buildid)s")
+    logging.config.fileConfig("logging.ini")
+    ## Setup basic logging w/ DEBUG verbosity
+    #logging.basicConfig(stream=sys.stdout, level=DEBUG, format="%(levelname)s: %(message)s")
 
-    # For compile stuff, since it runs in parallel, distinguish between builds w/
-    # buildid
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(levelname)s: %(buildid)s %(message)s"))
-    comp_logger = logging.getLogger("xbx.build.Build")
-    comp_logger.addHandler(handler)
-    comp_logger.propagate = False
+    ## For compile stuff, since it runs in parallel, distinguish between builds w/
+    ## buildid
+    #handler = logging.StreamHandler(sys.stdout)
+    #handler.setFormatter(logging.Formatter("%(levelname)s: %(buildid)s %(message)s"))
+    #comp_logger = logging.getLogger("xbx.build.Build")
+    #comp_logger.addHandler(handler)
+    #comp_logger.propagate = False
 
-    #FORMAT = "%(buildid)s %(message)s"
+    ##FORMAT = "%(buildid)s %(message)s"
 
 
 
