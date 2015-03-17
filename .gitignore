@@ -29,6 +29,7 @@
 *.x86_64
 *.hex
 *.bin
+__pycache__
 
 # Compile artifacts
 *.map
