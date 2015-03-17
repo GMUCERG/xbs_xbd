@@ -8,6 +8,7 @@
 //extern const char *primitiveimplementation;
 //extern void preallocate(void);
 //extern void allocate(void);
+extern void test_allocate(unsigned char *buf);
 extern void test(void);
 //extern void predoit(void);
 //extern void doit(void);
