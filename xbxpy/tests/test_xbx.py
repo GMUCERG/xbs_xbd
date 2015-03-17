@@ -27,11 +27,11 @@ class XbxTest(unittest.TestCase):
         #    pp.pprint(v.__dict__)
 
     def test_impl(self):
-        self.assertEqual(1, len(self.config.algorithms['0hash'].impls))
+        self.assertEqual(1, len(self.config.primitives['0hash'].impls))
 
     def test_checksum(self):
         self.assertEqual("995ec6efa3a2e23e34c2b0fba46e55fd634c414173019d6437858741a70a82f2", 
-                self.config.algorithms['keccakc512'].checksumsmall) 
+                self.config.primitives['keccakc512'].checksumsmall) 
 
 
 

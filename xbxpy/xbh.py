@@ -1,11 +1,14 @@
 #! /usr/bin/python3
 import binascii
+import sys
 import os
 import re
 import socket
 import struct
+import logging
 
 import prog_reader
+
 
 # Maximum segment size, assuming IPv6 and all TCP options (for worst-case)
 # 1500 Ethernet payload - 40 IPv6 - 60 TCP (normally 20) = 1400
@@ -19,6 +22,7 @@ PROTO_VERSION = '05'
 _XBH_CMD_LEN = 8
 _CALC_TIMEOUT = 5*60
 
+_logger=logging.getLogger(__name__)
 
 # Replace object w/ Enum when 3.4 is current
 class TypeCode(object):# {{{
@@ -32,19 +36,15 @@ class XbhError(RuntimeError):# {{{
 # }}}
 
 class Xbh:# {{{
-    _sock = None
-    _cmd_pending = None
-    _bl_mode = None
-    _timeout = None
-    verbose = None
-    page_size = None
-    xbd_hz = None
 
     
-    def __init__(self, host="xbh", port=22595, page_size = 1024, xbd_hz=16000000, timeout=100000, verbose = True, src_host=''):
+    def __init__(self, host="xbh", port=22595, page_size = 1024,
+            xbd_hz=16000000, timeout=100000, src_host='',
+            log_fd=sys.stdout, err_log_fd=sys.stdout):
         self._sock = socket.create_connection((host,port), timeout, (src_host, 0))
         self._timeout = timeout
-        self.verbose = verbose
+        self._cmd_pending = None
+        self._bl_mode = None
         self.page_size = page_size
         self.xbd_hz = xbd_hz
 
@@ -53,7 +53,7 @@ class Xbh:# {{{
             self._sock.close()
 
     def log(self, msg):
-        print(msg)
+        _logger.info_fd.write(msg)
 
     @property
     def bl_mode(self):
@@ -96,11 +96,9 @@ class Xbh:# {{{
                     ", this tool requires "+PROTO_VERSION+".")
 
         if status == 'a':
-            if self.verbose:
-                self.log("Received 'a'ck")
+                _logger.debug("Received 'a'ck")
         elif status == 'o':
-            if self.verbose:
-                self.log("Received 'o'kay")
+                _logger.debug("Received 'o'kay")
         elif status == 'f':
             raise XbhError("Received 'f'ail")
 
@@ -109,16 +107,14 @@ class Xbh:# {{{
 
 
     def switch_to_app(self):
-        if self.verbose:
-            self.log("Switching to application mode");
+        _logger.debug("Switching to application mode");
         self._exec("sa")
         self._xbh_response()
         self._bl_mode = False
 
 
     def switch_to_bl(self):
-        if self.verbose:
-            self.log("Switching to bootloader mode")
+        _logger.debug("Switching to bootloader mode")
 
         self._exec("sb")
         msg = self._xbh_response()
@@ -137,8 +133,7 @@ class Xbh:# {{{
     
     def exec_and_time(self):
         self.req_app()
-        if self.verbose:
-            self.log("Executing code")
+        _logger.debug("Executing code")
 
         self._sock.settimeout(_CALC_TIMEOUT)
         self._exec("ex")
@@ -146,22 +141,19 @@ class Xbh:# {{{
         self._sock.settimeout(self._timeout)
 
     def get_timings(self):
-        if self.verbose:
-            self.log("Downloading timing results")
+        _logger.debug("Downloading timing results")
 
         self._exec("rp")
         msg = self._xbh_response()
         seconds, frac, frac_per_sec = struct.unpack("!III", msg)
-        if self.verbose:
-            self.log("Receive {} {} {}".format(
+        _logger.debug("Receive {} {} {}".format(
                 seconds, frac, frac_per_sec))
 
         return seconds, frac, frac_per_sec
 
     def reset_xbd(self, reset_active):
         param = 'y' if reset_active else 'n'
-        if self.verbose:
-            self.log("Setting XBD reset to "+reset_active)
+        _logger.debug("Setting XBD reset to "+reset_active)
 
         self._exec("rc", param.encode())
         self._xbh_response()
@@ -169,8 +161,7 @@ class Xbh:# {{{
         self._bl_mode = None
 
     def get_status(self):
-        if self.verbose:
-            self.log("Getting status of XBH")
+        _logger.debug("Getting status of XBH")
 
         self._exec("st")
 
@@ -187,8 +178,7 @@ class Xbh:# {{{
 
 
     def get_xbh_rev(self):
-        if self.verbose:
-            self.log("Getting git revision (and MAC address) of XBH");
+        _logger.debug("Getting git revision (and MAC address) of XBH");
 
         self._exec("sr")
         msg = self._xbh_response().decode().split(',')
@@ -200,8 +190,7 @@ class Xbh:# {{{
     def get_bl_rev(self):
         self.req_bl()
 
-        if self.verbose:
-            self.log("Getting git revision of XBD bootloader");
+        _logger.debug("Getting git revision of XBD bootloader");
 
         self._exec("tr")
         msg = self._xbh_response().decode()
@@ -216,8 +205,7 @@ class Xbh:# {{{
         if None == mode.match("[IUOTE]"):
             raise NotImplementedError("Mode "+mode+" not supported")
 
-        if self.verbose:
-            self.log("Setting communication mode to "+mode)
+        _logger.debug("Setting communication mode to "+mode)
 
         self._exec("sc",mode)
         self._xbh_response()
@@ -225,7 +213,7 @@ class Xbh:# {{{
 
     def calc_checksum(self):
         self.req_app()
-        self.log("Calculating checksum")
+        _logger.info("Calculating checksum")
 
         self._sock.settimeout(_CALC_TIMEOUT)
         self._exec("cc")
@@ -235,8 +223,7 @@ class Xbh:# {{{
 
     def get_results(self):
         self.req_app()
-        if self.verbose:
-            self.log("Downloading results")
+        _logger.debug("Downloading results")
 
         self._exec("ur")
         msg = self._xbh_response()
@@ -244,16 +231,14 @@ class Xbh:# {{{
 
     def get_stack_usage(self):
         self.req_app()
-        if self.verbose:
-            self.log("Getting Stack Usage")
+        _logger.debug("Getting Stack Usage")
 
         self._exec("su")
         msg = self._xbh_response()
 
         stack = struct.unpack("!I", msg)[0]
 
-        if self.verbose:
-            self.log("Used "+stack+" bytes on stack")
+        _logger.debug("Used "+stack+" bytes on stack")
         
         return stack
         
@@ -261,16 +246,14 @@ class Xbh:# {{{
     def get_timing_cal(self):
         self.req_bl()
 
-        if self.verbose:
-            self.log("Getting Timing Calibration")
+        _logger.debug("Getting Timing Calibration")
 
         self._exec("tc")
         msg = self._xbh_response()
 
         cycles = struct.unpack("!I", msg)[0]
 
-        if self.verbose:
-            self.log("Received "+str(cycles)+" XBD clock cycles")
+        _logger.debug("Received "+str(cycles)+" XBD clock cycles")
 
         return cycles
 
@@ -282,7 +265,7 @@ class Xbh:# {{{
         self.req_bl()
 
         #if self.verbose:
-        #    self.log("Uploading a page to address "+hexaddr)
+        #    _logger.info("Uploading a page to address "+hexaddr)
 
         self._exec("cd",struct.pack("!I",addr)+data)
         self._xbh_response()
@@ -290,7 +273,7 @@ class Xbh:# {{{
     def _upload_data(self, typecode, addr, data):
         self.req_app()
         #if self.verbose:
-        #    self.log("Uploading parameters to address "+hexaddr)
+        #    _logger.info("Uploading parameters to address "+hexaddr)
         self._exec("dp",struct.pack("!II",typecode,addr)+data)
         self._xbh_response()
 
@@ -308,8 +291,7 @@ class Xbh:# {{{
             if length == 0:
                 continue
 
-            if self.verbose:
-                self.log("Uploading {} bytes {} page(s) at a time starting at {}"
+            _logger.debug("Uploading {} bytes {} page(s) at a time starting at {}"
                         .format(length, block_size, hex(addr)))
                 pass # fix autoindent wonkyness
 
@@ -318,7 +300,7 @@ class Xbh:# {{{
                 if self.verbose:
                     uploaded_bytes = (upload_bytes if upload_bytes <
                             (length - offset) else (length - offset))
-                    self.log("Uploading {} bytes starting at {}"
+                    _logger.info("Uploading {} bytes starting at {}"
                             .format(uploaded_bytes,hex(addr+offset)))
                 offset += upload_bytes
 
@@ -333,8 +315,7 @@ class Xbh:# {{{
             length = len(data)
             offset = 0
             
-            if self.verbose:
-                self.log("Uploading {} bytes {} at a time"
+            _logger.debug("Uploading {} bytes {} at a time"
                         .format(length, MAX_DATA))
                 pass # fix autoindent wonkyness
 
@@ -343,7 +324,7 @@ class Xbh:# {{{
                 if self.verbose:
                     uploaded_bytes = (MAX_DATA if MAX_DATA <
                             (length - offset) else (length - offset))
-                    self.log("Uploading {} bytes starting at {}"
+                    _logger.info("Uploading {} bytes starting at {}"
                             .format(uploaded_bytes,hex(addr+offset)))
                 offset += MAX_DATA
 
