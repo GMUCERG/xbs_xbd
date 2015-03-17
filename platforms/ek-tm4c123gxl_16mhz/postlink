@@ -1,7 +1,56 @@
-#!/bin/bash
+#! /usr/bin/env python3
+import shlex
+import re
+import os
+import subprocess
+import configparser
 
-if [ -e xbdprog.bin ]
-then
-    arm-stellaris-eabi-objcopy -O ihex ${HEX_FLASH_FLAGS}  xbdprog.bin xbdprog.hex
-fi
+BINFILE = "xbdprog.bin"
+HEX_FLASH_FLAGS="-R .eeprom -R .fuse -R .lock -R .signature"
+OBJCOPY="arm-stellaris-eabi-objcopy"
+
+app_path = os.path.dirname(__file__)
+
+conf_file = os.path.join(app_path, 'settings.ini')
+size = os.path.join(app_path, 'size')
+
+
+config = configparser.ConfigParser()
+config.read(conf_file)
+
+if os.path.isfile(BINFILE):
+    cmd = [size, BINFILE]
+    stdout = subprocess.check_output(cmd).decode()
+    match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', 
+            stdout.splitlines()[1])
+    text = int(match.group(1))
+    data = int(match.group(2))
+    bss  = int(match.group(3))
+
+    used_flash = text+data
+    used_sram = data+bss
+
+    sram = int(config.get('platform_settings', 'sram'),0)
+    app_flash = int(config.get('platform_settings', 'app_flash'),0)
+
+    if used_flash > app_flash:
+        print("Program uses more flash than is allocated for application",
+                file=sys.stderr)
+        exit(-2)
+
+    if used_sram > sram*3/4:
+        print("Program uses more than 3/4ths "
+                "available SRAM for static allocations",
+                file=sys.stderr)
+        exit(-2)
+        
+    cmd = ("{} -O ihex {} xbdprog.bin xbdprog.hex").format(
+            OBJCOPY,
+            HEX_FLASH_FLAGS)
+    subprocess.call(shlex.split(cmd))
+else:
+    print(BINFILE+" does not exist", file=sys.stderr)
+    exit(-1)
+
+
 
