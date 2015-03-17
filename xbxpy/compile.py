@@ -28,7 +28,7 @@ for p in config.primitives:
         for compiler in config.platform.compilers:
             build = xbx.Build(config, compiler['cc'],  compiler['cxx'], 
                     index, i , True)
-            #build.compile()
+            build.compile()
             builds += build,
             index += 1
 

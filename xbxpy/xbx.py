@@ -215,15 +215,20 @@ class Config:# {{{
                 checksumsmall = f.readline().strip()
             p = Config.Primitive(name, operation, path, checksumsmall)
 
-            primitives += (p, )
+            primitives += p, 
 
         primitives = sorted(primitives)
 
 
         # Get whitelist  ^blacklist
         for p in primitives:
-            alldirs = [d for d in os.listdir(p.path) if
-                    os.path.isdir(os.path.join(p.path, d))]
+            alldirs = [] 
+
+            # Find all directories w/ api.h
+            walk =  os.walk(p.path)
+            for i in walk:
+                if "api.h" in i[2]:
+                    alldirs += os.path.relpath(i[0], p.path),
 
             keptdirs = set(alldirs)
 
@@ -261,7 +266,7 @@ class Config:# {{{
                     prototypes += match.group(3).split(':')
                     break
         # Add empty string to macro list
-        macros += ('',)
+        macros += '',
         return Config.Operation(name, macros, prototypes)
     # }}}
 
@@ -327,6 +332,8 @@ class Build:# {{{
 
         self.gen_files()
 
+        self.compiled = False
+
     # }}}
 
     def compile(self):# {{{
@@ -337,12 +344,15 @@ class Build:# {{{
             self.cxx), extra=self.log_attr)
         self.make("all")
 
-        size = os.path.join(self.config.platform.path, 'size')
-        process = subprocess.Popen((size, self.exe_path), env=self.env, stdout=subprocess.PIPE)
-        stdout, stdin = process.communicate()
-        sizeout = stdout.decode().splitlines()[1]
-        match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
-        self.stats = Build.Stats(match.group(1), match.group(2), match.group(3))
+        if os.path.isfile(self.exe_path):
+            self.compiled = True
+
+            size = os.path.join(self.config.platform.path, 'size')
+            process = subprocess.Popen((size, self.exe_path), env=self.env, stdout=subprocess.PIPE)
+            stdout, stdin = process.communicate()
+            sizeout = stdout.decode().splitlines()[1]
+            match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
+            self.stats = Build.Stats(match.group(1), match.group(2), match.group(3))
 
 
     # }}}
