@@ -1,12 +1,12 @@
 import logging
 import os
 import re
-import shutil
 import string
 import configparser
 import subprocess
 import sys
 import threading
+import datetime
 
 import xbx.buildfiles as buildfiles
 
@@ -14,52 +14,75 @@ EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
 
 class Stats:
-    def __init__(self, text, data, bss):
-        text = text
-        data = data
-        bss = bss 
+    def __init__(self, 
+            operation,
+            primitive,
+            implementation,
+            compiler_idx,
+            cc,
+            cxx,
+            hex_path,
+            exe_path,
+            workpath,
+            timestamp,
+            text, data, bss):
+
+        self.operation      = operation
+        self.primitive      = primitive
+        self.implementation = implementation
+        self.compiler_idx   = compiler_idx
+        self.cc             = cc
+        self.cxx            = cxx
+        self.hex_path       = hex_path
+        self.exe_path       = exe_path
+        self.workpath       = workpath
+
+        self.text = text
+        self.data = data
+        self.bss  = bss 
 
 class Build:
     """Sets up a build
     
     Parameters:
         config          xbx.Config object
-        index      compiler index
+        index           compiler index
         implementation  xbx.Config.Implementation instance
         warn_comp_err   If false, Compiler errs have DEBUG loglevel instead of
                         WARN
+        parallel        If true, issues -j flag to make 
     """
-
-    def __init__(self, config, index, implementation,# {{{
-            warn_comp_err=False):
+    def __init__(self, config, compiler_idx, implementation,# {{{
+            warn_comp_err=False, parallel=False):
         self.config = config
-        self.cc = config.platform.compilers[index]['cc']
-        self.cxx = config.platform.compilers[index]['cxx']
-        self.index = index
+        self.cc = config.platform.compilers[compiler_idx]['CC']
+        self.cxx = config.platform.compilers[compiler_idx]['CXX']
+        self.compiler_idx = compiler_idx
         self.implementation = implementation
         self.workpath = os.path.join(
                 config.work_path,
                 config.platform.name,
+                config.operation.name,
                 self.implementation.primitive.name,
                 self.implementation.name,
-                str(index))
+                str(compiler_idx))
         self.exe_path = os.path.join(self.workpath, EXE_NAME)
         self.hex_path = os.path.join(self.workpath, HEX_NAME)
         self.warn_comp_err = warn_comp_err
+        self.parallel = False
 
         operation = self.implementation.primitive.operation
         primitive = self.implementation.primitive
 
-        self.buildid = "{}/{}/{}:{}".format(
+        self.buildid = "{}/{}/{}/{}".format(
             operation.name,
             primitive.name,
             implementation.name,
-            self.index)
+            self.compiler_idx)
 
         # Set build environment variables
         tmpl_path = self.config.platform.tmpl_path
-        self.env = os.environ.copy()
-        self.env.update({'CC': self.cc,
+        self.env = {'CC': self.cc,
             'templatePlatformDir': tmpl_path if tmpl_path else '',
             'CXX': self.cxx,
             'HAL_PATH': os.path.join(self.config.platform.path,'hal'),
@@ -72,86 +95,65 @@ class Build:
                 config.work_path,
                 config.platform.name,
                 'HAL',
-                str(index))})
+                str(compiler_idx))}
 
-
-        #self.logger = logger
         self.log_attr = {'buildid': self.buildid}
-
         self.gen_files()
-
-        self.compiled = False
+        self.stats = None
+        self.timestamp = None
 
     # }}}
 
     def compile(self):# {{{
-        #self.logger.info("Building {} on platform {} with:\n\tCC={}\n\tCXX={}".format(
+        logger = logging.getLogger(__name__+".Build")
+        #logger.info("Building {} for platform {}".format(
         #    self.buildid,
-        #    self.config.platform.name,
-        #    self.cc,
-        #    self.cxx), extra=self.log_attr)
+        #    self.config.platform.name), extra=self.log_attr)
+
         self.make("all")
 
         if os.path.isfile(self.exe_path):
-            self.compiled = True
 
             size = os.path.join(self.config.platform.path, 'size')
-            stdout = ""
-            try:
-                stdout = subprocess.check_output((size, self.exe_path), env=self.env)
-                sizeout = stdout.decode().splitlines()[1]
-                match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
-                self.stats = Stats(
-                    int(match.group(1)), 
-                    int(match.group(2)), 
-                    int(match.group(3)))
-            except subprocess.CalledProcessError as cpe:
-                #self.logger.error(cpe.cmd, extra=self.log_attr)
-                #self.logger.error(cpe.returncode, extra=self.log_attr)
-                #self.logger.error(cpe.output, extra=self.log_attr)
-                shutil.copytree(self.workpath, "/tmp/err")
-                #stdout = subprocess.check_output((size, self.exe_path), env=self.env)
-                #print(stdout)
-                os._exit(1)
-
+            total_env = self.env.copy()
+            total_env.update(os.environ)
+            stdout = subprocess.check_output((size, self.exe_path),
+                    env=total_env)
+            sizeout = stdout.decode().splitlines()[1]
+            match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
+            self.timestamp = datetime.datetime.now()
+            self.stats = Stats(
+                    operation      = self.implementation.primitive.operation,
+                    primitive      = self.implementation.primitive,
+                    implementation = self.implementation,
+                    compiler_idx   = self.compiler_idx,
+                    cc             = self.cc,
+                    cxx            = self.cxx,
+                    hex_path       = self.hex_path,
+                    exe_path       = self.exe_path,
+                    workpath       = self.workpath,
+                    timestamp       = self.timestamp,
+                    text           = int(match.group(1)),
+                    data           = int(match.group(2)),
+                    bss            = int(match.group(3)))
+            logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
+        else:
+            logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
     # }}}
 
     def clean(self):# {{{
-        #self.logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
+        logger = logging.getLogger(__name__+".Build")
+        logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
         self.make("clean")
     # }}}
 
-    def purge(self):
-        pass
-
     def make(self, target):# {{{
-        makecmd = ['make', '-j', target]
 
-        # Run make
-        old_pwd = os.getcwd()
-        os.chdir(self.workpath)
-        process = subprocess.Popen(makecmd, env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        os.chdir(old_pwd)
+        logger = logging.getLogger(__name__+".Build")
+        err_logger = logger.warn if self.warn_comp_err else logger.debug
 
-        def read_thread(fd, log_fn):
-            for l in iter(fd.readline, b''):
-                print(l.decode().strip("\n"))
-                #log_fn(l.decode().strip("\n"), extra=self.log_attr)
-
-        #stdout_t = threading.Thread(target=read_thread, args=(process.stdout, self.logger.debug))
-        #stderr_t = threading.Thread(target=read_thread, args=(process.stderr, 
-        #        self.logger.warn if self.warn_comp_err else self.logger.debug))
-        stdout_t = threading.Thread(target=read_thread, args=(process.stdout,None))
-        stderr_t = threading.Thread(target=read_thread, args=(process.stderr, None))
-
-        stdout_t.daemon = True
-        stderr_t.daemon = True
-        stdout_t.start()
-        stderr_t.start()
-
-        # Wait for make to finish
-        process.wait()
+        _make(self.workpath, logger.debug, err_logger, target, self.parallel, extra=self.log_attr)
     # }}}
 
     def gen_files(self):# {{{
@@ -163,6 +165,8 @@ class Build:
             os.makedirs(self.workpath)
         except OSError:
             pass
+
+        _gen_envfile(self.workpath, self.env)
 
         makefile = os.path.join(self.workpath, 'Makefile')
         crypto_o_h = os.path.join(self.workpath, "crypto_"+operation.name+".h")
@@ -240,11 +244,11 @@ class Build:
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
     # }}}
 
-
 def build_hal(config, index):
+    """Builds HAL for given compiler index"""
     logger = logging.getLogger(__name__)
 
-    logger.info("Building HAL for platform {}, compindex {}".format(
+    logger.info("Building HAL for platform {}, compiler {}".format(
             config.platform.name,
             str(index)))
 
@@ -264,36 +268,79 @@ def build_hal(config, index):
 
     makefile = os.path.join(workpath, 'Makefile')
 
-    if True: #not os.path.isfile(makefile):
+    if not os.path.isfile(makefile):
         with open(makefile, 'w') as f:
             f.write(buildfiles.HAL_MAKEFILE)
 
-    env = os.environ.copy()
 
-    env.update({'CC': config.platform.compilers[index]['cc'],
+    env = ({'CC': config.platform.compilers[index]['CC'],
         'templatePlatformDir': tmpl_path if tmpl_path else '',
         'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
         'HAL_PATH': os.path.join(config.platform.path,'hal'),
-        'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else '',
-        'HAL_OBJS': workpath})
+        'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else ''})
 
-    makecmd = ['make', '-j']
+    #_gen_envfile(workpath, env)
+
+    _make(workpath, logger.debug, logger.debug, parallel = True)
+
+
+
+def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
+    """Runs subprocess logging output
+
+    Parameters:
+    cmd         Command given to subprocess.Popen()
+    path        Path to chdir before execution
+    env         Environment for command
+    log_fn      Logging function for stdout
+    err_logfn   Logging function for stderr
+    extra       Extra to send to logger
+    """
+
+    cmd = ["make"]
+    if parallel:
+        cmd += "-j",
+    cmd += target,
 
     old_pwd = os.getcwd()
-    os.chdir(workpath)
-    #process = subprocess.Popen(makecmd, env=env)
-    process = subprocess.Popen(makecmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    os.chdir(path)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     os.chdir(old_pwd)
 
     def read_thread(fd, log_fn):
         for l in iter(fd.readline, b''):
-            log_fn(l.decode().strip("\n"))
+            log_fn(l.decode().strip("\n"), extra=extra)
 
-    stdout_t = threading.Thread(target=read_thread, args=(process.stdout, logger.debug))
-    stderr_t = threading.Thread(target=read_thread, args=(process.stderr, logger.debug))
+    stdout_t = threading.Thread(target=read_thread, args=(process.stdout, log_fn))
+    stderr_t = threading.Thread(target=read_thread, args=(process.stderr, err_log_fn))
 
     stdout_t.daemon = True
     stderr_t.daemon = True
     stdout_t.start()
     stderr_t.start()
     process.wait()
+
+def _gen_envfile(path, env):
+    """Takes dirpath of env.make and dictionary of environment variables"""
+    envfile = os.path.join(path, 'env.make')
+
+    if os.path.isfile(envfile):
+        old_env = _parse_envfile(envfile)
+        if set(old_env.items()) == set(env.items()):
+            return True
+
+    with open(envfile, 'w') as f:
+        for key, value in env.items():
+            f.write("{}={}\n".format(key,value))
+    return False
+    
+def _parse_envfile(path):
+    env = {}
+    with open(path) as f:
+        for l in f:
+            name, _, value = l.partition("=")
+            env[name.strip()]=value.strip("\n")
+    return env
+    
+
+

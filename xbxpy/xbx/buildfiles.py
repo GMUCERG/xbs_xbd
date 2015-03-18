@@ -1,5 +1,6 @@
 # vim: set noexpandtab tabstop=4:
-HAL_MAKEFILE="""FLAGS=-I.
+HAL_MAKEFILE="""include env.make
+FLAGS=-I.
 FLAGS+=-I${HAL_PATH}
 FLAGS+=-I${HAL_PATH}/drivers
 FLAGS+=-I${XBD_PATH}/xbd_af
@@ -13,6 +14,7 @@ FLAGS+=-MD
 
 CC+=${FLAGS}
 
+BUILDDIR=build
 
 SRCS += $(wildcard ${HAL_PATH}/*.c ${HAL_PATH}/drivers/*.c)
 ifdef HAL_T_PATH
@@ -23,24 +25,27 @@ OBJS := $(SRCS:%.c=%.o)
 OBJS := $(OBJS:%.cpp=%.o)
 OBJS := $(OBJS:%.s=%.o)
 OBJS := $(OBJS:%.S=%.o)
-OBJS := $(patsubst ${HAL_PATH}%,${HAL_OBJS}%,${OBJS})
+OBJS := $(patsubst ${HAL_PATH}%,${BUILDDIR}%,${OBJS})
 ifdef $HAL_T_PATH
-OBJS := $(patsubst ${HAL_T_PATH}%,${HAL_OBJS}%,${OBJS})
+OBJS := $(patsubst ${HAL_T_PATH}%,${BUILDDIR}%,${OBJS})
 endif
+
 
 all: ${OBJS}
 
-${HAL_OBJS}/dirsmade:
+${OBJS}: Makefile env.make
+
+${BUILDDIR}:
 	@echo MKDIR
 	@echo ${OBJS}|xargs dirname|xargs mkdir -p
-	@touch ${HAL_OBJS}/dirmade
 
-${HAL_OBJS}/%.o: ${HAL_PATH}/%.c |${HAL_OBJS}/dirsmade
+${BUILDDIR}/%.o: ${HAL_PATH}/%.c |${BUILDDIR}
 	@echo "CC  ${<}"; 
 	@${CC} -o ${@} -c ${<} 
 
 clean:
-	rm -rf ${HAL_OBJS}/*
+	@echo CLEAN
+	@rm -f ${OBJS} ${DEPS} env.make
 
 .PHONY: clean
 ifneq (${MAKECMDGOALS},clean)
@@ -48,7 +53,8 @@ DEPS := $(OBJS:%.o=%.d)
 -include ${DEPS} __dummy__
 endif"""
 
-MAKEFILE="""FLAGS+=-I.
+MAKEFILE="""include env.make
+FLAGS+=-I.
 FLAGS+=-L${HAL_PATH}
 FLAGS+=-I${HAL_PATH}
 FLAGS+=-I${HAL_PATH}/drivers
@@ -84,6 +90,7 @@ OBJS += $(shell find ${HAL_OBJS} -name "*.o")
 
 all: xbdprog.bin xbdprog.hex 
 
+${OBJS}: Makefile env.make
 
 ${BUILDDIR}:
 	@echo MKDIR
@@ -118,7 +125,8 @@ xbdprog.size: xbdprog.bin
 	${SIZE}
 
 clean:
-	rm -rf xbdprog.bin xbdprog.hex xbdprog.size  build
+	@echo CLEAN
+	@rm -rf xbdprog.bin xbdprog.hex build env.make
 
 .PHONY: clean
 ifneq (${MAKECMDGOALS},clean)

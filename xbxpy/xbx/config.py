@@ -69,6 +69,8 @@ class Config:
         self.work_path      = os.path.abspath(config.get('paths','work'))
 
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
+        self.parallel_build = bool(distutils.util.strtobool(config.get('run',
+            'parallel_build')))
 
 
         # XBH address
@@ -163,7 +165,7 @@ class Config:
             cc_list = ['']*len(cxx_list)
 
         for i in range(0, len(cc_list)):
-            compilers += ({'cc': cc_list[i], 'cxx': cxx_list[i]},)
+            compilers += ({'CC': cc_list[i], 'CXX': cxx_list[i]},)
 
         return compilers
 
