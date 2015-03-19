@@ -89,6 +89,7 @@ class Config:
         self.algopack_path  = os.path.abspath(config.get('paths','algopacks'))
         self.embedded_path  = os.path.abspath(config.get('paths','embedded'))
         self.work_path      = os.path.abspath(config.get('paths','work'))
+        self.data_path      = os.path.abspath(config.get('paths','data'))
 
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
         self.parallel_build = bool(distutils.util.strtobool(config.get('run',
@@ -204,7 +205,7 @@ class Config:
                     cc_version,
                     cxx_version,
                     cc_version_full,
-                    cxx_version_full},
+                    cxx_version_full),
 
         
         return compilers
