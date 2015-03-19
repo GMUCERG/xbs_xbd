@@ -216,6 +216,79 @@ class Build:# {{{
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
     # }}}
 
+class BuildSession:# {{{
+    CPU_COUNT = mp.cpu_count()
+
+    def __init__(self, config, database):
+        self.config = config
+        self.database = database
+        self.builds = []
+        self.session_id = self.database.new_buildsession(self)
+
+
+    def buildall(self):
+        """Builds all targets specified in xbx self.config, and saves stats into cursor"""
+
+        num_compilers = len(self.config.platform.compilers)
+
+        for i in range(num_compilers):
+            logging.info("compiler[{}] = {}".format(i,
+                str(self.config.platform.compilers[i])))
+            if self.config.one_compiler:
+                break
+
+        for i in range(num_compilers):
+            build_hal(self.config, i)
+            if self.config.one_compiler:
+                break
+
+        for p in self.config.primitives:
+            for j in p.impls:
+                for i in range(num_compilers):
+                    build = Build(self.config, i, j)
+                    self.builds += build,
+
+                    if self.config.one_compiler:
+                        break
+        
+        if self.config.parallel_build:
+            q_out = mp.Queue()
+            q_in = mp.Queue()
+
+            def worker(q_in, q_out):
+                for build in iter(q_in.get, None):
+                    build.compile()
+                    q_out.put(build)
+
+            processes = [mp.Process(target=worker, args=(q_out,q_in)) 
+                    for i in range(BuildSession.CPU_COUNT+1)]
+            for p in processes:
+                p.start()
+
+            for b in self.builds:
+                q_out.put(b)
+
+            # Clear out old build list, reobtain from queue with updated data
+            num_builds = len(self.builds)
+            self.builds = []
+            for _ in range(num_builds):
+                b = q_in.get()
+                self.database.save_build(b, self)
+                self.builds += b,
+
+            # Terminate processes
+            for p in processes:
+                q_out.put(None)
+        else:
+            for b in self.builds:
+                b.compile()
+                self.database.save_build(b, self)
+
+        print ("done")
+        self.database.commit()
+
+# }}}
+    
 # Support fxns# {{{
 def build_hal(config, index):
     """Builds HAL for given compiler index"""

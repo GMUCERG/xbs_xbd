@@ -278,7 +278,7 @@ class Xbh:# {{{
         self._xbh_response()
 
 
-    def upload_prog(self,filename, program_type=prog_reader.ProgramType.IHEX):
+    def upload_prog(self, filename, program_type=prog_reader.ProgramType.IHEX):
         reader = prog_reader.ProgramReader(filename, program_type, self.page_size)
         for addr, data in reader.areas.items():
             # Max payload - command length - 4 bytes for size
