@@ -13,34 +13,6 @@ import xbx.buildfiles as buildfiles
 EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
 
-class Stats:
-    def __init__(self, 
-            operation,
-            primitive,
-            implementation,
-            compiler_idx,
-            cc,
-            cxx,
-            hex_path,
-            exe_path,
-            workpath,
-            timestamp,
-            text, data, bss):
-
-        self.operation      = operation
-        self.primitive      = primitive
-        self.implementation = implementation
-        self.compiler_idx   = compiler_idx
-        self.cc             = cc
-        self.cxx            = cxx
-        self.hex_path       = hex_path
-        self.exe_path       = exe_path
-        self.workpath       = workpath
-
-        self.text = text
-        self.data = data
-        self.bss  = bss 
-
 class Build:
     """Sets up a build
     
@@ -52,7 +24,7 @@ class Build:
                         WARN
         parallel        If true, issues -j flag to make 
     """
-    def __init__(self, config, compiler_idx, implementation,# {{{
+    def __init__(self, config, compiler_idx, implementation,
             warn_comp_err=False, parallel=False):
         self.config = config
         self.cc = config.platform.compilers[compiler_idx]['CC']
@@ -98,13 +70,16 @@ class Build:
                 str(compiler_idx))}
 
         self.log_attr = {'buildid': self.buildid}
-        self.gen_files()
         self.stats = None
         self.timestamp = None
 
-    # }}}
+        self.text = -1
+        self.data = -1
+        self.bss  = -1
+    
 
-    def compile(self):# {{{
+    def compile(self):
+        self._gen_files()
         logger = logging.getLogger(__name__+".Build")
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
@@ -112,8 +87,8 @@ class Build:
 
         self.make("all")
 
-        if os.path.isfile(self.exe_path):
-
+        self.timestamp = datetime.datetime.now()
+        if os.path.isfile(self.hex_path):
             size = os.path.join(self.config.platform.path, 'size')
             total_env = self.env.copy()
             total_env.update(os.environ)
@@ -121,42 +96,32 @@ class Build:
                     env=total_env)
             sizeout = stdout.decode().splitlines()[1]
             match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
-            self.timestamp = datetime.datetime.now()
-            self.stats = Stats(
-                    operation      = self.implementation.primitive.operation,
-                    primitive      = self.implementation.primitive,
-                    implementation = self.implementation,
-                    compiler_idx   = self.compiler_idx,
-                    cc             = self.cc,
-                    cxx            = self.cxx,
-                    hex_path       = self.hex_path,
-                    exe_path       = self.exe_path,
-                    workpath       = self.workpath,
-                    timestamp       = self.timestamp,
-                    text           = int(match.group(1)),
-                    data           = int(match.group(2)),
-                    bss            = int(match.group(3)))
+
+            self.text = match.group(1)
+            self.data = match.group(2)
+            self.bss  = match.group(3)
+
             logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
         else:
             logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
-    # }}}
+    
 
-    def clean(self):# {{{
+    def clean(self):
         logger = logging.getLogger(__name__+".Build")
         logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
         self.make("clean")
-    # }}}
+    
 
-    def make(self, target):# {{{
+    def make(self, target):
 
         logger = logging.getLogger(__name__+".Build")
         err_logger = logger.warn if self.warn_comp_err else logger.debug
 
         _make(self.workpath, logger.debug, err_logger, target, self.parallel, extra=self.log_attr)
-    # }}}
+    
 
-    def gen_files(self):# {{{
+    def _gen_files(self):
         operation = self.implementation.primitive.operation
         primitive = self.implementation.primitive
 
@@ -178,15 +143,15 @@ class Build:
             self._gen_crypto_o_h(crypto_o_h, primitive)
         if not os.path.isfile(crypto_op_h):
             self._gen_crypto_op_h(crypto_op_h, self.implementation)
-    # }}}
+    
         
-    def _genmake(self, filename):# {{{
+    def _genmake(self, filename):
         #self.logger.debug("Generating Makefile...", extra=self.log_attr)
         with open(filename, 'w') as f:
             f.write(buildfiles.MAKEFILE)
-    # }}}
+    
         
-    def _gen_crypto_o_h(self, filename, primitive):# {{{
+    def _gen_crypto_o_h(self, filename, primitive):
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         macro_expand = []
         o = 'crypto_'+primitive.operation.name 
@@ -205,9 +170,9 @@ class Build:
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.CRYPTO_O_H).substitute(subst_dict))
-    # }}}
+    
 
-    def _gen_crypto_op_h(self, filename, implementation):# {{{
+    def _gen_crypto_op_h(self, filename, implementation):
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         operation = implementation.primitive.operation
         primitive = implementation.primitive
@@ -242,7 +207,7 @@ class Build:
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
-    # }}}
+    
 
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
@@ -279,7 +244,7 @@ def build_hal(config, index):
         'HAL_PATH': os.path.join(config.platform.path,'hal'),
         'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else ''})
 
-    #_gen_envfile(workpath, env)
+    _gen_envfile(workpath, env)
 
     _make(workpath, logger.debug, logger.debug, parallel = True)
 
