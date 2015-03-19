@@ -37,6 +37,7 @@ create table config(
 
 create table build_session ( 
     timestamp date,
+    host text,
     xbx_version text,
     config text,
     foreign key(config) references config(hash)
@@ -46,6 +47,10 @@ create table compiler(
     build_session text,
     platform text,
     idx int,
+    cc_version text,
+    cxx_version text,
+    cc_version_full text,
+    cxx_version_full text,
     cc text,
     cxx text,
     foreign key(build_session) references build_session(rowid),
@@ -75,6 +80,7 @@ create table build (
 
     -- Checksum 
     test_result text, 
+    test_ok boolean, 
 
     foreign key(platform,build_session,compiler_idx) references compiler(platform, build_session, idx),
     foreign key(build_session) references build_session(rowid)
@@ -84,6 +90,7 @@ create table build (
 
 create table run_session (
     config text,
+    host text,
     xbx_version text,
     build_session int,
     foreign key(config) references config(hash),

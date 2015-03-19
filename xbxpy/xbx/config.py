@@ -1,16 +1,36 @@
 #! /usr/bin/python3
+import configparser
+import distutils.util
 import logging
 import os
 import re
+import shlex
 import shutil
 import string
-import configparser
+import subprocess
 import subprocess
 import sys
-import distutils.util
 
+import xbx.dirchecksum
 
 _logger=logging.getLogger(__name__)
+
+class Compiler:
+    def __init__(self, 
+                cc,
+                cxx,
+                cc_version,
+                cxx_version,
+                cc_version_full,
+                cxx_version_full):
+        self.cc,              = cc
+        self.cxx,             = cxx
+        self.cc_version,      = cc_version
+        self.cxx_version,     = cxx_version
+        self.cc_version_full, = cc_version_full
+        self.cxx_version_full = cxx_version_full
+
+
 
 class Platform:
     def __init__(self, name, path, tmpl_path, clock_hz, pagesize, compilers):
@@ -46,10 +66,11 @@ class Primitive:
         return self.name < other.name
 
 class Implementation:
-    def __init__(self, name, primitive, path):
+    def __init__(self, name, primitive, path, checksum):
         self.name = name
         self.primitive = primitive
         self.path = path
+        self.checksum = checksum
 
     def __lt__(self, other):
         return self.name < other.name
@@ -59,6 +80,7 @@ class Config:
     """Configuration for running benchmarks on a single operation on a single platform"""
 
     def __init__(self, filename):
+        _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
         config.read(filename)
 
@@ -112,6 +134,7 @@ class Config:
     @staticmethod
     def __enum_platform(name, platforms_path):# {{{
         """Enumerate platform settings, given path to platform directory"""
+        _logger.debug("Enumerating platforms")
 
         ## Platform configuration
         path = os.path.join(platforms_path, name)
@@ -136,6 +159,7 @@ class Config:
 
     @staticmethod
     def __enum_compilers(platform_path, tmpl_path):# {{{
+        _logger.debug("Enumerating compilers")
         cc_list = []
         cxx_list = []
         compilers = []
@@ -164,9 +188,25 @@ class Config:
         elif len(cc_list) == 0:
             cc_list = ['']*len(cxx_list)
 
-        for i in range(0, len(cc_list)):
-            compilers += ({'CC': cc_list[i], 'CXX': cxx_list[i]},)
+        def get_version(compiler):
+            cmd = shlex.split(compiler)
+            cmd += '-V',
+            version_full = subprocess.check_output(cc_cmd).decode()
+            version = cc_version_full.splitlines()[-1]
+            return version, version_full
 
+        for i in range(0, len(cc_list)):
+            cc_version, cc_version_full = get_version(cc_list[i])
+            cxx_version, cxx_version_full = get_version(cxx_list[i])
+            compilers += Compiler(
+                    cc_list[i], 
+                    cxx_list[i],
+                    cc_version,
+                    cxx_version,
+                    cc_version_full,
+                    cxx_version_full},
+
+        
         return compilers
 
     # }}}
@@ -185,6 +225,7 @@ class Config:
             whitelist       List of implementations to consider. """
             
 
+        _logger.debug("Enumerating primitives and implementations")
         primitives = []
 
         # Get operation path
@@ -232,7 +273,8 @@ class Config:
 
             for name in keptdirs:
                 path = os.path.join(p.path,name)
-                impl = Implementation(name,p,path)
+                checksum = xbx.dirchecksum.dirchecksum(path)
+                impl = Implementation(name,p,path, checksum)
                 p.impls += (impl,)
 
             p.impls = sorted(p.impls)
@@ -244,6 +286,7 @@ class Config:
     @staticmethod
     def __enum_operation(name, filename):# {{{
         """Generate operation"""
+        _logger.debug("Enumerating operations")
 
         macros = []
         prototypes = []

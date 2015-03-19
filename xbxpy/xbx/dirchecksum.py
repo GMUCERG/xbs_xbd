@@ -25,13 +25,13 @@ def dirchecksum(path):
             block = f.read(1024*1024)
             while len(block) != 0:
                 h.update(block)
-                block = f.read()
+                block = f.read(1024*1024)
             
-            sums[aname] = (fn,binascii.hexlify(h.digest()))
+            sums[aname] = (fn,h.hexdigest())
 
     sums = collections.OrderedDict(sorted(sums.items()))
     for i in sums.values():
-        sum_strings += (i[1].decode(),"  ", i[0], "\n")
+        sum_strings += (i[1],"  ", i[0], "\n")
 
     #print(''.join(sum_strings))
     h = hashlib.sha256()
@@ -39,9 +39,9 @@ def dirchecksum(path):
 
     os.chdir(curpath)
 
-    return binascii.hexlify(h.digest())
+    return h.hexdigest() #binascii.hexlify(h.digest())
 
 
 
 if __name__ == "__main__":
-    print(dirchecksum(sys.argv[1]).decode())
+    print(dirchecksum(sys.argv[1]))

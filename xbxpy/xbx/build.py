@@ -2,18 +2,21 @@ import logging
 import os
 import re
 import string
-import configparser
 import subprocess
 import sys
 import threading
 import datetime
+import hashlib
+import multiprocessing as mp
 
 import xbx.buildfiles as buildfiles
+import xbx.util
+import xbx.data as data
 
 EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
 
-class Build:
+class Build:# {{{
     """Sets up a build
     
     Parameters:
@@ -27,8 +30,8 @@ class Build:
     def __init__(self, config, compiler_idx, implementation,
             warn_comp_err=False, parallel=False):
         self.config = config
-        self.cc = config.platform.compilers[compiler_idx]['CC']
-        self.cxx = config.platform.compilers[compiler_idx]['CXX']
+        self.cc = config.platform.compilers[compiler_idx].cc
+        self.cxx = config.platform.compilers[compiler_idx].cxx
         self.compiler_idx = compiler_idx
         self.implementation = implementation
         self.workpath = os.path.join(
@@ -72,6 +75,7 @@ class Build:
         self.log_attr = {'buildid': self.buildid}
         self.stats = None
         self.timestamp = None
+        self.checksum = None
 
         self.text = -1
         self.data = -1
@@ -100,6 +104,9 @@ class Build:
             self.text = match.group(1)
             self.data = match.group(2)
             self.bss  = match.group(3)
+
+            self.checksum = xbx.util.sha256_file(self.hex_path)
+
 
             logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
         else:
@@ -207,8 +214,9 @@ class Build:
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
-    
+    # }}}
 
+# Support fxns# {{{
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
     logger = logging.getLogger(__name__)
@@ -238,7 +246,7 @@ def build_hal(config, index):
             f.write(buildfiles.HAL_MAKEFILE)
 
 
-    env = ({'CC': config.platform.compilers[index]['CC'],
+    env = ({'CC': config.platform.compilers[index].cc,
         'templatePlatformDir': tmpl_path if tmpl_path else '',
         'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
         'HAL_PATH': os.path.join(config.platform.path,'hal'),
@@ -247,7 +255,6 @@ def build_hal(config, index):
     _gen_envfile(workpath, env)
 
     _make(workpath, logger.debug, logger.debug, parallel = True)
-
 
 
 def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
@@ -306,6 +313,4 @@ def _parse_envfile(path):
             name, _, value = l.partition("=")
             env[name.strip()]=value.strip("\n")
     return env
-    
-
-
+# }}}
