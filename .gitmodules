@@ -10,6 +10,3 @@
 [submodule "external/crosstool-ng"]
 	path = external/crosstool-ng
 	url = https://github.com/crosstool-ng/crosstool-ng.git
-[submodule "xbh"]
-	path = xbh
-	url = https://github.com/jhnphm/xbh.git

@@ -1,1 +1,0 @@
-crypto_hash :_BYTES (unsigned char *,const unsigned char *,unsigned long long)
