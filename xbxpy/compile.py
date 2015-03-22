@@ -14,10 +14,9 @@ import xbx.data as xbxd
 
 def main():
     logging.config.fileConfig("logging.ini")
-    sql = sqlite3.connect("data.db")
     config = xbxc.Config("config.ini")
 
-    db = xbxd.Database(sql)
+    db = xbxd.Database(config)
 
     bs = xbxb.BuildSession(config, db)
     bs.buildall()

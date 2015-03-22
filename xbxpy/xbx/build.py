@@ -12,6 +12,7 @@ import multiprocessing as mp
 import xbx.buildfiles as buildfiles
 import xbx.util
 import xbx.data as data
+from xbx.dirchecksum import dirchecksum
 
 EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
@@ -26,10 +27,12 @@ class Build:# {{{
         warn_comp_err   If false, Compiler errs have DEBUG loglevel instead of
                         WARN
         parallel        If true, issues -j flag to make 
+
     """
-    def __init__(self, config, compiler_idx, implementation,
-            warn_comp_err=False, parallel=False):
-        self.config = config
+    def __init__(
+            self, config, compiler_idx, implementation, warn_comp_err=False,
+            parallel=False):
+        #self.config = config
         self.cc = config.platform.compilers[compiler_idx].cc
         self.cxx = config.platform.compilers[compiler_idx].cxx
         self.compiler_idx = compiler_idx
@@ -46,26 +49,27 @@ class Build:# {{{
         self.warn_comp_err = warn_comp_err
         self.parallel = False
 
-        operation = self.implementation.primitive.operation
-        primitive = self.implementation.primitive
+        self.primitive = self.implementation.primitive
+        self.operation = self.primitive.operation
+        self.platform = config.platform
 
         self.buildid = "{}/{}/{}/{}".format(
-            operation.name,
-            primitive.name,
-            implementation.name,
+            self.operation.name,
+            self.primitive.name,
+            self.implementation.name,
             self.compiler_idx)
 
         # Set build environment variables
-        tmpl_path = self.config.platform.tmpl_path
+        tmpl_path = self.platform.tmpl_path
         self.env = {'CC': self.cc,
             'templatePlatformDir': tmpl_path if tmpl_path else '',
             'CXX': self.cxx,
-            'HAL_PATH': os.path.join(self.config.platform.path,'hal'),
+            'HAL_PATH': os.path.join(self.platform.path,'hal'),
             'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else '',
-            'XBD_PATH': os.path.join(self.config.embedded_path,'xbd'),
+            'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
             'IMPL_PATH': implementation.path,
-            'OP': operation.name,
-            'POSTLINK': os.path.join(self.config.platform.path, 'postlink'),
+            'OP': self.operation.name,
+            'POSTLINK': os.path.join(self.platform.path, 'postlink'),
             'HAL_OBJS': os.path.join(
                 config.work_path,
                 config.platform.name,
@@ -80,11 +84,15 @@ class Build:# {{{
         self.text = -1
         self.data = -1
         self.bss  = -1
+
+        self.impl_checksum = None 
+        self.hex_checksum = None
     
 
     def compile(self):
         self._gen_files()
         logger = logging.getLogger(__name__+".Build")
+        self.impl_checksum = dirchecksum(self.workpath)
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
         #    self.config.platform.name), extra=self.log_attr)
@@ -93,7 +101,7 @@ class Build:# {{{
 
         self.timestamp = datetime.datetime.now()
         if os.path.isfile(self.hex_path):
-            size = os.path.join(self.config.platform.path, 'size')
+            size = os.path.join(self.platform.path, 'size')
             total_env = self.env.copy()
             total_env.update(os.environ)
             stdout = subprocess.check_output((size, self.exe_path),
@@ -105,7 +113,7 @@ class Build:# {{{
             self.data = match.group(2)
             self.bss  = match.group(3)
 
-            self.checksum = xbx.util.sha256_file(self.hex_path)
+            self.hex_checksum = xbx.util.sha256_file(self.hex_path)
 
 
             logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
@@ -217,23 +225,35 @@ class Build:# {{{
     # }}}
 
 class BuildSession:# {{{
+    """Manages builds for all instances specified in xbx config"""
     CPU_COUNT = mp.cpu_count()
 
     def __init__(self, config, database):
+        logger = logging.getLogger(__name__+".Build")
         self.config = config
         self.database = database
         self.builds = []
-        self.session_id = self.database.new_buildsession(self)
+
+        try:
+            self.xbx_version = subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"]
+                    ).decode().strip()
+        except subprocess.CalledProcessError:
+            logger.warn("Could not get git revision of xbx")
+
+        self.session_id = self.database.save_buildsession(self)
+
 
 
     def buildall(self):
         """Builds all targets specified in xbx self.config, and saves stats into cursor"""
 
+        logger = logging.getLogger(__name__)
         num_compilers = len(self.config.platform.compilers)
 
         for i in range(num_compilers):
-            logging.info("compiler[{}] = {}".format(i,
-                str(self.config.platform.compilers[i])))
+            compiler = self.config.platform.compilers[i]
+            logger.info("compiler[{}] = {}".format(i, str((compiler.cc, compiler.cxx))))
             if self.config.one_compiler:
                 break
 
@@ -255,12 +275,14 @@ class BuildSession:# {{{
             q_out = mp.Queue()
             q_in = mp.Queue()
 
-            def worker(q_in, q_out):
+            def worker(q_in, q_out, n):
+                logger.info("Worker "+str(n)+" started")
                 for build in iter(q_in.get, None):
                     build.compile()
                     q_out.put(build)
+                logger.info("Worker "+str(n)+" finished")
 
-            processes = [mp.Process(target=worker, args=(q_out,q_in)) 
+            processes = [mp.Process(target=worker, args=(q_out,q_in, i)) 
                     for i in range(BuildSession.CPU_COUNT+1)]
             for p in processes:
                 p.start()
@@ -284,7 +306,6 @@ class BuildSession:# {{{
                 b.compile()
                 self.database.save_build(b, self)
 
-        print ("done")
         self.database.commit()
 
 # }}}
@@ -340,6 +361,7 @@ def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
     log_fn      Logging function for stdout
     err_logfn   Logging function for stderr
     extra       Extra to send to logger
+
     """
 
     cmd = ["make"]

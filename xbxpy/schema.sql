@@ -11,7 +11,11 @@ create table operation(
 create table primitive(
     operation text,
     name text,
+
+    -- Checksum from xb
     checksumsmall text,
+
+    -- Unused, too big for microcontrollers
     checksumlarge text,
     foreign key(operation) references operation(name),
     primary key(operation, name)
@@ -30,8 +34,9 @@ create table primitive(
 -- Configs do not have to be identical between build session and run session, so
 -- long as checksums match and are verified at runtime
 create table config(
+    -- Sha256 of json
     hash text primary key,
-    json text unique
+    dump text unique
 );
 
 
@@ -44,7 +49,7 @@ create table build_session (
 );
 
 create table compiler(
-    build_session text,
+    build_session int,
     platform text,
     idx int,
     cc_version text,

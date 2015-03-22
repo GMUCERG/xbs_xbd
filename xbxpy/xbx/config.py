@@ -10,6 +10,7 @@ import string
 import subprocess
 import subprocess
 import sys
+import hashlib
 
 import xbx.dirchecksum
 
@@ -23,14 +24,28 @@ class Compiler:
                 cxx_version,
                 cc_version_full,
                 cxx_version_full):
-        self.cc,              = cc
-        self.cxx,             = cxx
-        self.cc_version,      = cc_version
-        self.cxx_version,     = cxx_version
-        self.cc_version_full, = cc_version_full
+        self.cc               = cc
+        self.cxx              = cxx
+        self.cc_version       = cc_version
+        self.cxx_version      = cxx_version
+        self.cc_version_full  = cc_version_full
         self.cxx_version_full = cxx_version_full
-
-
+    def __lt__(self, other):
+        return (
+                self.cc               +
+                self.cxx              +
+                self.cc_version       +
+                self.cxx_version      +
+                self.cc_version_full  +
+                self.cxx_version_full 
+                <      
+                self.cc               +
+                self.cxx              +
+                self.cc_version       +
+                self.cxx_version      +
+                self.cc_version_full  +
+                self.cxx_version_full )
+                
 
 class Platform:
     def __init__(self, name, path, tmpl_path, clock_hz, pagesize, compilers):
@@ -94,7 +109,7 @@ class Config:
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
         self.parallel_build = bool(distutils.util.strtobool(config.get('run',
             'parallel_build')))
-
+        self.dump_config = bool(distutils.util.strtobool(config.get('run', 'dump_config')))
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')
@@ -129,6 +144,8 @@ class Config:
                 blacklist,
                 whitelist, 
                 self.algopack_path)
+
+
 
 
 
@@ -190,15 +207,21 @@ class Config:
             cc_list = ['']*len(cxx_list)
 
         def get_version(compiler):
-            cmd = shlex.split(compiler)
-            cmd += '-V',
-            version_full = subprocess.check_output(cc_cmd).decode()
-            version = cc_version_full.splitlines()[-1]
+            cmd = compiler.partition(" ")[0],
+            cmd += '-v',
+            version_full = subprocess.check_output(
+                    cmd, stderr=subprocess.STDOUT).decode().strip()
+            version = version_full.splitlines()[-1]
             return version, version_full
 
         for i in range(0, len(cc_list)):
-            cc_version, cc_version_full = get_version(cc_list[i])
-            cxx_version, cxx_version_full = get_version(cxx_list[i])
+            cc_version, cc_version_full, cxx_version, cxx_version_full = ('','','','')
+            if cc_list[i]:
+                cc_version, cc_version_full = get_version(cc_list[i])
+            if cxx_list[i]:
+                print ("cxx")
+                print (cxx_list[i])
+                cxx_version, cxx_version_full = get_version(cxx_list[i])
             compilers += Compiler(
                     cc_list[i], 
                     cxx_list[i],
