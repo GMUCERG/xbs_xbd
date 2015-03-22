@@ -26,12 +26,12 @@ class Build:# {{{
         implementation  xbx.Config.Implementation instance
         warn_comp_err   If false, Compiler errs have DEBUG loglevel instead of
                         WARN
-        parallel        If true, issues -j flag to make 
+        parallel_make   If true, issues -j flag to make 
 
     """
     def __init__(
             self, config, compiler_idx, implementation, warn_comp_err=False,
-            parallel=False):
+            parallel_make=False):
         #self.config = config
         self.cc = config.platform.compilers[compiler_idx].cc
         self.cxx = config.platform.compilers[compiler_idx].cxx
@@ -47,7 +47,7 @@ class Build:# {{{
         self.exe_path = os.path.join(self.workpath, EXE_NAME)
         self.hex_path = os.path.join(self.workpath, HEX_NAME)
         self.warn_comp_err = warn_comp_err
-        self.parallel = False
+        self.parallel_make = False
 
         self.primitive = self.implementation.primitive
         self.operation = self.primitive.operation
@@ -144,7 +144,8 @@ class Build:# {{{
         logger = logging.getLogger(__name__+".Build")
         err_logger = logger.warn if self.warn_comp_err else logger.debug
 
-        _make(self.workpath, logger.debug, err_logger, target, self.parallel, extra=self.log_attr)
+        _make(self.workpath, logger.debug, err_logger, target, 
+              self.parallel_make, extra=self.log_attr)
     
 
     def _gen_files(self):
@@ -244,6 +245,7 @@ class BuildSession:# {{{
         self.config = config
         self.database = database
         self.builds = []
+        self.parallel = config.parallel_build
 
         try:
             self.xbx_version = subprocess.check_output(

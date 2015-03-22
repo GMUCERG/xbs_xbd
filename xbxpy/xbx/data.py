@@ -26,7 +26,7 @@ class Database:
 
                  build.exe_path,
                  build.hex_path,
-                 build.parallel,
+                 build.parallel_make,
 
                  build.text,
                  build.data,
@@ -48,7 +48,7 @@ class Database:
 
             "exe_path," 
             "hex_path," 
-            "parallel," 
+            "parallel_make," 
 
             "text," 
             "data," 
@@ -67,11 +67,13 @@ class Database:
         data = (datetime.datetime.now(), 
                 socket.gethostname(), 
                 build_session.xbx_version,
+                build_session.parallel,
                 self.config_hash)
         cursor = self.sql_conn.cursor()
 
         cursor.execute("insert into build_session("
-                "timestamp, host, xbx_version, config) values (?, ?, ?, ?)", data)
+                "timestamp, host, xbx_version, parallel, config) "
+                "values (?, ?, ?,  ?, ?)", data)
         build_session_id = cursor.lastrowid
 
 

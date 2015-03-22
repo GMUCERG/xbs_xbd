@@ -44,6 +44,7 @@ create table build_session (
     timestamp date,
     host text,
     xbx_version text,
+    parallel boolean,
     config text,
     foreign key(config) references config(hash)
 );
@@ -73,7 +74,7 @@ create table build (
 
     exe_path text,
     hex_path text,
-    parallel boolean,
+    parallel_make boolean,
 
     text int,
     data int,
