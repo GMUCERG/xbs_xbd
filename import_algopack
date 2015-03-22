@@ -19,14 +19,16 @@ fi
 
 
 
-if [ ! -d "$SOURCE/crypto_hash" ]
+function import_op(){
+if [ ! -d "$SOURCE/crypto_${1}" ]
 then
-  echo "Source directory does not contain a crypto_hash directory"
-  exit -1
+    echo "Source directory does not contain a crypto_${1} directory"
+else
+    rsync -aC "$SOURCE/crypto_${1}" algobase
+    echo "Imported $SOURCE/crypto_${1}"
 fi
+}
 
-
-rsync -aC "$SOURCE/crypto_hash" algobase
-echo "Imported $SOURCE"
-
+import_op hash
+import_op aead
 
