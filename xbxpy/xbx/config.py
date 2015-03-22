@@ -100,11 +100,11 @@ class Config:
         config.read(filename)
 
         ## Basic path configuration
-        self.platforms_path = os.path.abspath(config.get('paths','platforms'))
-        self.algopack_path  = os.path.abspath(config.get('paths','algopacks'))
-        self.embedded_path  = os.path.abspath(config.get('paths','embedded'))
-        self.work_path      = os.path.abspath(config.get('paths','work'))
-        self.data_path      = os.path.abspath(config.get('paths','data'))
+        self.platforms_path = config.get('paths','platforms')
+        self.algopack_path  = config.get('paths','algopacks')
+        self.embedded_path  = config.get('paths','embedded')
+        self.work_path      = config.get('paths','work')
+        self.data_path      = config.get('paths','data')
 
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
         self.parallel_build = bool(distutils.util.strtobool(config.get('run',

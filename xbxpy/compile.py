@@ -4,7 +4,6 @@ import logging.config
 import sys
 import multiprocessing as mp
 import os
-import sqlite3
 
 import xbx.config as xbxc
 import xbx.build as xbxb

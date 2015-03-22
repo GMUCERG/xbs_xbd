@@ -61,21 +61,29 @@ class Build:# {{{
 
         # Set build environment variables
         tmpl_path = self.platform.tmpl_path
-        self.env = {'CC': self.cc,
-            'templatePlatformDir': tmpl_path if tmpl_path else '',
-            'CXX': self.cxx,
-            'HAL_PATH': os.path.join(self.platform.path,'hal'),
-            'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else '',
-            'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
-            'IMPL_PATH': implementation.path,
-            'OP': self.operation.name,
-            'POSTLINK': os.path.join(self.platform.path, 'postlink'),
-            'HAL_OBJS': os.path.join(
-                config.work_path,
-                config.platform.name,
-                'HAL',
-                str(compiler_idx))}
+        self.env = {
+                'templatePlatformDir': tmpl_path if tmpl_path else '',
+                'HAL_PATH':            os.path.join(self.platform.path,'hal'),
+                'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
+                'XBD_PATH':            os.path.join(config.embedded_path,'xbd'),
+                'IMPL_PATH':           implementation.path,
+                'POSTLINK':            os.path.join(self.platform.path, 'postlink'),
+                'HAL_OBJS':            os.path.join(
+                    config.work_path,
+                    config.platform.name,
+                    'HAL',
+                    str(compiler_idx))}
 
+        # Make paths absolute, except for compilers
+        for k, v in self.env.items():
+            if v:
+                self.env[k] = os.path.abspath(v)
+
+        # Add compilers and non path env variables
+        self.env.update({
+            'OP': self.operation.name,
+            'CC': self.cc, 'CXX': self.cxx})
+                
         self.log_attr = {'buildid': self.buildid}
         self.stats = None
         self.timestamp = None
@@ -340,12 +348,18 @@ def build_hal(config, index):
             f.write(buildfiles.HAL_MAKEFILE)
 
 
-    env = ({'CC': config.platform.compilers[index].cc,
+    env = ({
         'templatePlatformDir': tmpl_path if tmpl_path else '',
         'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
         'HAL_PATH': os.path.join(config.platform.path,'hal'),
         'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else ''})
 
+    for k, v in env.items():
+        if v:
+            env[k] = os.path.abspath(v)
+
+    env.update({'CC': config.platform.compilers[index].cc})
+    
     _gen_envfile(workpath, env)
 
     _make(workpath, logger.debug, logger.debug, parallel = True)
