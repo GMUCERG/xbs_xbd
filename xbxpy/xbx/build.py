@@ -89,12 +89,13 @@ class Build:# {{{
         self.timestamp = None
         self.checksum = None
 
-        self.text = -1
-        self.data = -1
-        self.bss  = -1
+        self.text = None
+        self.data = None
+        self.bss  = None
 
         self.impl_checksum = None 
         self.hex_checksum = None
+        self.rebuilt = False
     
 
     def compile(self):
@@ -104,6 +105,8 @@ class Build:# {{{
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
         #    self.config.platform.name), extra=self.log_attr)
+        if os.path.isfile(self.hex_path):
+            self.rebuilt = True
 
         self.make("all")
 

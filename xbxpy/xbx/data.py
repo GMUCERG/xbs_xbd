@@ -31,6 +31,8 @@ class Database:
                  build.text,
                  build.data,
                  build.bss,
+                 
+                 build.rebuilt,
 
                  build.timestamp,
                  build.hex_checksum,
@@ -52,11 +54,13 @@ class Database:
             "data," 
             "bss," 
 
+            "rebuilt,"
+
             "timestamp," 
             "hex_checksum," 
             "build_session" 
             ") values ("
-            "?, ?, ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?,  ?, ?, ?)"), data)
+            "?, ?, ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?,  ?,  ?, ?, ?)"), data)
 
     def save_buildsession(self, build_session):
 

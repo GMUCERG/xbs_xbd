@@ -83,8 +83,11 @@ create table build (
     hex_checksum text,
     build_session int,
 
-    -- Checksum 
-    test_result text, 
+    -- True if not rebuilt from scratch
+    rebuilt boolean,
+
+    -- Checksum result
+    checksumsmall_result text, 
     test_ok boolean, 
 
     foreign key(platform,build_session,compiler_idx) references compiler(platform, build_session, idx),
