@@ -214,6 +214,7 @@ class Config:
             version = version_full.splitlines()[-1]
             return version, version_full
 
+
         for i in range(0, len(cc_list)):
             cc_version, cc_version_full, cxx_version, cxx_version_full = ('','','','')
             if cc_list[i]:
@@ -298,7 +299,8 @@ class Config:
             for name in keptdirs:
                 path = os.path.join(p.path,name)
                 checksum = xbx.dirchecksum.dirchecksum(path)
-                impl = Implementation(name,p,path, checksum)
+                new_name = name.translate(str.maketrans("./-","___"))
+                impl = Implementation(new_name, p, path, checksum)
                 p.impls += (impl,)
 
             p.impls = sorted(p.impls)
