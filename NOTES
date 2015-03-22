@@ -4,3 +4,7 @@ Support for AEAD
 Commented some debug statements with warnings about I2C to slightly increase
 download speed, as that warning is probably AVR specific and likely to be a bug
 
+we checksum all the things for verifiability
+
+objcopy scripts reject .data+.bss > 3/4ths total RAM
+

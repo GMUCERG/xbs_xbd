@@ -120,9 +120,9 @@ class Build:# {{{
             sizeout = stdout.decode().splitlines()[1]
             match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
 
-            self.text = match.group(1)
-            self.data = match.group(2)
-            self.bss  = match.group(3)
+            self.text = int(match.group(1))
+            self.data = int(match.group(2))
+            self.bss  = int(match.group(3))
 
             self.hex_checksum = xbx.util.sha256_file(self.hex_path)
 
