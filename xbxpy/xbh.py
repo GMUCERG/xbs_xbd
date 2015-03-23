@@ -30,17 +30,26 @@ class TypeCode(object):# {{{
     AEAD = 2
 # }}}
 
-class XbhError(RuntimeError):# {{{
+class XbhError(Error):# {{{
     def __init__(self, msg):
-        super(XbhError, self).__init__(msg)
+        super().__init__(msg)
+# }}}
+
+class XbhHardwareError(Error):# {{{
+    def __init__(self, msg):
+        super().__init__(msg)
+# }}}
+
+class XbhValueError(Error):# {{{
+    def __init__(self, msg):
+        super().__init__(msg)
 # }}}
 
 class Xbh:# {{{
 
     
     def __init__(self, host="xbh", port=22595, page_size = 1024,
-            xbd_hz=16000000, timeout=100000, src_host='',
-            log_fd=sys.stdout, err_log_fd=sys.stdout):
+            xbd_hz=16000000, timeout=100000, src_host=''):
         self._connargs = ((host,port), timeout, (src_host, 0))
         self._sock = socket.create_connection(*self._connargs)
         self._timeout = timeout
@@ -61,9 +70,6 @@ class Xbh:# {{{
             pass
 
         self._sock = socket.create_connection(*self._connargs)
-
-
-
 
 
     @property
@@ -96,14 +102,14 @@ class Xbh:# {{{
                 msg[0:8].decode())
 
         if match == None:
-            raise XbhError("Received invalid answer to " +
+            raise XbhValueError("Received invalid answer to " +
                     self._cmd_pending+": "+msg.decode()+".")
 
         version = match.group(1)
         status = match.group(2)
 
         if version != PROTO_VERSION:
-            raise XbhError("XBH protocol version was " + version + 
+            raise XbhValueError("XBH protocol version was " + version + 
                     ", this tool requires "+PROTO_VERSION+".")
 
         if status == 'a':
@@ -111,7 +117,7 @@ class Xbh:# {{{
         elif status == 'o':
                 _logger.debug("Received 'o'kay")
         elif status == 'f':
-            raise XbhError("Received 'f'ail")
+            raise XbhHwError("Received 'f'ail")
 
         # Return bytes after 8-byte command header
         return msg[8:]
@@ -152,6 +158,7 @@ class Xbh:# {{{
         self._sock.settimeout(self._timeout)
 
     def get_timings(self):
+        """Returns seconds, frac, frac_per_sec"""
         _logger.debug("Downloading timing results")
 
         self._exec("rp")
@@ -255,6 +262,7 @@ class Xbh:# {{{
         
 
     def get_timing_cal(self):
+        """Returns cycles counted by XBD"""
         self.req_bl()
 
         _logger.debug("Getting Timing Calibration")
@@ -290,6 +298,7 @@ class Xbh:# {{{
 
 
     def upload_prog(self, filename, program_type=prog_reader.ProgramType.IHEX):
+        """Uploads provided file to XBH to upload to XBD"""
         reader = prog_reader.ProgramReader(filename, program_type, self.page_size)
         for addr, data in reader.areas.items():
             # Max payload - command length - 4 bytes for size
@@ -303,8 +312,7 @@ class Xbh:# {{{
                 continue
 
             _logger.debug("Uploading {} bytes {} page(s) at a time starting at {}"
-                        .format(length, block_size, hex(addr)))
-                pass # fix autoindent wonkyness
+                          .format(length, block_size, hex(addr)))
 
             while offset < length:
                 self._upload_pages(addr+offset, data[offset:offset+upload_bytes])
@@ -316,28 +324,80 @@ class Xbh:# {{{
                 offset += upload_bytes
 
 
+
     def upload_param(self, data=1536, typecode=TypeCode.HASH):
-            # Max payload - command length - 4 bytes for size - 4 bytes for type
-            MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4 -4
+        """Uploads buffer to xbh. 
+        
+        If data is an int, upload random data of that length
+        """
+        # Max payload - command length - 4 bytes for size - 4 bytes for type
+        MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4 -4
 
-            if type(data) == int:
-                data = os.urandom(data)
+        if type(data) == int:
+            data = os.urandom(data)
 
-            length = len(data)
-            offset = 0
-            
-            _logger.debug("Uploading {} bytes {} at a time"
-                        .format(length, MAX_DATA))
-                pass # fix autoindent wonkyness
+        length = len(data)
+        offset = 0
+        
+        _logger.debug("Uploading {} bytes {} at a time"
+                    .format(length, MAX_DATA))
+            pass # fix autoindent wonkyness
 
-            while offset < length:
-                self._upload_data(offset, data[offset:offset+MAX_DATA])
-                if self.verbose:
-                    uploaded_bytes = (MAX_DATA if MAX_DATA <
-                            (length - offset) else (length - offset))
-                    _logger.info("Uploading {} bytes starting at {}"
-                            .format(uploaded_bytes,hex(addr+offset)))
-                offset += MAX_DATA
+        while offset < length:
+            self._upload_data(offset, data[offset:offset+MAX_DATA])
+            if self.verbose:
+                uploaded_bytes = (MAX_DATA if MAX_DATA <
+                        (length - offset) else (length - offset))
+                _logger.info("Uploading {} bytes starting at {}"
+                        .format(uploaded_bytes,hex(addr+offset)))
+            offset += MAX_DATA
+
+    def timing_error_calc(self):
+        cycles = self.get_timing_cal()
+        if cycles == 0:
+            raise XbhValueError("Cycle count 0!")
+        seconds, fractions, frac_per_sec = self.get_timings()
+        # add 0.5 then cast to int to get rounded integer
+        measured_cycles = int((seconds + fractions/frac_per_sec)*xbd_hz+0.5)
+        if measured_cycles == 0:
+            raise XbhValueError("Measured cycle count 0!")
+        abs_error = measured_cycles - cycles
+        # TODO: Divide by measured cycles or by nominal cycles? 
+        rel_error = abs_error/cycles
+        
+        return abs_err, rel_error, cycles, measured_cycles
+
+        
+
+
+
+
+        
+        #TODO: Ask about 0.5 below
+
+#if($doTimingErrorCalculation) {
+#  my $cyclesBurnt=$xbh->getTimingCalibration();
+#  if(!defined($cyclesBurnt) || $cyclesBurnt==0) {
+#    print "Unable to get xbd cycle count (cycles burnt)\n";
+#    exit -1;
+#  }     
+#   my ($seconds,$fractions,$fractionsPerSecond)=$xbh->getTimings();
+#  my $cyclesMeasured=int($seconds*$cyclesPerSecond+$fractions/$fractionsPerSecond*$cyclesPerSecond+0.5);
+#  if(!defined($cyclesMeasured) || $cyclesMeasured==0) {
+#    print "Unable to get xbh timing \n";
+#    exit -1;
+#  }      
+#  
+#  
+#  print "Nominal cycles: $cyclesBurnt\n";
+#  print "Measured cycles: $cyclesMeasured\n";
+#  my $absError=$cyclesMeasured-$cyclesBurnt;
+#  my $relError=$absError*1.0/$cyclesMeasured;
+#  print "Absolute error: $absError\n";
+#  print "Relative error: $relError\n";
+#  print "In ppm: ".(int($relError*10000000+0.5)/10)."\n";
+# 
+
 
 
 # }}}
