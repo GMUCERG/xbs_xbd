@@ -244,7 +244,7 @@ class BuildSession:# {{{
     CPU_COUNT = mp.cpu_count()
 
     def __init__(self, config, database):
-        logger = logging.getLogger(__name__+".Build")
+        logger = logging.getLogger(__name__)
         self.config = config
         self.database = database
         self.builds = []

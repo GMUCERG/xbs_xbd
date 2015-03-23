@@ -10,9 +10,14 @@ import xbx.util
 class Database:
     def __init__(self, config):
         self.config = config
-        self.sql_conn = sqlite3.connect(config.data_path)
+        if not os.path.isfile(config.data_path):
+            self.sql_conn = sqlite3.connect(config.data_path)
+            self.initdb()
+        else:
+            self.sql_conn = sqlite3.connect(config.data_path)
         self.save_metadata()
         self.config_hash = self.save_config()
+        self.commit()
 
     def save_build(self, build, build_session):
         """Saves build stats using given sql cursor"""
@@ -153,5 +158,11 @@ class Database:
                     op + " into primitive(operation, name, " 
                     "checksumsmall) values (?, ?, ?)", data)
    
+
+    def initdb(self):
+        schema = os.path.join(os.path.dirname(__file__), "schema.sql")
+        with open(schema) as f:
+            cursor = self.sql_conn.cursor()
+            cursor.executemany(f.read())
     def commit(self):
         self.sql_conn.commit()
