@@ -41,7 +41,8 @@ class Xbh:# {{{
     def __init__(self, host="xbh", port=22595, page_size = 1024,
             xbd_hz=16000000, timeout=100000, src_host='',
             log_fd=sys.stdout, err_log_fd=sys.stdout):
-        self._sock = socket.create_connection((host,port), timeout, (src_host, 0))
+        self._connargs = ((host,port), timeout, (src_host, 0))
+        self._sock = socket.create_connection(*self._connargs)
         self._timeout = timeout
         self._cmd_pending = None
         self._bl_mode = None
@@ -52,8 +53,18 @@ class Xbh:# {{{
         if self._sock:
             self._sock.close()
 
-    def log(self, msg):
-        _logger.info_fd.write(msg)
+    def reconnect(self):
+        try:
+            self._sock.shutdown()
+            self._sock.close()
+        except:
+            pass
+
+        self._sock = socket.create_connection(*self._connargs)
+
+
+
+
 
     @property
     def bl_mode(self):
