@@ -1,15 +1,15 @@
+import atexit
+import datetime
+import hashlib
 import logging
+import multiprocessing as mp
 import os
 import re
 import string
 import subprocess
 import sys
 import threading
-import datetime
-import hashlib
-import multiprocessing as mp
 
-import xbx.buildfiles as buildfiles
 import xbx.util
 import xbx.data as data
 from xbx.dirchecksum import dirchecksum
@@ -99,14 +99,14 @@ class Build:# {{{
     
 
     def compile(self):
+        if os.path.isdir(self.workpath):
+            self.rebuilt = True
         self._gen_files()
         logger = logging.getLogger(__name__+".Build")
         self.impl_checksum = dirchecksum(self.workpath)
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
         #    self.config.platform.name), extra=self.log_attr)
-        if os.path.isfile(self.hex_path):
-            self.rebuilt = True
 
         self.make("all")
 
@@ -173,12 +173,14 @@ class Build:# {{{
     
         
     def _genmake(self, filename):
+        import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating Makefile...", extra=self.log_attr)
         with open(filename, 'w') as f:
             f.write(buildfiles.MAKEFILE)
     
         
     def _gen_crypto_o_h(self, filename, primitive):
+        import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         macro_expand = []
         o = 'crypto_'+primitive.operation.name 
@@ -200,6 +202,7 @@ class Build:# {{{
     
 
     def _gen_crypto_op_h(self, filename, implementation):
+        import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         operation = implementation.primitive.operation
         primitive = implementation.primitive
@@ -299,6 +302,8 @@ class BuildSession:# {{{
                     for i in range(BuildSession.CPU_COUNT+1)]
             for p in processes:
                 p.start()
+                # Terminate if ctrl-c
+                atexit.register(p.terminate)
 
             for b in self.builds:
                 q_out.put(b)
