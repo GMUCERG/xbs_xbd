@@ -118,6 +118,17 @@ create table run_session (
 );
 
 
+create table drift_measurement(
+    id integer primary key,
+    abs_error int,
+    rel_error int,
+    cycles int,
+    measured_cycles int,
+    run_session int,
+    foreign key (run_session) references run_session(id)
+);
+
+
 
 -- 
 create table run (
