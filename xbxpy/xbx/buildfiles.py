@@ -45,7 +45,7 @@ ${BUILDDIR}/%.o: ${HAL_PATH}/%.c |${BUILDDIR}
 
 clean:
 	@echo CLEAN
-	@rm -f ${OBJS} ${DEPS} env.make
+	@rm -f ${OBJS} ${DEPS}
 
 .PHONY: clean
 ifneq (${MAKECMDGOALS},clean)
@@ -126,7 +126,7 @@ xbdprog.size: xbdprog.bin
 
 clean:
 	@echo CLEAN
-	@rm -rf xbdprog.bin xbdprog.hex build env.make
+	@rm -rf xbdprog.bin xbdprog.hex build
 
 .PHONY: clean
 ifneq (${MAKECMDGOALS},clean)
