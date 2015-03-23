@@ -32,19 +32,19 @@ class Compiler:
         self.cxx_version_full = cxx_version_full
     def __lt__(self, other):
         return (
-                self.cc               +
-                self.cxx              +
-                self.cc_version       +
-                self.cxx_version      +
-                self.cc_version_full  +
-                self.cxx_version_full 
+                (self.cc                  ,
+                    self.cxx              ,
+                    self.cc_version       ,
+                    self.cxx_version      ,
+                    self.cc_version_full  ,
+                    self.cxx_version_full )
                 <      
-                self.cc               +
-                self.cxx              +
-                self.cc_version       +
-                self.cxx_version      +
-                self.cc_version_full  +
-                self.cxx_version_full )
+                (self.cc                  ,
+                    self.cxx              ,
+                    self.cc_version       ,
+                    self.cxx_version      ,
+                    self.cc_version_full  ,
+                    self.cxx_version_full ))
                 
 
 class Platform:
@@ -110,7 +110,6 @@ class Config:
         self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
         self.parallel_build = bool(distutils.util.strtobool(config.get('run',
             'parallel_build')))
-        self.dump_config = bool(distutils.util.strtobool(config.get('run', 'dump_config')))
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')

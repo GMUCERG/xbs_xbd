@@ -98,6 +98,8 @@ class Build:# {{{
         self.hex_checksum = None
         self.rebuilt = False
     
+        self.checksumsmall_result = None
+        self.checksumlarge_result = None
 
     def compile(self):
         if os.path.isdir(self.workpath):
@@ -238,13 +240,36 @@ class Build:# {{{
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
+
+    @property
+    def test_ok(self):
+        small_test_ok = None
+        large_test_ok = None
+
+        if self.checksumsmall_result and self.checksumsmall_result == build.primitive.checksumsmall:
+            small_test_ok = True
+
+        if self.checksumlarge_result and self.checksumlarge_result == build.primitive.checksumlarge:
+            large_test_ok = True
+
+        if small_test_ok == None and large_test_ok == None:
+            return None
+        elif small_test_ok != False and large_test_ok != False:
+            return True
+        else:
+            return False
+
+    
+
+    def __lt__(self, other):
+        return self.buildid < other.buildid
     # }}}
 
 class BuildSession(xbx.session.Session):# {{{
     """Manages builds for all instances specified in xbx config"""
     CPU_COUNT = mp.cpu_count()
 
-    def __init__(self, config=None, database=None):
+    def __init__(self, config, database=None):
         super().__init__(config, database)
         self.builds = []
         self.parallel = config.parallel_build
@@ -327,6 +352,9 @@ class BuildSession(xbx.session.Session):# {{{
                 self.database.save_build(b, self)
 
         self.database.commit()
+
+    def __lt__(self, other):
+        return self.session_id < other.session_id
 
 # }}}
     

@@ -96,6 +96,8 @@ create table build (
 
     -- Checksum result
     checksumsmall_result text, 
+    checksumlarge_result text, 
+
     test_ok boolean, 
 
     foreign key(platform,build_session,compiler_idx) references compiler(platform, build_session, idx),
@@ -106,10 +108,11 @@ create table build (
 
 create table run_session (
     id integer primary key,
-    config text,
+    timestamp date,
     host text,
     xbx_version text,
     build_session int,
+    config text,
     foreign key(config) references config(hash),
     foreign key(build_session) references build_session(id)
 );
