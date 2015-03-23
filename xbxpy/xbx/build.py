@@ -12,6 +12,7 @@ import threading
 
 import xbx.util
 import xbx.data as data
+import xbx.session
 from xbx.dirchecksum import dirchecksum
 
 EXE_NAME="xbdprog.bin"
@@ -239,14 +240,12 @@ class Build:# {{{
             f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
     # }}}
 
-class BuildSession:# {{{
+class BuildSession(xbx.session.Session):# {{{
     """Manages builds for all instances specified in xbx config"""
     CPU_COUNT = mp.cpu_count()
 
-    def __init__(self, config, database):
-        logger = logging.getLogger(__name__)
-        self.config = config
-        self.database = database
+    def __init__(self, config=None, database=None):
+        super().__init__(config, database)
         self.builds = []
         self.parallel = config.parallel_build
 
@@ -257,7 +256,8 @@ class BuildSession:# {{{
         except subprocess.CalledProcessError:
             logger.warn("Could not get git revision of xbx")
 
-        self.session_id = self.database.save_buildsession(self)
+        if self.database:
+            self.session_id = self.database.save_buildsession(self)
 
 
 
