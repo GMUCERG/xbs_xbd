@@ -8,6 +8,7 @@ import struct
 import logging
 
 import prog_reader
+import xbh
 
 
 # Maximum segment size, assuming IPv6 and all TCP options (for worst-case)
@@ -30,17 +31,17 @@ class TypeCode(object):# {{{
     AEAD = 2
 # }}}
 
-class XbhError(Error):# {{{
+class Error(Exception):# {{{
     def __init__(self, msg):
         super().__init__(msg)
 # }}}
 
-class XbhHardwareError(Error):# {{{
+class HardwareError(xbh.Error):# {{{
     def __init__(self, msg):
         super().__init__(msg)
 # }}}
 
-class XbhValueError(Error):# {{{
+class ValueError(xbh.Error):# {{{
     def __init__(self, msg):
         super().__init__(msg)
 # }}}
@@ -102,14 +103,14 @@ class Xbh:# {{{
                 msg[0:8].decode())
 
         if match == None:
-            raise XbhValueError("Received invalid answer to " +
+            raise xbh.ValueError("Received invalid answer to " +
                     self._cmd_pending+": "+msg.decode()+".")
 
         version = match.group(1)
         status = match.group(2)
 
         if version != PROTO_VERSION:
-            raise XbhValueError("XBH protocol version was " + version + 
+            raise xbh.ValueError("XBH protocol version was " + version + 
                     ", this tool requires "+PROTO_VERSION+".")
 
         if status == 'a':
@@ -117,7 +118,7 @@ class Xbh:# {{{
         elif status == 'o':
                 _logger.debug("Received 'o'kay")
         elif status == 'f':
-            raise XbhHwError("Received 'f'ail")
+            raise HardwareError("Received 'f'ail")
 
         # Return bytes after 8-byte command header
         return msg[8:]
@@ -341,7 +342,6 @@ class Xbh:# {{{
         
         _logger.debug("Uploading {} bytes {} at a time"
                     .format(length, MAX_DATA))
-            pass # fix autoindent wonkyness
 
         while offset < length:
             self._upload_data(offset, data[offset:offset+MAX_DATA])
@@ -355,12 +355,12 @@ class Xbh:# {{{
     def timing_error_calc(self):
         cycles = self.get_timing_cal()
         if cycles == 0:
-            raise XbhValueError("Cycle count 0!")
+            raise xbh.ValueError("Cycle count 0!")
         seconds, fractions, frac_per_sec = self.get_timings()
         # add 0.5 then cast to int to get rounded integer
         measured_cycles = int((seconds + fractions/frac_per_sec)*xbd_hz+0.5)
         if measured_cycles == 0:
-            raise XbhValueError("Measured cycle count 0!")
+            raise xbh.ValueError("Measured cycle count 0!")
         abs_error = measured_cycles - cycles
         # TODO: Divide by measured cycles or by nominal cycles? 
         rel_error = abs_error/cycles
