@@ -113,6 +113,7 @@ class Config:
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')
+        self.xbh_port = config.get('xbh', 'port')
 
         # Platform
         self.platform = Config.__enum_platform(
