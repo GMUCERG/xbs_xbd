@@ -266,7 +266,11 @@ class Build:# {{{
     # }}}
 
 class BuildSession(xbx.session.Session):# {{{
-    """Manages builds for all instances specified in xbx config"""
+    """Manages builds for all instances specified in xbx config
+
+    Pass in database object into constructor to save session and populate id
+    """
+
     CPU_COUNT = mp.cpu_count()
 
     def __init__(self, config, database=None):
@@ -340,7 +344,8 @@ class BuildSession(xbx.session.Session):# {{{
             self.builds = []
             for _ in range(num_builds):
                 b = q_in.get()
-                self.database.save_build(b, self)
+                if self.database:
+                    self.database.save_build(b, self)
                 self.builds += b,
 
             # Terminate processes gracefully
@@ -349,9 +354,11 @@ class BuildSession(xbx.session.Session):# {{{
         else:
             for b in self.builds:
                 b.compile()
-                self.database.save_build(b, self)
+                if self.database:
+                    self.database.save_build(b, self)
 
-        self.database.commit()
+        if self.database:
+            self.database.commit()
 
     def __lt__(self, other):
         return self.session_id < other.session_id
