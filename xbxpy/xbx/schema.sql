@@ -20,7 +20,12 @@ create table primitive(
     foreign key(operation) references operation(name),
     primary key(operation, name)
 );
+
 -- 
+-- We Explicitly set id integer primary key for compatibility w/ non SQLite
+--
+
+
 -- create table implementation(
 --     operation text,
 --     primitive text,
@@ -41,6 +46,7 @@ create table config(
 
 
 create table build_session ( 
+    id integer primary key,
     timestamp date,
     host text,
     xbx_version text,
@@ -59,12 +65,13 @@ create table compiler(
     cxx_version_full text,
     cc text,
     cxx text,
-    foreign key(build_session) references build_session(rowid),
+    foreign key(build_session) references build_session(id),
     foreign key(platform) references platform(name),
     primary key(build_session, platform, idx)
 );
 
 create table build (
+    id integer primary key,
     platform text,
     operation text, 
     primitive text, 
@@ -92,24 +99,26 @@ create table build (
     test_ok boolean, 
 
     foreign key(platform,build_session,compiler_idx) references compiler(platform, build_session, idx),
-    foreign key(build_session) references build_session(rowid)
+    foreign key(build_session) references build_session(id)
 );
 
 
 
 create table run_session (
+    id integer primary key,
     config text,
     host text,
     xbx_version text,
     build_session int,
     foreign key(config) references config(hash),
-    foreign key(build_session) references build_session(rowid)
+    foreign key(build_session) references build_session(id)
 );
 
 
 
 -- 
 create table run (
+    id integer primary key,
     measured_cycles int,
     reported_cycles int,
     time_ns int,
@@ -122,18 +131,20 @@ create table run (
     timestamp date,
     build int,
     run_session int,
-    foreign key(build) references build(rowid),
-    foreign key(run_session) references run_session(rowid)
+    foreign key(build) references build(id),
+    foreign key(run_session) references run_session(id)
 );
 
 create table hash_run(
+    id integer primary key,
     input_length,
     run int,
-    foreign key(run) references run(rowid)
+    foreign key(run) references run(id)
 );
 create table aead_run(
+    id integer primary key,
     auth_data_length,
     plaintext_length,
     run int,
-    foreign key(run) references run(rowid)
+    foreign key(run) references run(id)
 );
