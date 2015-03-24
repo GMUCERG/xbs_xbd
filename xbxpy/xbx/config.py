@@ -12,88 +12,154 @@ import subprocess
 import sys
 import hashlib
 
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy.orm import relationship
+
 import xbx.dirchecksum
+import xbx.database as xbxdb
+
+from xbx.database import Base
 
 _logger=logging.getLogger(__name__)
 
-class Compiler:
-    def __init__(self, 
-                cc,
-                cxx,
-                cc_version,
-                cxx_version,
-                cc_version_full,
-                cxx_version_full):
-        self.cc               = cc
-        self.cxx              = cxx
-        self.cc_version       = cc_version
-        self.cxx_version      = cxx_version
-        self.cc_version_full  = cc_version_full
-        self.cxx_version_full = cxx_version_full
-    def __lt__(self, other):
-        return (
-                (self.cc                  ,
-                    self.cxx              ,
-                    self.cc_version       ,
-                    self.cxx_version      ,
-                    self.cc_version_full  ,
-                    self.cxx_version_full )
-                <      
-                (self.cc                  ,
-                    self.cxx              ,
-                    self.cc_version       ,
-                    self.cxx_version      ,
-                    self.cc_version_full  ,
-                    self.cxx_version_full ))
-                
 
-class Platform:
-    def __init__(self, name, path, tmpl_path, clock_hz, pagesize, compilers):
-        self.name = name
-        self.path = path
-        self.tmpl_path = tmpl_path
-        self.clock_hz = clock_hz
-        self.pagesize = pagesize
-        self.compilers = compilers
+class Platform(Base):
+    __tablename__  = "platform"
 
-    def __lt__(self, other):
-        return self.name < other.name
+    hash           = Column(String)
+    name           = Column(String)
+    clock_hz       = Column(Integer)
+    pagesize       = Column(Integer)
+    path           = Column(String)
+    tmpl_path      = Column(String)
 
-class Operation:
-    def __init__(self, name, macros, prototypes):
-        self.name = name
-        self.macros = macros
-        self.prototypes = prototypes
-        self.primitives = {}
+    compilers = relationship(
+        "Compiler", 
+        backref="platform",
+    )
 
-    def __lt__(self, other):
-        return self.name < other.name
+    __table_args__ = (
+        PrimaryKeyConstraint("hash"),
+    )
 
-class Primitive:
-    def __init__(self, name, operation, path, checksumsmall):
-        self.name = name
-        self.operation = operation
-        self.path = path
-        self.checksumsmall = checksumsmall
-        self.impls = {}
+class Compiler(Base):
+    __tablename__ = "compiler"
 
+    platform_hash = Column(String)
+    idx = Column(Integer)
 
-    def __lt__(self, other):
-        return self.name < other.name
+    cc_version = Column(String)
+    cxx_version = Column(String)
+    cc_version_full = Column(String)
 
-class Implementation:
-    def __init__(self, name, primitive, path, checksum):
-        self.name = name
-        self.primitive = primitive
-        self.path = path
-        self.checksum = checksum
+    cxx_version_full = Column(String)
+    cc = Column(String)
+    cxx = Column(String)
+    __table_args__ = (
+        PrimaryKeyConstraint("platform_hash", "idx", ),
+        ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
+    )
 
-    def __lt__(self, other):
-        return self.name < other.name
+class Operation(Base):
+    __tablename__ = "operation"
 
+    name          = Column(String)
+    # String from OPERATIONS file
+    operation_str = Column(String)
+
+    primitives = relationship(
+        "Primitive", 
+        backref="platform",
+    )
+
+    __table_args__ = (
+        PrimaryKeyConstraint("name"),
+    )
+    def parse_opstring(self):
+        match       = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', self.operation_str)
+        macros      = match.group(2).split(':')
+        macros     += '',
+        prototypes  = match.group(3).split(':')
+        return macros, prototypes
+    
+    @property
+    def macros(self):
+        macros, prototypes = self.parse_opstring()
+        return macros
+    @property
+    def prototypes(self):
+        macros, prototypes = self.parse_opstring()
+        return prototypes
+
+class Primitive(Base):
+    __tablename__  = "primitive"
+
+    operation_name = Column(String)
+    name           = Column(String)
+    checksumsmall  = Column(String)
+    checksumlarge  = Column(String)
+    path           = Column(String)
+
+    implementations = relationship(
+        "Implementation", 
+        backref="primitive",
+    )
+
+    
+    __table_args__ = (
+        PrimaryKeyConstraint("operation_name", "name"),
+        ForeignKeyConstraint(
+            ["operation_name"],
+            ["operation.name"]
+        ),
+    )
+
+class Implementation(Base):
+    __tablename__  = "implementation"
+    hash           = Column(String)
+    name           = Column(String)
+    primitive_name = Column(String)
+    path           = Column(String)
+
+    __table_args__ = (
+        PrimaryKeyConstraint("hash"),
+        ForeignKeyConstraint(
+            ["primitive_name"],
+            ["primitive.name"]
+        ),
+    )
 
 class Config:
     """Configuration for running benchmarks on a single operation on a single platform"""
+    hash           = Column(String)
+
+    platforms_path = Column(String)
+    algopack_path  = Column(String)
+    embedded_path  = Column(String)
+    work_path      = Column(String)
+    data_path      = Column(String)    
+
+    xbh_addr       = Column(String)
+    xbh_port       = Column(Integer)
+
+    platform_hash  = Column(String)
+    operation_name = Column(String)
+
+    platform = relationship(
+        "Platform", 
+        uselist=False
+    )
+    operation = relationship(
+        "Operation", 
+        uselist=False
+    )
+
+    __table_args__ = (
+        PrimaryKeyConstraint("hash", "idx", ),
+        ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
+        ForeignKeyConstraint(["operation_name"], ["operation.name"]),
+    )
 
     def __init__(self, filename):
         _logger.debug("Loading configuration")
@@ -121,8 +187,8 @@ class Config:
                 self.platforms_path)
 
         # Operation
-        name = config.get('algorithm','operation')
-        filename = config.get('paths','operations')
+        name           = config.get('algorithm','operation')
+        filename       = config.get('paths','operations')
         self.operation = Config.__enum_operation(name, filename)
 
 
@@ -140,14 +206,12 @@ class Config:
 
         primitives = config.get('algorithm','primitives').split("\n")
         self.operation.primitives = Config.__enum_prim_impls(
-                self.operation, 
-                primitives, 
-                blacklist,
-                whitelist, 
-                self.algopack_path)
-
-
-
+            self.operation, 
+            primitives, 
+            blacklist,
+            whitelist, 
+            self.algopack_path
+        )
 
 
     @staticmethod
@@ -171,8 +235,23 @@ class Config:
 
         compilers = Config.__enum_compilers(path, tmpl_path)
 
-        return Platform(name, path, tmpl_path, clock_hz, pagesize,
-                compilers)
+        
+        hash = xbx.dirchecksum.dirchecksum(path)
+        if tmpl_path:
+            h = hashlib.sha256()
+            h.update(hash)
+            h.update(xbx.dirchecksum(tmpl_path))
+            hash = h.sha256()
+
+        return Platform(
+                hash=hash,
+                name=name, 
+                path=path, 
+                tmpl_path=tmpl_path, 
+                clock_hz=clock_hz,
+                pagesize=pagesize, 
+                compilers=compilers
+            )
 
     # }}}
 
@@ -224,13 +303,16 @@ class Config:
                 print ("cxx")
                 print (cxx_list[i])
                 cxx_version, cxx_version_full = get_version(cxx_list[i])
+
             compilers += Compiler(
-                    cc_list[i], 
-                    cxx_list[i],
-                    cc_version,
-                    cxx_version,
-                    cc_version_full,
-                    cxx_version_full),
+                idx=i,
+                cc=cc_list[i], 
+                cxx=cxx_list[i],
+                cc_version=cc_version,
+                cxx_version=cxx_version,
+                cc_version_full=cc_version_full,
+                cxx_version_full=cxx_version_full
+            ),
 
         
         return compilers
@@ -252,7 +334,7 @@ class Config:
             
 
         _logger.debug("Enumerating primitives and implementations")
-        primitives = {}
+        primitives = []
 
         # Get operation path
         op_path = os.path.join(algopack_path, "crypto_"+operation.name)
@@ -270,12 +352,17 @@ class Config:
             checksumsmall = ""
             with open(checksumfile) as f:
                 checksumsmall = f.readline().strip()
-            p = Primitive(name, operation, path, checksumsmall)
 
-            primitives[name] = p  
+            p = Primitive(
+                    name=name, 
+                    path=path,
+                    checksumsmall=checksumsmall
+                )
+
+            primitives += p,
 
         # Get whitelist  ^blacklist
-        for p in primitives.values():
+        for p in primitives:
             all_impls = {}
 
             # Find all directories w/ api.h
@@ -299,8 +386,13 @@ class Config:
             for name in impl_set:
                 path = os.path.join(p.path,all_impls[name])
                 checksum = xbx.dirchecksum.dirchecksum(path)
-                impl = Implementation(name, p, path, checksum)
-                p.impls[name] = impl
+                impl = Implementation(
+                    hash=checksum,
+                    name=name, 
+                    primitive=p, 
+                    path=path
+                )
+                p.implementations += impl,
 
         return primitives
 
@@ -311,19 +403,12 @@ class Config:
         """Generate operation"""
         _logger.debug("Enumerating operations")
 
-        macros = []
-        prototypes = []
-        
         with open(filename) as f:
             for l in f:
                 match = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', l)
                 if match.group(1) == name:
-                    macros  += match.group(2).split(':')
-                    prototypes += match.group(3).split(':')
-                    break
-        # Add empty string to macro list
-        macros += '',
-        return Operation(name, macros, prototypes)
+                    opstring = l
+                    return Operation(name=name, operation_str=l)
     # }}}
 
 

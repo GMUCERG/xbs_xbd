@@ -1,21 +1,20 @@
 import logging
 import datetime
-import sqlite3
-import hashlib
-import socket
 import os
+import inspect
 import yaml
 
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.orm.collections import attribute_mapped_collection
+
 
 
 import xbx.build as xbxb
-import xbx.config as xbxc
 import xbx.util as xbxu
 
 _logger = logging.getLogger(__name__)
@@ -24,51 +23,80 @@ Base = declarative_base()
 
 # Mapping objects
 # {{{
-class Platform(Base):
-    __tablename__ = "platform"
-
-    name = Column(String)
-    clock_hz = Column(Integer)
-    pagesize = Column(Integer)
-
-    __table_args__ = (
-        PrimaryKeyConstraint("name"),
-    )
-
-class Operation(Base):
-    __tablename__ = "operation"
-
-    name = Column(String)
-
-    __table_args__ = (
-        PrimaryKeyConstraint("name"),
-    )
-
-class Primitive(Base):
-    __tablename__ = "primitive"
-
-    operation = Column(String)
-    name = Column(String)
-    checksumsmall = Column(String)
-    checksumlarge = Column(String)
-    
-    __table_args__ = (
-        PrimaryKeyConstraint("operation", "name"),
-        ForeignKeyConstraint(
-            ["operation"],
-            ["operation.name"]),
-    )
-
-class Config(Base):
-    __tablename__ = "config"
-
-    hash = Column(String)
-    dump = Column(Text)
-
-    __table_args__ = (
-        PrimaryKeyConstraint("hash"),
-    )
-
+#class Platform(Base):
+#    __tablename__ = "platform"
+#
+#    name = Column(String)
+#    clock_hz = Column(Integer)
+#    pagesize = Column(Integer)
+#
+#    __table_args__ = (
+#        PrimaryKeyConstraint("name"),
+#    )
+#
+#
+#
+#class Operation(Base):
+#    __tablename__ = "operation"
+#
+#    name = Column(String)
+#
+#    primitives = relationship(
+#        "Primitive", 
+#        backref="platform",
+#        collection_class=attribute_mapped_collection('name')
+#    )
+#
+#    __table_args__ = (
+#        PrimaryKeyConstraint("name"),
+#    )
+#
+#class Primitive(Base):
+#    __tablename__ = "primitive"
+#
+#    operation_name = Column(String)
+#    name = Column(String)
+#    checksumsmall = Column(String)
+#    checksumlarge = Column(String)
+#
+#    implementations = relationship(
+#        "Primitive", 
+#        backref="primitive",
+#    )
+#
+#    
+#    __table_args__ = (
+#        PrimaryKeyConstraint("operation_name", "name"),
+#        ForeignKeyConstraint(
+#            ["operation_name"],
+#            ["operation.name"]),
+#    )
+#
+#class Implementation:
+#    name = Column(String)
+#    primitive_name = Column(String)
+#    path = Column(String)
+#    checksum = Column(String)
+#
+#    __table_args__ = (
+#        PrimaryKeyConstraint("primitive_name", "name"),
+#        ForeignKeyConstraint(
+#            ["primitive_name"],
+#            ["primitive.name"]),
+#    )
+#
+#
+#
+#class Config(Base):
+#    __tablename__ = "config"
+#
+#    hash = Column(String)
+#    dump = Column(Text)
+#
+#    __table_args__ = (
+#        PrimaryKeyConstraint("hash"),
+#    )
+# }}}
 
 class BuildSession(Base):
     __tablename__ = "build_session" 
@@ -88,24 +116,6 @@ class BuildSession(Base):
     )
     
 
-class Compiler(Base):
-    __tablename__ = "compiler"
-    build_session = Column(Integer)
-    platform = Column(String, ForeignKey("platform.name"))
-    idx = Column(Integer)
-
-    cc_version = Column(String)
-    cxx_version = Column(String)
-    cc_version_full = Column(String)
-
-    cxx_version_full = Column(String)
-    cc = Column(String)
-    cxx = Column(String)
-    __table_args__ = (
-        PrimaryKeyConstraint("build_session", "platform", "idx"),
-        ForeignKeyConstraint(["build_session"], ["build_session.id"]),
-        ForeignKeyConstraint(["platform"], ["platform.name"]),
-    )
 
 
 class Build(Base):
@@ -247,11 +257,15 @@ class AeadRun(Run):
     __table_args__ = (
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
-# }}}
+
+
+
+
 
 class Database:
 
     def __init__(self, config):
+        import xbx.config as xbxc
         self.config = config
         self.engine = None
         if not os.path.isfile(config.data_path):
@@ -261,6 +275,22 @@ class Database:
 
         else:
             self.engine = create_engine('sqlite:///'+ config.data_path)
+
+        DBSession = sessionmaker(bind=self.engine)
+        self.session = DBSession()
+
+
+
+
+def copy_attrs(obj, orm_obj):
+    orm_attrs = set()
+    for k, v in inspect.getmembers(orm_obj):
+        if k[0] != '_':
+            orm_attrs.add(k)
+
+    for k, v in obj.__dict__.items():
+        if k in orm_attrs:
+            setattr(orm_obj, k, v)
 
 
 

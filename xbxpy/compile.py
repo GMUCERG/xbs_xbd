@@ -7,7 +7,6 @@ import os
 
 import xbx.config as xbxc
 import xbx.build as xbxb
-import xbx.data as xbxd
 
 
 
@@ -15,10 +14,10 @@ def main():
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     config = xbxc.Config("config.ini")
 
-    db = xbxd.Database(config)
+    #db = xbxd.Database(config)
 
-    bs = xbxb.BuildSession(config, db)
-    bs.buildall()
+    #bs = xbxb.BuildSession(config, db)
+    #bs.buildall()
 
 
 
