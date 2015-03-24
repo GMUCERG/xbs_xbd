@@ -4,8 +4,8 @@ sys.path.insert(0,'..')
 
 import unittest.case
 
-import xbh as xbhlib
-import xbx 
+import xbh
+import xbx.config as xbxc
 
 
 # Test with Keccakc512
@@ -14,9 +14,12 @@ class XbhTest(unittest.TestCase):
     xbh = None
     verbose = False
     def setUp(self):
-        self.config = xbx.Config("test_config.ini")
-        self.xbh = xbhlib.Xbh(verbose = self.verbose)
-
+        self.config = xbxc.Config("test_config.ini")
+        c = self.config
+        self.xbh = xbh.Xbh(
+                    c.xbh_addr, c.xbh_port, 
+                    c.platform.pagesize,
+                    c.platform.clock_hz)
     def tearDown(self):
         del self.config
         del self.xbh
@@ -32,7 +35,7 @@ class XbhTest(unittest.TestCase):
 
     def test_calibration(self):
         cycles = self.xbh.get_timing_cal()
-        self.assertAlmostEqual(cycles, self.config.clock_hz, delta=1000)
+        self.assertAlmostEqual(cycles, self.config.platform.clock_hz, delta=1000)
         
 
 
