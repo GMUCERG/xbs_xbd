@@ -358,14 +358,14 @@ class Xbh:# {{{
             raise xbh.ValueError("Cycle count 0!")
         seconds, fractions, frac_per_sec = self.get_timings()
         # add 0.5 then cast to int to get rounded integer
-        measured_cycles = int((seconds + fractions/frac_per_sec)*xbd_hz+0.5)
+        measured_cycles = int((seconds + fractions/frac_per_sec)*self.xbd_hz+0.5)
         if measured_cycles == 0:
             raise xbh.ValueError("Measured cycle count 0!")
         abs_error = measured_cycles - cycles
         # TODO: Divide by measured cycles or by nominal cycles? 
         rel_error = abs_error/cycles
         
-        return abs_err, rel_error, cycles, measured_cycles
+        return abs_error, rel_error, cycles, measured_cycles
 
         
 
