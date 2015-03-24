@@ -369,6 +369,7 @@ class BuildSession(xbx.session.Session):# {{{
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
 
+    import xbx.buildfiles as buildfiles
     _logger.info("Building HAL for platform {}, compiler {}".format(
             config.platform.name,
             str(index)))
