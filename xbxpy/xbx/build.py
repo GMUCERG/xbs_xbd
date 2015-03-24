@@ -18,6 +18,9 @@ from xbx.dirchecksum import dirchecksum
 EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
 
+_logger = logging.getLogger(__name__)
+_build_logger = logging.getLogger(__name__+".Build")
+
 class Build:# {{{
     """Sets up a build
     
@@ -105,7 +108,6 @@ class Build:# {{{
         if os.path.isdir(self.workpath):
             self.rebuilt = True
         self._gen_files()
-        logger = logging.getLogger(__name__+".Build")
         self.impl_checksum = dirchecksum(self.workpath)
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
@@ -137,17 +139,15 @@ class Build:# {{{
     
 
     def clean(self):
-        logger = logging.getLogger(__name__+".Build")
-        logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
+        _build_logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
         self.make("clean")
     
 
     def make(self, target):
 
-        logger = logging.getLogger(__name__+".Build")
-        err_logger = logger.warn if self.warn_comp_err else logger.debug
+        err_logger = _build_logger.warn if self.warn_comp_err else _build_logger.debug
 
-        _make(self.workpath, logger.debug, err_logger, target, 
+        _make(self.workpath, _build_logger.debug, err_logger, target, 
               self.parallel_make, extra=self.log_attr)
     
 
@@ -283,7 +283,7 @@ class BuildSession(xbx.session.Session):# {{{
                     ["git", "rev-parse", "HEAD"]
                     ).decode().strip()
         except subprocess.CalledProcessError:
-            logger.warn("Could not get git revision of xbx")
+            _logger.warn("Could not get git revision of xbx")
 
         if self.database:
             self.session_id = self.database.save_buildsession(self)
@@ -293,12 +293,12 @@ class BuildSession(xbx.session.Session):# {{{
     def buildall(self):
         """Builds all targets specified in xbx self.config, and saves stats into cursor"""
 
-        logger = logging.getLogger(__name__)
+        #logger = logging.getLogger(__name__)
         num_compilers = len(self.config.platform.compilers)
 
         for i in range(num_compilers):
             compiler = self.config.platform.compilers[i]
-            logger.info("compiler[{}] = {}".format(i, str((compiler.cc, compiler.cxx))))
+            _logger.info("compiler[{}] = {}".format(i, str((compiler.cc, compiler.cxx))))
             if self.config.one_compiler:
                 break
 
@@ -323,11 +323,11 @@ class BuildSession(xbx.session.Session):# {{{
             q_in = mp.Queue()
 
             def worker(q_in, q_out, n):
-                logger.info("Worker "+str(n)+" started")
+                _logger.info("Worker "+str(n)+" started")
                 for build in iter(q_in.get, None):
                     build.compile()
                     q_out.put(build)
-                logger.info("Worker "+str(n)+" finished")
+                _logger.info("Worker "+str(n)+" finished")
 
             processes = [mp.Process(target=worker, args=(q_out,q_in, i)) 
                     for i in range(BuildSession.CPU_COUNT+1)]
@@ -368,9 +368,8 @@ class BuildSession(xbx.session.Session):# {{{
 # Support fxns# {{{
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
-    logger = logging.getLogger(__name__)
 
-    logger.info("Building HAL for platform {}, compiler {}".format(
+    _logger.info("Building HAL for platform {}, compiler {}".format(
             config.platform.name,
             str(index)))
 
@@ -409,7 +408,7 @@ def build_hal(config, index):
     
     _gen_envfile(workpath, env)
 
-    _make(workpath, logger.debug, logger.debug, parallel = True)
+    _make(workpath, _logger.debug, _logger.debug, parallel = True)
 
 
 def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):

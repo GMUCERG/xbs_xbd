@@ -12,7 +12,7 @@ import xbx.data as xbxd
 
 
 def main():
-    logging.config.fileConfig("logging.ini")
+    logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     config = xbxc.Config("config.ini")
 
     db = xbxd.Database(config)
