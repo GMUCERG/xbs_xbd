@@ -64,6 +64,7 @@ class Operation:
         self.name = name
         self.macros = macros
         self.prototypes = prototypes
+        self.primitives = {}
 
     def __lt__(self, other):
         return self.name < other.name
@@ -74,7 +75,7 @@ class Primitive:
         self.operation = operation
         self.path = path
         self.checksumsmall = checksumsmall
-        self.impls = []
+        self.impls = {}
 
 
     def __lt__(self, other):
@@ -138,7 +139,7 @@ class Config:
             whitelist = config.get('implementation','whitelist').split("\n")
 
         primitives = config.get('algorithm','primitives').split("\n")
-        self.primitives = Config.__enum_prim_impls(
+        self.operation.primitives = Config.__enum_prim_impls(
                 self.operation, 
                 primitives, 
                 blacklist,
@@ -251,7 +252,7 @@ class Config:
             
 
         _logger.debug("Enumerating primitives and implementations")
-        primitives = []
+        primitives = {}
 
         # Get operation path
         op_path = os.path.join(algopack_path, "crypto_"+operation.name)
@@ -271,39 +272,35 @@ class Config:
                 checksumsmall = f.readline().strip()
             p = Primitive(name, operation, path, checksumsmall)
 
-            primitives += p, 
-
-        primitives = sorted(primitives)
-
+            primitives[name] = p  
 
         # Get whitelist  ^blacklist
-        for p in primitives:
-            alldirs = [] 
+        for p in primitives.values():
+            all_impls = {}
 
             # Find all directories w/ api.h
             walk =  os.walk(p.path)
             for i in walk:
                 if "api.h" in i[2]:
-                    alldirs += os.path.relpath(i[0], p.path),
+                    path = os.path.relpath(i[0], p.path)
+                    name = path.translate(str.maketrans("./-","___"))
+                    all_impls[name] = path
 
-            keptdirs = set(alldirs)
+            impl_set = set(all_impls.keys())
 
-            for i in alldirs:
+            for i in all_impls.keys():
                 for j in blacklist:
                     if re.match(j,i):
-                        keptdirs.remove(i)
+                        impl_set.remove(i)
 
             if whitelist:
-                keptdirs &= set(whitelist);
+                impl_set &= set(whitelist);
 
-            for name in keptdirs:
-                path = os.path.join(p.path,name)
+            for name in impl_set:
+                path = os.path.join(p.path,all_impls[name])
                 checksum = xbx.dirchecksum.dirchecksum(path)
-                new_name = name.translate(str.maketrans("./-","___"))
-                impl = Implementation(new_name, p, path, checksum)
-                p.impls += (impl,)
-
-            p.impls = sorted(p.impls)
+                impl = Implementation(name, p, path, checksum)
+                p.impls[name] = impl
 
         return primitives
 

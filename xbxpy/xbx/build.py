@@ -128,9 +128,9 @@ class Build:# {{{
             self.hex_checksum = xbx.util.sha256_file(self.hex_path)
 
 
-            logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
+            _build_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
         else:
-            logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
+            _build_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
     
 
@@ -278,8 +278,10 @@ class BuildSession(xbx.session.Session):# {{{
             if self.config.one_compiler:
                 break
 
-        for p in self.config.primitives:
-            for j in p.impls:
+        # Sorted so builds start in order, in the event we want this w/ non
+        # parallel builds
+        for p in sorted(self.config.operation.primitives.values()):
+            for j in sorted(p.impls.values()):
                 for i in range(num_compilers):
                     build = Build(self.config, i, j)
                     self.builds += build,
@@ -316,7 +318,7 @@ class BuildSession(xbx.session.Session):# {{{
                 self.database.save_build(b, self)
                 self.builds += b,
 
-            # Terminate processes
+            # Terminate processes gracefully
             for p in processes:
                 q_out.put(None)
         else:
