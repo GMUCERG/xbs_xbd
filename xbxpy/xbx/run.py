@@ -22,11 +22,16 @@ class RunSession(xbx.session.Session):
 
     def __init__(self, config, database=None):
         super().__init__(config, database)
+
+        self.xbh = None
+        self.xbh_rev = None
+        self.xbd_bl_rev = None
+        self.buildsession = None
+        self.session_id = None
+
         if self.database:
             self.buildsession = database.get_newest_buildsession()
             self.session_id = self.database.save_runsession(self)
-
-        self.xbh = None
 
 
     def init_xbh(self):
@@ -51,13 +56,8 @@ class RunSession(xbx.session.Session):
                 "Cycles: {}, Measured Cycles: {}").format(
                         abs_error, rel_error, cycles, measured_cycles))
 
+
             pass
-
-            
-
-
-
-
 
 
     def runall(self):
