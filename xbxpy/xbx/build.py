@@ -269,6 +269,8 @@ class BuildSession(xbx.session.Session):# {{{
     """Manages builds for all instances specified in xbx config
 
     Pass in database object into constructor to save session and populate id
+    Database will not be committed until buildall() is initated and
+    successfully completed
     """
 
     CPU_COUNT = mp.cpu_count()
@@ -291,7 +293,12 @@ class BuildSession(xbx.session.Session):# {{{
 
 
     def buildall(self):
-        """Builds all targets specified in xbx self.config, and saves stats into cursor"""
+        """Builds all targets specified in xbx self.config
+
+        If database was specified in constructor, completion will commit
+        database entry. 
+        """
+
 
         #logger = logging.getLogger(__name__)
         num_compilers = len(self.config.platform.compilers)
