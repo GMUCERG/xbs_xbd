@@ -28,7 +28,7 @@ _logger=logging.getLogger(__name__)
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['hash'], 
         lambda query, **kwargs: query.filter(Platform.hash == kwargs['hash']))
-class Platform(Base):
+class Platform(Base):# {{{
     __tablename__  = "platform"
 
     hash           = Column(String)
@@ -46,15 +46,9 @@ class Platform(Base):
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
     )
-    @reconstructor
-    def load_init(self):
-        self.valid_hash = self.validate_hash()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.valid_hash = self.validate_hash()
-        
-    def validate_hash(self):
+    @property
+    def valid_hash(self):
+        """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
         valid_hash = None
         if self.hash != hash:
@@ -62,8 +56,29 @@ class Platform(Base):
         else:
             valid_hash = True
         return valid_hash
+    # @reconstructor
+    # def load_init(self):
+    #     """Verifies if hash still valid and saves new result in DB"""
+    #     self.valid_hash = self.validate_hash()
+    #     scoped_session().add(self)
 
-class Compiler(Base):
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+    #     self.valid_hash = self.validate_hash()
+    #     
+    # def validate_hash(self):
+    #     """Indicates if current existing directory validates with stored hash"""
+    #     hash = dirchecksum(self.path)
+    #     valid_hash = None
+    #     if self.hash != hash:
+    #         valid_hash = False
+    #     else:
+    #         valid_hash = True
+    #     return valid_hash
+# }}}
+
+
+class Compiler(Base):# {{{
     __tablename__ = "compiler"
 
     platform_hash = Column(String)
@@ -81,11 +96,12 @@ class Compiler(Base):
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
     )
     pass # For indentation
+# }}}
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['name'], 
         lambda query, **kwargs: query.filter(Operation.name == kwargs['name']))
-class Operation(Base):
+class Operation(Base):# {{{
     __tablename__ = "operation"
 
     name          = Column(String)
@@ -108,11 +124,13 @@ class Operation(Base):
         self.macros      = match.group(2).split(':')
         self.macros     += '',
         self.prototypes  = match.group(3).split(':')
-    
+# }}}
+
+
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['name'], 
         lambda query, **kwargs: query.filter(Primitive.name == kwargs['name']))
-class Primitive(Base):
+class Primitive(Base):# {{{
     __tablename__  = "primitive"
 
     name           = Column(String)
@@ -135,11 +153,13 @@ class Primitive(Base):
             ["operation.name"]
         ),
     )
+# }}}
+
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['hash'], 
         lambda query, **kwargs: query.filter(Implementation.hash == kwargs['hash']))
-class Implementation(Base):
+class Implementation(Base):# {{{
     __tablename__  = "implementation"
     hash           = Column(String)
     name           = Column(String)
@@ -154,16 +174,9 @@ class Implementation(Base):
         ),
     )
 
-    @reconstructor
-    def load_init(self):
-        self.valid_hash = self.validate_hash()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.valid_hash = self.validate_hash()
-        
-        
-    def validate_hash(self):
+    @property
+    def valid_hash(self):
+        """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
         valid_hash = None
         if self.hash != hash:
@@ -171,16 +184,33 @@ class Implementation(Base):
         else:
             valid_hash = True
         return valid_hash
+    # @reconstructor
+    # def load_init(self):
+    #     """Verifies if hash still valid and saves new result in DB"""
+    #     self.valid_hash = self.validate_hash()
+    #     scoped_session().add(self)
 
-
-
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+    #     self.valid_hash = self.validate_hash()
+    #     
+    # def validate_hash(self):
+    #     """Indicates if current existing directory validates with stored hash"""
+    #     hash = dirchecksum(self.path)
+    #     valid_hash = None
+    #     if self.hash != hash:
+    #         valid_hash = False
+    #     else:
+    #         valid_hash = True
+    #     return valid_hash
+# }}}
 
 
 @unique_constructor(scoped_session, 
         lambda filename, **kwargs: xbx.util.sha256_file(filename), 
         lambda query, config_path, **kwargs: 
                     query.filter(Config.hash == xbx.util.sha256_file(config_path)))
-class Config(Base):
+class Config(Base):# {{{
     """Configuration for running benchmarks on a single operation on a single platform"""
 
     __tablename__  = "config"
@@ -476,6 +506,6 @@ class Config(Base):
                     return Operation(name=name, operation_str=l.strip())
     # }}}
 
-
+# }}}
 
 

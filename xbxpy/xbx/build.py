@@ -415,6 +415,9 @@ class BuildSession(xbx.session.Session):# {{{
 
         for p in self.config.operation.primitives:
             for j in p.implementations:
+                # Skip if hash is not current
+                if not j.valid_hash:
+                    continue
                 for i in range(num_compilers):
                     # Don't have to add to self.builds as Build sets
                     # BuildSession as parent, which inserts into list
