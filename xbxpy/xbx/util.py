@@ -49,61 +49,12 @@ def hash_obj(obj):
     trav_item(("/",),obj)
 
     return h.hexdigest()
-    #print(items)
 
-
-#def hash_obj(obj):
-#    h = hashlib.sha256()
-#    objs = {}
-#    items = []
-#
-#    def trav_item(name, item):
-#        value = None
-#        if id(item) in objs.keys():
-#            value="ref: "+'.'.join(objs[id(item)])
-#        else:
-#            objs[id(item)]=name
-#
-#            if hasattr(item, "__iter__") and not isinstance(item, str):
-#                if hasattr(item, "items"):
-#                    for k,v in item.items():
-#                        trav_item(name+(k,), v)
-#                else:
-#                    c = 0
-#                    for i in item:
-#                        trav_item(name+(str(c),), i)
-#                        c += 1
-#
-#            elif hasattr(item, "__dict__"): 
-#                for k, v in item.__dict__.items():
-#                    trav_item(name+(k,), v)
-#            else:
-#                value = item
-#        if value != None:
-#            value_str = "/".join(name)+":"+str(value)
-#            items.append(value_str)
-#
-#    trav_item(("/",),obj)
-#
-#    items.sort()
-#    for i in items:
-#        print (i)
-#
-#    return h.hexdigest()
-#    #print(items)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Gets db path before config is initialized, since config initialization depends
+# on database
+def get_db_path(config_path):
+    import configparser
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    return config.get('paths','data')
 
