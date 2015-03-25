@@ -50,12 +50,7 @@ class Platform(Base):# {{{
     def valid_hash(self):
         """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
-        valid_hash = None
-        if self.hash != hash:
-            valid_hash = False
-        else:
-            valid_hash = True
-        return valid_hash
+        return hash == self.hash
     # @reconstructor
     # def load_init(self):
     #     """Verifies if hash still valid and saves new result in DB"""
@@ -178,12 +173,7 @@ class Implementation(Base):# {{{
     def valid_hash(self):
         """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
-        valid_hash = None
-        if self.hash != hash:
-            valid_hash = False
-        else:
-            valid_hash = True
-        return valid_hash
+        return hash == self.hash
     # @reconstructor
     # def load_init(self):
     #     """Verifies if hash still valid and saves new result in DB"""
