@@ -5,9 +5,8 @@ import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
-from sqlalchemy.ext.declarative import declarative_base, AbstractConcreteBase, declared_attr
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
+from sqlalchemy.orm import relationship
 
 from xbx.database import Base
 
@@ -30,7 +29,7 @@ class Session(AbstractConcreteBase, Base):
     )
 
     def __init__(self, config, **kwargs):
-        #super().__init__(*kwargs)
+        super().__init__(**kwargs)
         self.config = config
         self.host = socket.gethostname()
         self.timestamp = datetime.datetime.now()
