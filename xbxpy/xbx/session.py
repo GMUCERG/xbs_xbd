@@ -12,21 +12,23 @@ from xbx.database import Base
 
 logger = logging.getLogger(__name__)
 class Session(AbstractConcreteBase, Base): 
-    id          = Column(Integer)
-    config_hash = Column(String)
+    id          = Column(Integer, primary_key=True)
     host        = Column(String)
     timestamp   = Column(Date)
     xbx_version = Column(String)
 
+    @declared_attr
+    def config_hash(cls): 
+        return Column(String, ForeignKey("config.hash"))
 
     @declared_attr
     def config(cls):
         return relationship("Config", uselist=False)
 
-    __table_args__ = (
-        PrimaryKeyConstraint("id"),
-        ForeignKeyConstraint(["config_hash"], ["config.hash"]),
-    )
+    #__table_args__ = (
+    #    PrimaryKeyConstraint("id"),
+    #    ForeignKeyConstraint(["config_hash"], ["config.hash"]),
+    #)
 
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
