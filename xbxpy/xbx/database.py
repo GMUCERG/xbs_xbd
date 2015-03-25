@@ -123,7 +123,11 @@ Base = declarative_base()
 from sqlalchemy.orm import scoped_session as ss, sessionmaker as sm
 scoped_session = ss(sm())
 def init(data_path):
-    import xbx.config as xbxc
+    # Import these so ORM builds tables
+    import xbx.config
+    import xbx.run
+    import xbx.build
+
     global scoped_session
     engine = None
     if not os.path.isfile(data_path):
@@ -157,6 +161,14 @@ def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
         return obj
 
 def unique_constructor(scoped_session, hashfunc, queryfunc):
+    """Prevents duplicate errors in DB
+    
+    Decorator on data object constructors to ensure new objects aren't created
+    if already exists in DB 
+
+    See https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/UniqueObject
+
+    """
     def decorate(cls):
         def _null_init(self, *arg, **kw):
             pass
