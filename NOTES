@@ -8,3 +8,5 @@ we checksum all the things for verifiability
 
 objcopy scripts reject .data+.bss > 3/4ths total RAM
 
+
+SQLAlchemy will duplicate objects if inserted into list and parent is set
