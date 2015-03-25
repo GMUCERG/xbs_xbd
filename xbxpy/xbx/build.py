@@ -27,12 +27,11 @@ EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
 
 _logger = logging.getLogger(__name__)
-_build_logger = logging.getLogger(__name__+".Build")
 _buildjob_logger = logging.getLogger(__name__+".BuildJob")
 
 # We make a seperate object for initiating builds, since Build is rather heavy
 # and doesn't multiprocess correctly
-class BuildJob:
+class BuildJob:# {{{
     def __init__(self, work_path, parallel_make, log_attr, buildid,
                  platform_name, hex_path):
         self.timestamp = None
@@ -44,20 +43,20 @@ class BuildJob:
         self.hex_path = hex_path
 
     def __call__(self):
-        _build_logger.debug("Building {} for platform {}".format(
+        _buildjob_logger.debug("Building {} for platform {}".format(
             self.buildid,
             self.platform_name), extra=self.log_attr)
 
-        _make(self.work_path, _build_logger.debug, _buildjob_logger.debug, "all", 
+        _make(self.work_path, _buildjob_logger.debug, _buildjob_logger.debug, "all", 
               self.parallel_make, extra=self.log_attr)
 
         if os.path.isfile(self.hex_path):
             self.timestamp = datetime.datetime.now()
-            _build_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
+            _buildjob_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
         else:
-            _build_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
+            _buildjob_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
-
+# }}}
 
 class Build(Base):# {{{
     """Sets up a build
