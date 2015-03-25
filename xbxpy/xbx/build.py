@@ -271,6 +271,11 @@ class Build(Base):# {{{
         if not os.path.isfile(crypto_op_h):
             self._gen_crypto_op_h(crypto_op_h, self.implementation)
     
+    @property
+    def valid_hex_checksum(self):
+        """Verifies if checksum still valid"""
+        hash = dirchecksum(self.hex_path)
+        return hash == self.hex_checksum
         
     def _genmake(self, filename):
         import xbx.buildfiles as buildfiles
