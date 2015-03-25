@@ -46,6 +46,22 @@ class Platform(Base):
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
     )
+    @reconstructor
+    def load_init(self):
+        self.valid_hash = self.validate_hash()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.valid_hash = self.validate_hash()
+        
+    def validate_hash(self):
+        hash = dirchecksum(self.path)
+        valid_hash = None
+        if self.hash != hash:
+            valid_hash = False
+        else:
+            valid_hash = True
+        return valid_hash
 
 class Compiler(Base):
     __tablename__ = "compiler"
@@ -137,6 +153,28 @@ class Implementation(Base):
             ["primitive.name"]
         ),
     )
+
+    @reconstructor
+    def load_init(self):
+        self.valid_hash = self.validate_hash()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.valid_hash = self.validate_hash()
+        
+        
+    def validate_hash(self):
+        hash = dirchecksum(self.path)
+        valid_hash = None
+        if self.hash != hash:
+            valid_hash = False
+        else:
+            valid_hash = True
+        return valid_hash
+
+
+
+
 
 @unique_constructor(scoped_session, 
         lambda filename, **kwargs: xbx.util.sha256_file(filename), 
