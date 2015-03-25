@@ -1,5 +1,5 @@
 import atexit
-import datetime
+from datetime import datetime
 import hashlib
 import logging
 import multiprocessing as mp
@@ -29,9 +29,14 @@ HEX_NAME="xbdprog.hex"
 _logger = logging.getLogger(__name__)
 _buildjob_logger = logging.getLogger(__name__+".BuildJob")
 
-# We make a seperate object for initiating builds, since Build is rather heavy
-# and doesn't multiprocess correctly
 class BuildJob:# {{{
+    """Separate object for actually building
+    
+    Build does not serialize well, thus obtain an instance of this with
+    Build.get_buildjob() and run this instead
+
+    """
+
     def __init__(self, work_path, parallel_make, log_attr, buildid,
                  platform_name, hex_path):
         self.timestamp = None
@@ -51,7 +56,7 @@ class BuildJob:# {{{
               self.parallel_make, extra=self.log_attr)
 
         if os.path.isfile(self.hex_path):
-            self.timestamp = datetime.datetime.now()
+            self.timestamp = datetime.now()
             _buildjob_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
         else:
             _buildjob_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
@@ -165,6 +170,8 @@ class Build(Base):# {{{
         self.checksumlarge_result = None
 
     def get_buildjob(self):
+        """Returns instance of BuildJob"""
+
         if os.path.isdir(self.work_path):
             self.rebuilt = True
 
@@ -176,7 +183,11 @@ class Build(Base):# {{{
                 self.buildid, self.platform.name, self.hex_path
                 )
 
-    def do_postbuild(self):
+    def do_postbuild(self, job):
+        """Extracts data from completed buildjob
+        
+        Alsoinspects post build environment for stats
+        """
         if os.path.isfile(self.hex_path):
             size = os.path.join(self.platform.path, 'size')
             total_env = self.env.copy()
@@ -191,6 +202,7 @@ class Build(Base):# {{{
             self.bss  = int(match.group(3))
 
             self.hex_checksum = xbx.util.sha256_file(self.hex_path)
+            self.timestamp = job.timestamp
 
     
     @property
@@ -442,8 +454,7 @@ class BuildSession(xbx.session.Session):# {{{
             for _ in range(num_builds):
                 job = q_in.get()
                 build = build_map[job.buildid]
-                build.timestamp = job.timestamp
-                build.do_postbuild()
+                build.do_postbuild(job)
 
 
             # Terminate processes gracefully
@@ -451,7 +462,12 @@ class BuildSession(xbx.session.Session):# {{{
                 q_out.put(None)
         else:
             for b in self.builds:
-                b.compile()
+                job = b.get_buildjob()
+                job()
+                build.do_postbuild(job)
+
+
+        self.timestamp = datetime.now()
 
 
     def __lt__(self, other):
