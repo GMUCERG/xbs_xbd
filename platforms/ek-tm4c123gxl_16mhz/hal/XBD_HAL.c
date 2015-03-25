@@ -48,7 +48,7 @@
 
 extern uint32_t pui32Stack[1024];
 
-void XBD_switchToBootLoader(void) ;
+void XBD_switchToBootLoader(void);
 
 void XBD_init() {
   /* inititalisation code, called once */
@@ -247,7 +247,7 @@ uint8_t *p = NULL;
 uint8_t inv_sc=0;
 
 
- __attribute__ ( ( noinline ) )
+__attribute__ ( ( noinline ) )
 void getSP(volatile uint8_t **var_SP)
 {
   volatile uint8_t beacon;
