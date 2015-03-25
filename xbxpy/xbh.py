@@ -25,6 +25,29 @@ _CALC_TIMEOUT = 5*60
 
 _logger=logging.getLogger(__name__)
 
+def attempt(tries=3, raise_err=False):
+    """Decorator to attempt XBH operation for tries tries
+    
+    raise_err=True will allow exception to bubble up
+
+    """
+    def func_decorator(func):
+        def func_wrapper(*args, **kwargs):
+            for t in range(tries):
+                try:
+                    return func(*args, **kwargs)
+                except XbhError as e:
+                    if raise_err:
+                        raise
+                    else:
+                        _logger.error(str(e))
+        return func_wrapper
+    return func_decorator
+
+
+
+
+
 # Replace object w/ Enum when 3.4 is current
 class TypeCode(object):# {{{
     HASH = 1
@@ -373,71 +396,3 @@ class Xbh:# {{{
 
 
         
-        #TODO: Ask about 0.5 below
-
-#if($doTimingErrorCalculation) {
-#  my $cyclesBurnt=$xbh->getTimingCalibration();
-#  if(!defined($cyclesBurnt) || $cyclesBurnt==0) {
-#    print "Unable to get xbd cycle count (cycles burnt)\n";
-#    exit -1;
-#  }     
-#   my ($seconds,$fractions,$fractionsPerSecond)=$xbh->getTimings();
-#  my $cyclesMeasured=int($seconds*$cyclesPerSecond+$fractions/$fractionsPerSecond*$cyclesPerSecond+0.5);
-#  if(!defined($cyclesMeasured) || $cyclesMeasured==0) {
-#    print "Unable to get xbh timing \n";
-#    exit -1;
-#  }      
-#  
-#  
-#  print "Nominal cycles: $cyclesBurnt\n";
-#  print "Measured cycles: $cyclesMeasured\n";
-#  my $absError=$cyclesMeasured-$cyclesBurnt;
-#  my $relError=$absError*1.0/$cyclesMeasured;
-#  print "Absolute error: $absError\n";
-#  print "Relative error: $relError\n";
-#  print "In ppm: ".(int($relError*10000000+0.5)/10)."\n";
-# 
-
-
-
-# }}}
-
-
-
-
-                        
-                
-
-                
-
-                
-
-
-
-
-
-
-
-        
-
-
-
-#if __name__ == "__main__":
-#    xbh = Xbh()
-#    xbh.calc_checksum()
-#
-#    print(xbh.get_results())
-
-
-
-
-
-    
-
-
-
-
-
-        
-
-
