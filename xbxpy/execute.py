@@ -3,20 +3,26 @@
 import logging.config
 
 import xbx.config as xbxc
-import xbx.build as xbxb
 import xbx.run as xbxr
-import xbx.data as xbxd
+import xbx.util as xbxu
+import xbx.database as xbxdb
+
+CONFIG_PATH="config.ini"
 
 def main():
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
+    xbxdb.init(xbxu.get_db_path(CONFIG_PATH))
+    s = xbxdb.scoped_session()
+
+    config = xbxc.Config(CONFIG_PATH)
+
+    logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     config = xbxc.Config("config.ini")
 
-    db = xbxd.Database(config)
-
-    rs = xbxr.RunSession(config, db)
+    rs = xbxr.RunSession(config)
 
     rs.init_xbh()
-    rs.drift_measurements()
+#    rs.drift_measurements()
 
 
 

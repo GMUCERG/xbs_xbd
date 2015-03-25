@@ -16,12 +16,10 @@ CONFIG_PATH="config.ini"
 
 def main():
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
-    # We need t 
     xbxdb.init(xbxu.get_db_path(CONFIG_PATH))
     s = xbxdb.scoped_session()
 
     config = xbxc.Config(CONFIG_PATH)
-
 
     bs = xbxb.BuildSession(config)
     bs.buildall()
