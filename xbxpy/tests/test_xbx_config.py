@@ -40,6 +40,18 @@ class XbxTest(unittest.TestCase):
             config = xbx.config.Config("test_config.ini")
             self.assertEqual(c_hash, xbx.util.hash_obj(config))
             
+    # TODO: Add test to check if changes in platform still result in only one
+    # platform run and platform persisted in db
+
+    # TODO: Add test to check if changes in impl still result in only one
+    # impl run and platform persisted in db
+
+    # TODO: Add test to check if number of implementations is correct
+
+    # TODO: Add test to check if proper number of builds run
+
+    # TODO: Check if build output sizes is nonzero, i.e. HAL properly linked in
+
 
 
 if __name__ == '__main__':
