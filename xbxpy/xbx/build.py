@@ -381,15 +381,6 @@ class BuildSession(xbx.session.Session):# {{{
         super().__init__(config, *kwargs)
         self.parallel = config.parallel_build
 
-        try:
-            self.xbx_version = subprocess.check_output(
-                    ["git", "rev-parse", "HEAD"]
-                    ).decode().strip()
-        except subprocess.CalledProcessError:
-            _logger.warn("Could not get git revision of xbx")
-
-
-
 
     def buildall(self):
         """Builds all targets specified in xbx self.config
