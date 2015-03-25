@@ -17,7 +17,7 @@ from sqlalchemy.orm import relationship
 
 
 import xbx.util
-import xbx.session
+import xbx.session as xbxs
 from xbx.dirchecksum import dirchecksum
 from xbx.database import Base
 import xbx.database as xbxdb
@@ -367,7 +367,7 @@ class Build(Base):# {{{
         return self.buildid < other.buildid
     # }}}
 
-class BuildSession(xbx.session.Session):# {{{
+class BuildSession(Base, xbxs.SessionMixin):# {{{
     """Manages builds for all instances specified in xbx config
 
     Pass in database object into constructor to save session and populate id
@@ -383,7 +383,7 @@ class BuildSession(xbx.session.Session):# {{{
 
 
     def __init__(self, config, **kwargs):
-        super().__init__(config, *kwargs)
+        super().__init__(config=config, **kwargs)
         self.parallel = config.parallel_build
 
 

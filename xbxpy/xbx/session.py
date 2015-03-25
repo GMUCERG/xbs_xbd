@@ -5,13 +5,13 @@ import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
-from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
 from xbx.database import Base
 
 logger = logging.getLogger(__name__)
-class Session(AbstractConcreteBase, Base): 
+class SessionMixin: 
     id          = Column(Integer, primary_key=True)
     host        = Column(String)
     timestamp   = Column(Date)
@@ -25,14 +25,8 @@ class Session(AbstractConcreteBase, Base):
     def config(cls):
         return relationship("Config", uselist=False)
 
-    #__table_args__ = (
-    #    PrimaryKeyConstraint("id"),
-    #    ForeignKeyConstraint(["config_hash"], ["config.hash"]),
-    #)
 
-    def __init__(self, config, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
+    def __init__(self, *args, **kwargs):
         self.host = socket.gethostname()
         self.timestamp = datetime.datetime.now()
         
