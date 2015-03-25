@@ -251,9 +251,9 @@ class Config(Base):# {{{
         self.data_path      = config.get('paths','data')
 
         self.one_compiler = bool(distutils.util.strtobool(
-            config.get('run', 'one_compiler')))
+            config.get('build', 'one_compiler')))
         self.parallel_build = bool(distutils.util.strtobool(
-            config.get('run', 'parallel_build')))
+            config.get('build', 'parallel_build')))
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')
@@ -328,8 +328,6 @@ class Config(Base):# {{{
             h.update(dirchecksum(tmpl_path))
             hash = h.sha256()
 
-        print(path)
-        print(hash)
         return Platform(
                 hash=hash,
                 name=name, 
