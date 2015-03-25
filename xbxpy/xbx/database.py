@@ -12,149 +12,10 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 
 
-import xbx.util as xbxu
-
 _logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-# Mapping objects
-# {{{
-#class Platform(Base):
-#    __tablename__ = "platform"
-#
-#    name = Column(String)
-#    clock_hz = Column(Integer)
-#    pagesize = Column(Integer)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("name"),
-#    )
-#
-#
-#
-#class Operation(Base):
-#    __tablename__ = "operation"
-#
-#    name = Column(String)
-#
-#    primitives = relationship(
-#        "Primitive", 
-#        backref="platform",
-#        collection_class=attribute_mapped_collection('name')
-#    )
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("name"),
-#    )
-#
-#class Primitive(Base):
-#    __tablename__ = "primitive"
-#
-#    operation_name = Column(String)
-#    name = Column(String)
-#    checksumsmall = Column(String)
-#    checksumlarge = Column(String)
-#
-#    implementations = relationship(
-#        "Primitive", 
-#        backref="primitive",
-#    )
-#
-#    
-#    __table_args__ = (
-#        PrimaryKeyConstraint("operation_name", "name"),
-#        ForeignKeyConstraint(
-#            ["operation_name"],
-#            ["operation.name"]),
-#    )
-#
-#class Implementation:
-#    name = Column(String)
-#    primitive_name = Column(String)
-#    path = Column(String)
-#    checksum = Column(String)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("primitive_name", "name"),
-#        ForeignKeyConstraint(
-#            ["primitive_name"],
-#            ["primitive.name"]),
-#    )
-#
-#
-#
-#class Config(Base):
-#    __tablename__ = "config"
-#
-#    hash = Column(String)
-#    dump = Column(Text)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("hash"),
-#    )
-# }}}
-
-#class BuildSession(Base):
-#    __tablename__ = "build_session" 
-#
-#    id = Column(Integer)
-#    timestamp = Column(Date)
-#    host = Column(String)
-#    xbx_version = Column(String)
-#    parallel = Column(Boolean)
-#    config = Column(String)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint(
-#            ["config"],
-#            ["config.hash"]),
-#    )
-#    
-#
-
-
-#class Build(Base):
-#    __tablename__ = "build"
-#    
-#    id = Column(Integer)
-#    platform = Column(String)
-#    operation = Column(String) 
-#    primitive = Column(String) 
-#    implementation = Column(String) 
-#    impl_checksum = Column(String)
-#    compiler_idx = Column(Integer) 
-#
-#    exe_path = Column(String)
-#    hex_path = Column(String)
-#    parallel_make = Column(Boolean)
-#
-#    text = Column(Integer)
-#    data = Column(Integer)
-#    bss = Column(Integer)
-#
-#    timestamp = Column(Date)
-#    hex_checksum = Column(String)
-#    build_session = Column(Integer)
-#
-#    rebuilt = Column(Boolean)
-#
-#    checksumsmall_result = Column(String) 
-#    checksumlarge_result = Column(String) 
-#
-#    test_ok = Column(Boolean) 
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint(
-#            ["build_session"],
-#            ["build_session.id"]),
-#        ForeignKeyConstraint(
-#            ["platform", "build_session", "compiler_idx"],
-#            ["compiler.platform", "compiler.build_session", "compiler.idx"]),
-#    )
-#
 #class RunSession(Base):
 #    __tablename__ = "run_session"
 #
@@ -259,36 +120,76 @@ Base = declarative_base()
 #
 #
 #
-#class Database:
-#
-#    def __init__(self, config):
-#        import xbx.config as xbxc
-#        self.config = config
-#        self.engine = None
-#        if not os.path.isfile(config.data_path):
-#            _logger.info("Database doesn't exist, initializing")
-#            self.engine = create_engine('sqlite:///'+ config.data_path)
-#            Base.metadata.create_all(self.engine)
-#
-#        else:
-#            self.engine = create_engine('sqlite:///'+ config.data_path)
-#
-#        DBSession = sessionmaker(bind=self.engine)
-#        self.session = DBSession()
-#
-#
-#
-#
-#def copy_attrs(obj, orm_obj):
-#    orm_attrs = set()
-#    for k, v in inspect.getmembers(orm_obj):
-#        if k[0] != '_':
-#            orm_attrs.add(k)
-#
-#    for k, v in obj.__dict__.items():
-#        if k in orm_attrs:
-#            setattr(orm_obj, k, v)
-#
+from sqlalchemy.orm import scoped_session as ss, sessionmaker as sm
+scoped_session = ss(sm())
+def init(data_path):
+    import xbx.config as xbxc
+    global scoped_session
+    engine = None
+    if not os.path.isfile(data_path):
+        _logger.info("Database doesn't exist, initializing")
+        engine = create_engine('sqlite:///'+ data_path)
+        Base.metadata.create_all(engine)
+    else:
+        engine = create_engine('sqlite:///'+ data_path)
+
+    scoped_session.configure(bind=engine)
+
+
+# From https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/UniqueObject
+def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
+    cache = getattr(session, '_unique_cache', None)
+    if cache is None:
+        session._unique_cache = cache = {}
+
+    key = (cls, hashfunc(*arg, **kw))
+    if key in cache:
+        return cache[key]
+    else:
+        with session.no_autoflush:
+            q = session.query(cls)
+            q = queryfunc(q, *arg, **kw)
+            obj = q.first()
+            if not obj:
+                obj = constructor(*arg, **kw)
+                session.add(obj)
+        cache[key] = obj
+        return obj
+
+def unique_constructor(scoped_session, hashfunc, queryfunc):
+    def decorate(cls):
+        def _null_init(self, *arg, **kw):
+            pass
+        def __new__(cls, bases, *arg, **kw):
+            # no-op __new__(), called
+            # by the loading procedure
+            if not arg and not kw:
+                return object.__new__(cls)
+
+            session = scoped_session()
+
+            def constructor(*arg, **kw):
+                obj = object.__new__(cls)
+                obj._init(*arg, **kw)
+                return obj
+
+            return _unique(
+                        session,
+                        cls,
+                        hashfunc,
+                        queryfunc,
+                        constructor,
+                        arg, kw
+                   )
+
+        # note: cls must be already mapped for this part to work
+        cls._init = cls.__init__
+        cls.__init__ = _null_init
+        cls.__new__ = classmethod(__new__)
+        return cls
+
+    return decorate
+
 
 
 
