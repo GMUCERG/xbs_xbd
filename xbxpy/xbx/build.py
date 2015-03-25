@@ -28,6 +28,36 @@ HEX_NAME="xbdprog.hex"
 
 _logger = logging.getLogger(__name__)
 _build_logger = logging.getLogger(__name__+".Build")
+_buildjob_logger = logging.getLogger(__name__+".BuildJob")
+
+# We make a seperate object for initiating builds, since Build is rather heavy
+# and doesn't multiprocess correctly
+class BuildJob:
+    def __init__(self, work_path, parallel_make, log_attr, buildid,
+                 platform_name, hex_path):
+        self.timestamp = None
+        self.work_path = work_path
+        self.parallel_make = parallel_make
+        self.log_attr = log_attr
+        self.buildid = buildid
+        self.platform_name = platform_name
+        self.hex_path = hex_path
+
+    def __call__(self):
+        _build_logger.debug("Building {} for platform {}".format(
+            self.buildid,
+            self.platform_name), extra=self.log_attr)
+
+        _make(self.work_path, _build_logger.debug, _buildjob_logger.debug, "all", 
+              self.parallel_make, extra=self.log_attr)
+
+        if os.path.isfile(self.hex_path):
+            self.timestamp = datetime.datetime.now()
+            _build_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
+        else:
+            _build_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
+
+
 
 class Build(Base):# {{{
     """Sets up a build
@@ -36,8 +66,6 @@ class Build(Base):# {{{
         config          xbx.Config object
         index           compiler index
         implementation  xbx.Config.Implementation instance
-        warn_comp_err   If false, Compiler errs have DEBUG loglevel instead of
-                        WARN
         parallel_make   If true, issues -j flag to make 
 
     """
@@ -96,14 +124,13 @@ class Build(Base):# {{{
             ["compiler.platform_hash", "compiler.idx"]),
     )
 
-    def __init__(self, build_session, compiler_idx, implementation, warn_comp_err=False,
+    def __init__(self, build_session, compiler_idx, implementation,
             parallel_make=False, **kwargs):
         super().__init__(*kwargs)
 
-        config              = build_session.config
-        self.config         = config
 
         self.build_session  = build_session
+        config              = build_session.config
 
         self.platform       = config.platform
         self.compiler       = config.platform.compilers[compiler_idx]
@@ -123,7 +150,6 @@ class Build(Base):# {{{
         )
         self.exe_path       = os.path.join(self.work_path, EXE_NAME)
         self.hex_path       = os.path.join(self.work_path, HEX_NAME)
-        self.warn_comp_err  = warn_comp_err
 
         self.parallel_make  = False
 
@@ -139,17 +165,16 @@ class Build(Base):# {{{
         self.checksumsmall_result = None
         self.checksumlarge_result = None
 
-    def compile(self):
+    def get_buildjob(self):
         if os.path.isdir(self.work_path):
             self.rebuilt = True
+
         self._gen_files()
-        #logger.info("Building {} for platform {}".format(
-        #    self.buildid,
-        #    self.config.platform.name), extra=self.log_attr)
 
-        self.make("all")
+        return BuildJob(self.work_path, self.parallel_make, self.log_attr,
+                        self.buildid, self.platform.name, self.hex_path)
 
-        self.timestamp = datetime.datetime.now()
+    def do_postbuild(self):
         if os.path.isfile(self.hex_path):
             size = os.path.join(self.platform.path, 'size')
             total_env = self.env.copy()
@@ -165,24 +190,6 @@ class Build(Base):# {{{
 
             self.hex_checksum = xbx.util.sha256_file(self.hex_path)
 
-
-            _build_logger.info("SUCCESS building {}".format(self.buildid), extra=self.log_attr)
-        else:
-            _build_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
-
-    
-
-    def clean(self):
-        _build_logger.debug("Cleaning "+self.buildid+"...", extra=self.log_attr)
-        self.make("clean")
-    
-
-    def make(self, target):
-
-        err_logger = _build_logger.warn if self.warn_comp_err else _build_logger.debug
-
-        _make(self.work_path, _build_logger.debug, err_logger, target, 
-              self.parallel_make, extra=self.log_attr)
     
     @property
     def buildid(self):
@@ -197,19 +204,18 @@ class Build(Base):# {{{
     @property
     def env(self):
 
-        config = self.config
         # Set build environment variables
         tmpl_path = self.platform.tmpl_path
         env = {
             'templatePlatformDir': tmpl_path if tmpl_path else '',
             'HAL_PATH':            os.path.join(self.platform.path,'hal'),
             'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
-            'XBD_PATH':            os.path.join(config.embedded_path,'xbd'),
+            'XBD_PATH':            os.path.join(self.build_session.config.embedded_path,'xbd'),
             'IMPL_PATH':           self.implementation.path,
             'POSTLINK':            os.path.join(self.platform.path, 'postlink'),
             'HAL_OBJS':            os.path.join(
-                config.work_path,
-                config.platform.name,
+                self.build_session.config.work_path,
+                self.build_session.config.platform.name,
                 'HAL',
                 str(self.compiler_idx)
             )
@@ -411,12 +417,15 @@ class BuildSession(xbx.session.Session):# {{{
         if self.config.parallel_build:
             q_out = mp.Queue()
             q_in = mp.Queue()
+            build_map = {}
 
             def worker(q_in, q_out, n):
                 _logger.info("Worker "+str(n)+" started")
-                for build in iter(q_in.get, None):
-                    build.compile()
-                    q_out.put(build)
+                for job in iter(q_in.get, None):
+                    # Re-add this, since it gets lost in multiprocessing for
+                    # some reason
+                    job()
+                    q_out.put(job)
                 _logger.info("Worker "+str(n)+" finished")
 
             processes = [mp.Process(target=worker, args=(q_out,q_in, i)) 
@@ -427,15 +436,18 @@ class BuildSession(xbx.session.Session):# {{{
                 atexit.register(p.terminate)
 
             for b in self.builds:
-                q_out.put(b)
+                build_map[b.buildid] = b
+                q_out.put(b.get_buildjob())
 
 
             # Clear out old build list, reobtain from queue with updated data
             num_builds = len(self.builds)
-            del self.builds[:]
             for _ in range(num_builds):
-                b = q_in.get()
-                self.builds += b,
+                job = q_in.get()
+                build = build_map[job.buildid]
+                build.timestamp = job.timestamp
+                build.do_postbuild()
+
 
             # Terminate processes gracefully
             for p in processes:
