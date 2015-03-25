@@ -3,11 +3,35 @@ import subprocess
 import socket
 import datetime
 
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy.ext.declarative import declarative_base, AbstractConcreteBase, declared_attr
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy import create_engine
+
+from xbx.database import Base
+
 logger = logging.getLogger(__name__)
-class Session: 
-    def __init__(self, config, database):
+class Session(AbstractConcreteBase, Base): 
+    id          = Column(Integer)
+    config_hash = Column(String)
+    host        = Column(String)
+    timestamp   = Column(Date)
+    xbx_version = Column(String)
+
+
+    @declared_attr
+    def config(cls):
+        return relationship("Config", uselist=False)
+
+    __table_args__ = (
+        PrimaryKeyConstraint("id"),
+        ForeignKeyConstraint(["config_hash"], ["config.hash"]),
+    )
+
+    def __init__(self, config, **kwargs):
+        #super().__init__(*kwargs)
         self.config = config
-        self.database = database
         self.host = socket.gethostname()
         self.timestamp = datetime.datetime.now()
         
@@ -18,6 +42,5 @@ class Session:
         except subprocess.CalledProcessError:
             logger.warn("Could not get git revision of xbx")
 
-        self.session_id = None
 
 

@@ -14,9 +14,9 @@ import hashlib
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, reconstructor
 
-import xbx.dirchecksum
+from xbx.dirchecksum import dirchecksum
 import xbx.database as xbxdb
 
 from xbx.database import Base
@@ -68,30 +68,23 @@ class Operation(Base):
     # String from OPERATIONS file
     operation_str = Column(String)
 
-    primitives = relationship(
-        "Primitive", 
-        backref="platform",
-    )
+    primitives = relationship( "Primitive", backref="operation")
 
     __table_args__ = (
         PrimaryKeyConstraint("name"),
     )
-    def parse_opstring(self):
-        match       = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', self.operation_str)
-        macros      = match.group(2).split(':')
-        macros     += '',
-        prototypes  = match.group(3).split(':')
-        return macros, prototypes
-    
-    @property
-    def macros(self):
-        macros, prototypes = self.parse_opstring()
-        return macros
-    @property
-    def prototypes(self):
-        macros, prototypes = self.parse_opstring()
-        return prototypes
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.parse_opstring()
+
+    @reconstructor 
+    def parse_opstring(self):
+        match            = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', self.operation_str)
+        self.macros      = match.group(2).split(':')
+        self.macros     += '',
+        self.prototypes  = match.group(3).split(':')
+    
 class Primitive(Base):
     __tablename__  = "primitive"
 
@@ -130,15 +123,18 @@ class Implementation(Base):
         ),
     )
 
-class Config:
+class Config(Base):
     """Configuration for running benchmarks on a single operation on a single platform"""
+
+    __tablename__  = "config"
+
     hash           = Column(String)
 
     platforms_path = Column(String)
     algopack_path  = Column(String)
     embedded_path  = Column(String)
     work_path      = Column(String)
-    data_path      = Column(String)    
+    data_path      = Column(String)
 
     xbh_addr       = Column(String)
     xbh_port       = Column(Integer)
@@ -146,22 +142,20 @@ class Config:
     platform_hash  = Column(String)
     operation_name = Column(String)
 
-    platform = relationship(
-        "Platform", 
-        uselist=False
-    )
-    operation = relationship(
-        "Operation", 
-        uselist=False
-    )
+    one_compiler   = Column(Boolean)
+    parallel_build = Column(Boolean)
+
+    platform       = relationship( "Platform", uselist=False)
+    operation      = relationship( "Operation", uselist=False)
 
     __table_args__ = (
-        PrimaryKeyConstraint("hash", "idx", ),
+        PrimaryKeyConstraint("hash" ),
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
         ForeignKeyConstraint(["operation_name"], ["operation.name"]),
     )
 
-    def __init__(self, filename):
+    def __init__(self, filename, **kwargs):
+        super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
         config.read(filename)
@@ -173,9 +167,10 @@ class Config:
         self.work_path      = config.get('paths','work')
         self.data_path      = config.get('paths','data')
 
-        self.one_compiler = bool(distutils.util.strtobool(config.get('run', 'one_compiler')))
-        self.parallel_build = bool(distutils.util.strtobool(config.get('run',
-            'parallel_build')))
+        self.one_compiler = bool(distutils.util.strtobool(
+            config.get('run', 'one_compiler')))
+        self.parallel_build = bool(distutils.util.strtobool(
+            config.get('run', 'parallel_build')))
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')
@@ -190,6 +185,7 @@ class Config:
         name           = config.get('algorithm','operation')
         filename       = config.get('paths','operations')
         self.operation = Config.__enum_operation(name, filename)
+
 
 
         # TODO Read platform blacklists
@@ -236,11 +232,11 @@ class Config:
         compilers = Config.__enum_compilers(path, tmpl_path)
 
         
-        hash = xbx.dirchecksum.dirchecksum(path)
+        hash = dirchecksum(path)
         if tmpl_path:
             h = hashlib.sha256()
             h.update(hash)
-            h.update(xbx.dirchecksum(tmpl_path))
+            h.update(dirchecksum(tmpl_path))
             hash = h.sha256()
 
         return Platform(
@@ -385,7 +381,7 @@ class Config:
 
             for name in impl_set:
                 path = os.path.join(p.path,all_impls[name])
-                checksum = xbx.dirchecksum.dirchecksum(path)
+                checksum = dirchecksum(path)
                 impl = Implementation(
                     hash=checksum,
                     name=name, 
@@ -407,8 +403,7 @@ class Config:
             for l in f:
                 match = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', l)
                 if match.group(1) == name:
-                    opstring = l
-                    return Operation(name=name, operation_str=l)
+                    return Operation(name=name, operation_str=l.strip())
     # }}}
 
 

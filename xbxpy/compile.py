@@ -14,10 +14,9 @@ def main():
     logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
     config = xbxc.Config("config.ini")
 
-    #db = xbxd.Database(config)
 
-    #bs = xbxb.BuildSession(config, db)
-    #bs.buildall()
+    bs = xbxb.BuildSession(config)
+    bs.buildall()
 
 
 

@@ -10,10 +10,18 @@ import subprocess
 import sys
 import threading
 
+
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy.orm import relationship
+
+
 import xbx.util
-import xbx.data as data
 import xbx.session
 from xbx.dirchecksum import dirchecksum
+from xbx.database import Base
+import xbx.database as xbxdb
+
 
 EXE_NAME="xbdprog.bin"
 HEX_NAME="xbdprog.hex"
@@ -21,7 +29,7 @@ HEX_NAME="xbdprog.hex"
 _logger = logging.getLogger(__name__)
 _build_logger = logging.getLogger(__name__+".Build")
 
-class Build:# {{{
+class Build(Base):# {{{
     """Sets up a build
     
     Parameters:
@@ -33,82 +41,108 @@ class Build:# {{{
         parallel_make   If true, issues -j flag to make 
 
     """
-    def __init__(
-            self, config, compiler_idx, implementation, warn_comp_err=False,
-            parallel_make=False):
-        #self.config = config
-        self.cc = config.platform.compilers[compiler_idx].cc
-        self.cxx = config.platform.compilers[compiler_idx].cxx
-        self.compiler_idx = compiler_idx
+    __tablename__ = "build"
+
+    id                   = Column(Integer)
+    build_session_id     = Column(Integer)
+
+    platform_hash        = Column(String)
+    compiler_idx         = Column(Integer)
+
+    operation_name       = Column(String)
+    primitive_name       = Column(String)
+    implementation_hash  = Column(String)
+
+    work_path            = Column(String)
+    exe_path             = Column(String)
+    hex_path             = Column(String)
+
+    parallel_make        = Column(Boolean)
+
+    text                 = Column(Integer)
+    data                 = Column(Integer)
+    bss                  = Column(Integer)
+
+    timestamp            = Column(Date)
+    hex_checksum         = Column(String)
+
+    rebuilt              = Column(Boolean)
+
+    checksumsmall_result = Column(String)
+    checksumlarge_result = Column(String)
+
+    test_ok              = Column(Boolean)
+
+    #build_session        = relationship("BuildSession", backref="builds",
+    #                                    foreign_keys=[build_session_id])
+    platform             = relationship("Platform", uselist=False,
+                                        foreign_keys=[platform_hash])
+
+    compiler             = relationship("Compiler", uselist=False)
+    operation            = relationship("Operation", uselist=False)
+    implementation       = relationship("Implementation", uselist=False)
+
+
+    __table_args__ = (
+        PrimaryKeyConstraint("id"),
+        ForeignKeyConstraint( ["build_session_id"], ["build_session.id"]),
+        ForeignKeyConstraint( ["platform_hash"], ["platform.hash"]),
+        ForeignKeyConstraint( ["operation_name"], ["operation.name"]),
+        ForeignKeyConstraint( ["primitive_name"], ["primitive.name"]),
+        ForeignKeyConstraint( ["implementation_hash"], ["implementation.hash"]),
+        ForeignKeyConstraint( ["operation_name"], ["platform.hash"]),
+        ForeignKeyConstraint(
+            ["platform_hash", "compiler_idx"],
+            ["compiler.platform_hash", "compiler.idx"]),
+    )
+
+    def __init__(self, build_session, compiler_idx, implementation, warn_comp_err=False,
+            parallel_make=False, **kwargs):
+        super().__init__(*kwargs)
+
+        config              = build_session.config
+        self.config         = config
+
+        self.build_session  = build_session
+
+        self.platform       = config.platform
+        self.compiler       = config.platform.compilers[compiler_idx]
+        self.compiler_idx   = compiler_idx
+
         self.implementation = implementation
-        self.workpath = os.path.join(
-                config.work_path,
-                config.platform.name,
-                config.operation.name,
-                self.implementation.primitive.name,
-                self.implementation.name,
-                str(compiler_idx))
-        self.exe_path = os.path.join(self.workpath, EXE_NAME)
-        self.hex_path = os.path.join(self.workpath, HEX_NAME)
-        self.warn_comp_err = warn_comp_err
-        self.parallel_make = False
+        self.primitive      = self.implementation.primitive
+        self.operation      = self.primitive.operation
 
-        self.primitive = self.implementation.primitive
-        self.operation = self.primitive.operation
-        self.platform = config.platform
-
-        self.buildid = "{}/{}/{}/{}".format(
-            self.operation.name,
-            self.primitive.name,
+        self.work_path      = os.path.join(
+            config.work_path,
+            config.platform.name,
+            config.operation.name,
+            self.implementation.primitive.name,
             self.implementation.name,
-            self.compiler_idx)
+            str(compiler_idx)
+        )
+        self.exe_path       = os.path.join(self.work_path, EXE_NAME)
+        self.hex_path       = os.path.join(self.work_path, HEX_NAME)
+        self.warn_comp_err  = warn_comp_err
 
-        # Set build environment variables
-        tmpl_path = self.platform.tmpl_path
-        self.env = {
-                'templatePlatformDir': tmpl_path if tmpl_path else '',
-                'HAL_PATH':            os.path.join(self.platform.path,'hal'),
-                'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
-                'XBD_PATH':            os.path.join(config.embedded_path,'xbd'),
-                'IMPL_PATH':           implementation.path,
-                'POSTLINK':            os.path.join(self.platform.path, 'postlink'),
-                'HAL_OBJS':            os.path.join(
-                    config.work_path,
-                    config.platform.name,
-                    'HAL',
-                    str(compiler_idx))}
-
-        # Make paths absolute, except for compilers
-        for k, v in self.env.items():
-            if v:
-                self.env[k] = os.path.abspath(v)
-
-        # Add compilers and non path env variables
-        self.env.update({
-            'OP': self.operation.name,
-            'CC': self.cc, 'CXX': self.cxx})
-                
-        self.log_attr = {'buildid': self.buildid}
-        self.stats = None
-        self.timestamp = None
-        self.checksum = None
+        self.parallel_make  = False
 
         self.text = None
         self.data = None
         self.bss  = None
 
-        self.impl_checksum = None 
+        self.timestamp = None
         self.hex_checksum = None
+
         self.rebuilt = False
     
         self.checksumsmall_result = None
         self.checksumlarge_result = None
 
     def compile(self):
-        if os.path.isdir(self.workpath):
+        if os.path.isdir(self.work_path):
             self.rebuilt = True
         self._gen_files()
-        self.impl_checksum = dirchecksum(self.workpath)
         #logger.info("Building {} for platform {}".format(
         #    self.buildid,
         #    self.config.platform.name), extra=self.log_attr)
@@ -147,9 +181,56 @@ class Build:# {{{
 
         err_logger = _build_logger.warn if self.warn_comp_err else _build_logger.debug
 
-        _make(self.workpath, _build_logger.debug, err_logger, target, 
+        _make(self.work_path, _build_logger.debug, err_logger, target, 
               self.parallel_make, extra=self.log_attr)
     
+    @property
+    def buildid(self):
+        buildid = "{}/{}/{}/{}".format(
+            self.operation.name,
+            self.primitive.name,
+            self.implementation.name,
+            self.compiler_idx)
+        return buildid
+
+
+    @property
+    def env(self):
+
+        config = self.config
+        # Set build environment variables
+        tmpl_path = self.platform.tmpl_path
+        env = {
+            'templatePlatformDir': tmpl_path if tmpl_path else '',
+            'HAL_PATH':            os.path.join(self.platform.path,'hal'),
+            'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
+            'XBD_PATH':            os.path.join(config.embedded_path,'xbd'),
+            'IMPL_PATH':           self.implementation.path,
+            'POSTLINK':            os.path.join(self.platform.path, 'postlink'),
+            'HAL_OBJS':            os.path.join(
+                config.work_path,
+                config.platform.name,
+                'HAL',
+                str(self.compiler_idx)
+            )
+        }
+
+        # Make paths absolute, except for compilers
+        for k, v in env.items():
+            # If not empty
+            if v:
+                env[k] = os.path.abspath(v)
+
+        # Add compilers and non path env variables
+        env.update({
+            'OP': self.operation.name,
+            'CC': self.compiler.cc, 'CXX': self.compiler.cxx})
+        return env
+
+    @property
+    def log_attr(self):
+        return {'buildid': self.buildid}
+
 
     def _gen_files(self):
         operation = self.implementation.primitive.operation
@@ -157,15 +238,15 @@ class Build:# {{{
 
         # Generate files 
         try:
-            os.makedirs(self.workpath)
+            os.makedirs(self.work_path)
         except OSError:
             pass
 
-        _gen_envfile(self.workpath, self.env)
+        _gen_envfile(self.work_path, self.env)
 
-        makefile = os.path.join(self.workpath, 'Makefile')
-        crypto_o_h = os.path.join(self.workpath, "crypto_"+operation.name+".h")
-        crypto_op_h = os.path.join(self.workpath, 
+        makefile = os.path.join(self.work_path, 'Makefile')
+        crypto_o_h = os.path.join(self.work_path, "crypto_"+operation.name+".h")
+        crypto_op_h = os.path.join(self.work_path, 
                 "crypto_"+operation.name + "_" + primitive.name+".h")
         if not os.path.isfile(makefile):
             self._genmake(makefile)
@@ -273,11 +354,15 @@ class BuildSession(xbx.session.Session):# {{{
     successfully completed
     """
 
-    CPU_COUNT = mp.cpu_count()
+    __tablename__ = "build_session"
 
-    def __init__(self, config, database=None):
-        super().__init__(config, database)
-        self.builds = []
+    parallel = Column(Boolean)
+
+    builds = relationship("Build", backref="build_session")
+
+
+    def __init__(self, config, **kwargs):
+        super().__init__(config, *kwargs)
         self.parallel = config.parallel_build
 
         try:
@@ -287,8 +372,6 @@ class BuildSession(xbx.session.Session):# {{{
         except subprocess.CalledProcessError:
             _logger.warn("Could not get git revision of xbx")
 
-        if self.database:
-            self.session_id = self.database.save_buildsession(self)
 
 
 
@@ -298,7 +381,7 @@ class BuildSession(xbx.session.Session):# {{{
         If database was specified in constructor, completion will commit
         database entry. 
         """
-
+        self.cpu_count = mp.cpu_count()
 
         #logger = logging.getLogger(__name__)
         num_compilers = len(self.config.platform.compilers)
@@ -316,10 +399,10 @@ class BuildSession(xbx.session.Session):# {{{
 
         # Sorted so builds start in order, in the event we want this w/ non
         # parallel builds
-        for p in sorted(self.config.operation.primitives.values()):
-            for j in sorted(p.impls.values()):
+        for p in self.config.operation.primitives:
+            for j in p.implementations:
                 for i in range(num_compilers):
-                    build = Build(self.config, i, j)
+                    build = Build(self, i, j)
                     self.builds += build,
 
                     if self.config.one_compiler:
@@ -337,7 +420,7 @@ class BuildSession(xbx.session.Session):# {{{
                 _logger.info("Worker "+str(n)+" finished")
 
             processes = [mp.Process(target=worker, args=(q_out,q_in, i)) 
-                    for i in range(BuildSession.CPU_COUNT+1)]
+                    for i in range(self.cpu_count+1)]
             for p in processes:
                 p.start()
                 # Terminate if ctrl-c
@@ -346,13 +429,12 @@ class BuildSession(xbx.session.Session):# {{{
             for b in self.builds:
                 q_out.put(b)
 
+
             # Clear out old build list, reobtain from queue with updated data
             num_builds = len(self.builds)
-            self.builds = []
+            del self.builds[:]
             for _ in range(num_builds):
                 b = q_in.get()
-                if self.database:
-                    self.database.save_build(b, self)
                 self.builds += b,
 
             # Terminate processes gracefully
@@ -361,11 +443,7 @@ class BuildSession(xbx.session.Session):# {{{
         else:
             for b in self.builds:
                 b.compile()
-                if self.database:
-                    self.database.save_build(b, self)
 
-        if self.database:
-            self.database.commit()
 
     def __lt__(self, other):
         return self.session_id < other.session_id
@@ -382,7 +460,7 @@ def build_hal(config, index):
             str(index)))
 
 
-    workpath = os.path.join(
+    work_path = os.path.join(
             config.work_path,
             config.platform.name,
             'HAL',
@@ -391,11 +469,11 @@ def build_hal(config, index):
     tmpl_path = config.platform.tmpl_path
 
     try:
-        os.makedirs(workpath)
+        os.makedirs(work_path)
     except OSError:
         pass
 
-    makefile = os.path.join(workpath, 'Makefile')
+    makefile = os.path.join(work_path, 'Makefile')
 
     if not os.path.isfile(makefile):
         with open(makefile, 'w') as f:
@@ -414,9 +492,9 @@ def build_hal(config, index):
 
     env.update({'CC': config.platform.compilers[index].cc})
     
-    _gen_envfile(workpath, env)
+    _gen_envfile(work_path, env)
 
-    _make(workpath, _logger.debug, _logger.debug, parallel = True)
+    _make(work_path, _logger.debug, _logger.debug, parallel = True)
 
 
 def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
