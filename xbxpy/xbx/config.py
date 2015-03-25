@@ -19,11 +19,15 @@ from sqlalchemy.orm import relationship, reconstructor
 from xbx.dirchecksum import dirchecksum
 import xbx.database as xbxdb
 
-from xbx.database import Base
+from xbx.database import Base, unique_constructor, scoped_session
+import xbx.util
 
 _logger=logging.getLogger(__name__)
 
 
+@unique_constructor(scoped_session, 
+        lambda **kwargs: kwargs['hash'], 
+        lambda query, **kwargs: query.filter(Platform.hash == kwargs['hash']))
 class Platform(Base):
     __tablename__  = "platform"
 
@@ -60,7 +64,11 @@ class Compiler(Base):
         PrimaryKeyConstraint("platform_hash", "idx", ),
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
     )
+    pass # For indentation
 
+@unique_constructor(scoped_session, 
+        lambda **kwargs: kwargs['name'], 
+        lambda query, **kwargs: query.filter(Operation.name == kwargs['name']))
 class Operation(Base):
     __tablename__ = "operation"
 
@@ -85,11 +93,14 @@ class Operation(Base):
         self.macros     += '',
         self.prototypes  = match.group(3).split(':')
     
+@unique_constructor(scoped_session, 
+        lambda **kwargs: kwargs['name'], 
+        lambda query, **kwargs: query.filter(Primitive.name == kwargs['name']))
 class Primitive(Base):
     __tablename__  = "primitive"
 
-    operation_name = Column(String)
     name           = Column(String)
+    operation_name = Column(String)
     checksumsmall  = Column(String)
     checksumlarge  = Column(String)
     path           = Column(String)
@@ -97,6 +108,7 @@ class Primitive(Base):
     implementations = relationship(
         "Implementation", 
         backref="primitive",
+        #collection_class=set
     )
 
     
@@ -108,6 +120,9 @@ class Primitive(Base):
         ),
     )
 
+@unique_constructor(scoped_session, 
+        lambda **kwargs: kwargs['hash'], 
+        lambda query, **kwargs: query.filter(Implementation.hash == kwargs['hash']))
 class Implementation(Base):
     __tablename__  = "implementation"
     hash           = Column(String)
@@ -123,12 +138,18 @@ class Implementation(Base):
         ),
     )
 
+@unique_constructor(scoped_session, 
+        lambda filename, **kwargs: xbx.util.sha256_file(filename), 
+        lambda query, config_path, **kwargs: 
+                    query.filter(Config.hash == xbx.util.sha256_file(config_path)))
 class Config(Base):
     """Configuration for running benchmarks on a single operation on a single platform"""
 
     __tablename__  = "config"
 
     hash           = Column(String)
+
+    config_path    = Column(String)
 
     platforms_path = Column(String)
     algopack_path  = Column(String)
@@ -154,11 +175,15 @@ class Config(Base):
         ForeignKeyConstraint(["operation_name"], ["operation.name"]),
     )
 
-    def __init__(self, filename, **kwargs):
+
+    def __init__(self, config_path, **kwargs):
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
-        config.read(filename)
+        config.read(config_path)
+        self.config_path = config_path
+
+        self.hash = xbx.util.sha256_file(config_path)
 
         ## Basic path configuration
         self.platforms_path = config.get('paths','platforms')
@@ -176,6 +201,13 @@ class Config(Base):
         self.xbh_addr = config.get('xbh', 'address')
         self.xbh_port = config.get('xbh', 'port')
 
+        self.load_init()
+
+
+    @reconstructor
+    def load_init(self):
+        config = configparser.ConfigParser()
+        config.read(self.config_path)
         # Platform
         self.platform = Config.__enum_platform(
                 config.get('hardware','platform'),
@@ -209,7 +241,6 @@ class Config(Base):
             self.algopack_path
         )
 
-
     @staticmethod
     def __enum_platform(name, platforms_path):# {{{
         """Enumerate platform settings, given path to platform directory"""
@@ -239,6 +270,8 @@ class Config(Base):
             h.update(dirchecksum(tmpl_path))
             hash = h.sha256()
 
+        print(path)
+        print(hash)
         return Platform(
                 hash=hash,
                 name=name, 
@@ -296,8 +329,6 @@ class Config(Base):
             if cc_list[i]:
                 cc_version, cc_version_full = get_version(cc_list[i])
             if cxx_list[i]:
-                print ("cxx")
-                print (cxx_list[i])
                 cxx_version, cxx_version_full = get_version(cxx_list[i])
 
             compilers += Compiler(
@@ -382,13 +413,14 @@ class Config(Base):
             for name in impl_set:
                 path = os.path.join(p.path,all_impls[name])
                 checksum = dirchecksum(path)
-                impl = Implementation(
+                # Don't have to add to p.implementations, as Implementation sets
+                # Primitive as parent, which inserts into list
+                Implementation(
                     hash=checksum,
                     name=name, 
-                    primitive=p, 
-                    path=path
+                    path=path,
+                    primitive=p
                 )
-                p.implementations += impl,
 
         return primitives
 

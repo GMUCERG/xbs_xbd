@@ -170,8 +170,11 @@ class Build(Base):# {{{
 
         self._gen_files()
 
-        return BuildJob(self.work_path, self.parallel_make, self.log_attr,
-                        self.buildid, self.platform.name, self.hex_path)
+        return BuildJob(
+                self.work_path, self.parallel_make, 
+                {'buildid': self.buildid},
+                self.buildid, self.platform.name, self.hex_path
+                )
 
     def do_postbuild(self):
         if os.path.isfile(self.hex_path):
@@ -231,10 +234,6 @@ class Build(Base):# {{{
             'OP': self.operation.name,
             'CC': self.compiler.cc, 'CXX': self.compiler.cxx})
         return env
-
-    @property
-    def log_attr(self):
-        return {'buildid': self.buildid}
 
 
     def _gen_files(self):
@@ -402,14 +401,12 @@ class BuildSession(xbx.session.Session):# {{{
             if self.config.one_compiler:
                 break
 
-        # Sorted so builds start in order, in the event we want this w/ non
-        # parallel builds
         for p in self.config.operation.primitives:
             for j in p.implementations:
                 for i in range(num_compilers):
-                    build = Build(self, i, j)
-                    self.builds += build,
-
+                    # Don't have to add to self.builds as Build sets
+                    # BuildSession as parent, which inserts into list
+                    Build(self, i, j)
                     if self.config.one_compiler:
                         break
         
@@ -436,7 +433,8 @@ class BuildSession(xbx.session.Session):# {{{
 
             for b in self.builds:
                 build_map[b.buildid] = b
-                q_out.put(b.get_buildjob())
+                job = b.get_buildjob()
+                q_out.put(job)
 
 
             # Clear out old build list, reobtain from queue with updated data
