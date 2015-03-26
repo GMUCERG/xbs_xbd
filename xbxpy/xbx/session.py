@@ -4,7 +4,7 @@ import socket
 import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SessionMixin: 
     id          = Column(Integer, primary_key=True)
     host        = Column(String)
-    timestamp   = Column(Date)
+    timestamp   = Column(DateTime)
     xbx_version = Column(String)
 
     @declared_attr
@@ -26,7 +26,8 @@ class SessionMixin:
         return relationship("Config", uselist=False)
 
 
-    def __init__(self, *args, **kwargs):
+    def _setup_session(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.host = socket.gethostname()
         self.timestamp = datetime.datetime.now()
         

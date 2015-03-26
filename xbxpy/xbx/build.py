@@ -12,7 +12,7 @@ import threading
 
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
 
 
@@ -95,7 +95,7 @@ class Build(Base):# {{{
     data                 = Column(Integer)
     bss                  = Column(Integer)
 
-    timestamp            = Column(Date)
+    timestamp            = Column(DateTime)
     hex_checksum         = Column(String)
 
     rebuilt              = Column(Boolean)
@@ -130,7 +130,7 @@ class Build(Base):# {{{
 
     def __init__(self, build_session, compiler_idx, implementation,
             parallel_make=False, **kwargs):
-        super().__init__(*kwargs)
+        super().__init__(**kwargs)
 
 
         self.build_session  = build_session
@@ -384,6 +384,7 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
+        self._setup_session()
         self.parallel = config.parallel_build
 
 

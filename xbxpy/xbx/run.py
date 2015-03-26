@@ -85,6 +85,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
+        self._setup_session()
 
         s = xbxdb.scoped_session()
         q = s.query(xbxb.BuildSession).order_by(
