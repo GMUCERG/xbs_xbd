@@ -24,6 +24,7 @@ import xbx.util
 
 _logger=logging.getLogger(__name__)
 
+DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "config.ini")
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['hash'], 
@@ -238,6 +239,7 @@ class Config(Base):# {{{
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
+        config.read(default_conf)
         config.read(config_path)
         self.config_path = config_path
 
@@ -265,6 +267,7 @@ class Config(Base):# {{{
     @reconstructor
     def load_init(self):
         config = configparser.ConfigParser()
+        config.read(DEFAULT_CONF)
         config.read(self.config_path)
         # Platform
         self.platform = Config.__enum_platform(
