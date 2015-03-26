@@ -25,28 +25,6 @@ _CALC_TIMEOUT = 5*60
 
 _logger=logging.getLogger(__name__)
 
-def attempt(tries=3, raise_err=False):
-    """Decorator to attempt XBH operation for tries tries
-    
-    raise_err=True will allow exception to bubble up
-
-    """
-    def func_decorator(func):
-        def func_wrapper(*args, **kwargs):
-            for t in range(tries):
-                try:
-                    return func(*args, **kwargs)
-                except XbhError as e:
-                    if raise_err:
-                        raise
-                    else:
-                        _logger.error(str(e))
-        return func_wrapper
-    return func_decorator
-
-
-
-
 
 # Replace object w/ Enum when 3.4 is current
 class TypeCode(object):# {{{
@@ -67,6 +45,34 @@ class HardwareError(xbh.Error):# {{{
 class ValueError(xbh.Error):# {{{
     def __init__(self, msg):
         super().__init__(msg)
+# }}}
+
+class RetryError(Error):# {{{
+    def __init__(self, msg):
+        super().__init__(msg)
+# }}}
+
+def attempt(tries=3, raise_err=False):# {{{
+    """Decorator to attempt XBH operation for tries tries
+    
+    raise_err=True will allow exception to bubble up
+
+    """
+    def func_decorator(func):
+        def func_wrapper(*args, **kwargs):
+            ex = None
+            for t in range(tries):
+                try:
+                    return func(*args, **kwargs)
+                except Error as e:
+                    ex = e
+                    _logger.error(str(e))
+            if raise_err:
+                raise RetryError(
+                        "Errors exceeded retry count ["+tries+"]") from ex
+
+        return func_wrapper
+    return func_decorator
 # }}}
 
 class Xbh:# {{{
@@ -389,10 +395,5 @@ class Xbh:# {{{
         rel_error = abs_error/cycles
         
         return abs_error, rel_error, cycles, measured_cycles
+# }}}
 
-        
-
-
-
-
-        
