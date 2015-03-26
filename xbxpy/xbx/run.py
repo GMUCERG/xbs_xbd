@@ -94,7 +94,6 @@ class RunSession(Base, xbxs.SessionMixin):
 
 
 
-    @xbh.attempt(raise_err=True)
     def init_xbh(self):
         c = self.config
         try:
@@ -113,7 +112,7 @@ class RunSession(Base, xbxs.SessionMixin):
         s.add(self)
         s.commit()
 
-    @xbh.attempt()
+    @xbh.attempt("xbh", raise_err=True)
     def drift_measurement(self):
         (abs_error, 
          rel_error, 

@@ -52,19 +52,33 @@ class RetryError(Error):# {{{
         super().__init__(msg)
 # }}}
 
-def attempt(tries=3, raise_err=False):# {{{
+class attempt:# {{{
     """Decorator to attempt XBH operation for tries tries
     
     raise_err=True will allow exception to bubble up
 
     """
-    def func_decorator(func):
-        def func_wrapper(*args, **kwargs):
+    def __init__(self, xbh_varname=None, tries=3, raise_err=False):
+        self.xbh_varname = xbh_varname
+        self.tries = tries
+        self.raise_err = raise_err
+
+    def __call__(self, func):
+        varname = self.xbh_varname
+        tries = self.tries
+        raise_err = self.raise_err
+
+        def func_wrapper(self, *args, **kwargs):
+            if varname != None:
+                xbh = getattr(self, varname)
             ex = None
             for t in range(tries):
                 try:
-                    return func(*args, **kwargs)
+                    return func(self, *args, **kwargs)
                 except Error as e:
+                    if varname != None:
+                        xbh.reconnect()
+                        xbh.reset_xbd()
                     ex = e
                     _logger.error(str(e))
             if raise_err:
@@ -72,7 +86,6 @@ def attempt(tries=3, raise_err=False):# {{{
                         "Errors exceeded retry count ["+tries+"]") from ex
 
         return func_wrapper
-    return func_decorator
 # }}}
 
 class Xbh:# {{{
