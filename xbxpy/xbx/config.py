@@ -13,7 +13,7 @@ import sys
 import hashlib
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship, reconstructor
 
 from xbx.dirchecksum import dirchecksum

@@ -2,7 +2,7 @@ import logging
 import sys
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -33,7 +33,7 @@ class Run(Base):
     median_power    = Column(Integer)
 
     power_data      = Column(Text)
-    timestamp       = Column(Date)
+    timestamp       = Column(DateTime)
     build           = Column(Integer)
     run_session_id     = Column(Integer)
 
@@ -94,7 +94,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
 
 
-    @xbh.attempt()
+    @xbh.attempt(raise_err=True)
     def init_xbh(self):
         c = self.config
         try:
@@ -109,6 +109,9 @@ class RunSession(Base, xbxs.SessionMixin):
         for i in range(10):
             self.drift_measurement()
 
+        s = xbxdb.scoped_session()
+        s.add(self)
+        s.commit()
 
     @xbh.attempt()
     def drift_measurement(self):
@@ -130,6 +133,7 @@ class RunSession(Base, xbxs.SessionMixin):
             measured_cycles=measured_cycles,
             run_session=self
         )
+
 
 
 
