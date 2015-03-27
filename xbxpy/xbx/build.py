@@ -398,6 +398,7 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
 
         #logger = logging.getLogger(__name__)
         num_compilers = len(self.config.platform.compilers)
+        build_map = {}
 
         for i in range(num_compilers):
             compiler = self.config.platform.compilers[i]
@@ -417,15 +418,16 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
                     continue
                 for i in range(num_compilers):
                     # Don't have to add to self.builds as Build sets
-                    # BuildSession as parent, which inserts into list
-                    Build(self, i, j)
+                    # BuildSession as parent, which inserts into
+                    # BuildSession.builds
+                    b = Build(self, i, j)
+                    build_map[b.buildid] = b
                     if self.config.one_compiler:
                         break
         
         if self.config.parallel_build:
             q_out = mp.Queue()
             q_in = mp.Queue()
-            build_map = {}
 
             def worker(q_in, q_out, n):
                 _logger.info("Worker "+str(n)+" started")
@@ -444,7 +446,6 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
                 atexit.register(p.terminate)
 
             for b in self.builds:
-                build_map[b.buildid] = b
                 job = b.get_buildjob()
                 q_out.put(job)
 
@@ -464,7 +465,7 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
             for b in self.builds:
                 job = b.get_buildjob()
                 job()
-                build.do_postbuild(job)
+                b.do_postbuild(job)
 
 
         self.timestamp = datetime.now()
