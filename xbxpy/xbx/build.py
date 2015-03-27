@@ -11,7 +11,7 @@ import sys
 import threading
 
 
-from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
 
@@ -113,12 +113,15 @@ class Build(Base):# {{{
 
     __table_args__ = (
         PrimaryKeyConstraint("id"),
-        ForeignKeyConstraint( ["build_session_id"], ["build_session.id"]),
-        ForeignKeyConstraint( ["platform_hash"], ["platform.hash"]),
-        ForeignKeyConstraint( ["operation_name"], ["operation.name"]),
-        ForeignKeyConstraint( ["primitive_name"], ["primitive.name"]),
-        ForeignKeyConstraint( ["implementation_hash"], ["implementation.hash"]),
-        ForeignKeyConstraint( ["operation_name"], ["platform.hash"]),
+        UniqueConstraint("build_session_id", "platform_hash",
+                         "compiler_idx", "operation_name", "primitive_name",
+                         "implementation_hash"),
+        ForeignKeyConstraint(["build_session_id"], ["build_session.id"]),
+        ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
+        ForeignKeyConstraint(["primitive_name", "operation_name"],
+                             ["primitive.name", "primitive.operation_name"]),
+        ForeignKeyConstraint(["operation_name"], ["operation.name"]),
+        ForeignKeyConstraint(["implementation_hash"], ["implementation.hash"]),
         ForeignKeyConstraint(
             ["platform_hash", "compiler_idx"],
             ["compiler.platform_hash", "compiler.idx"]),

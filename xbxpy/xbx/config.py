@@ -157,14 +157,15 @@ class Implementation(Base):# {{{
     __tablename__  = "implementation"
     hash           = Column(String)
     name           = Column(String)
+    operation_name = Column(String)
     primitive_name = Column(String)
     path           = Column(String)
 
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
         ForeignKeyConstraint(
-            ["primitive_name"],
-            ["primitive.name"]
+            ["primitive_name", "operation_name"],
+            ["primitive.name", "primitive.operation_name"],
         ),
     )
 

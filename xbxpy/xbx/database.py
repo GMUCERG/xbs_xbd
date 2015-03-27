@@ -37,6 +37,20 @@ def init(data_path):
     scoped_session.configure(bind=engine)
 
 
+
+# Enforce foreign keys
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
+
+
 # From https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/UniqueObject
 def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
     cache = getattr(session, '_unique_cache', None)
