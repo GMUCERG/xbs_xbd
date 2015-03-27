@@ -382,8 +382,8 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
     builds = relationship("Build", backref="build_session")
 
 
-    def __init__(self, config, **kwargs):
-        super().__init__(config=config, **kwargs)
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config=config, *args, **kwargs)
         self._setup_session()
         self.parallel = config.parallel_build
 
