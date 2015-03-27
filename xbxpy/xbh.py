@@ -6,6 +6,7 @@ import re
 import socket
 import struct
 import logging
+import time
 
 import prog_reader
 import xbh
@@ -32,67 +33,97 @@ class TypeCode(object):# {{{
     AEAD = 2
 # }}}
 
-class Error(Exception):# {{{
-    def __init__(self, msg):
-        super().__init__(msg)
-# }}}
+class Error(Exception):
+    pass
 
-class HardwareError(xbh.Error):# {{{
-    def __init__(self, msg):
-        super().__init__(msg)
-# }}}
 
-class ValueError(xbh.Error):# {{{
-    def __init__(self, msg):
-        super().__init__(msg)
-# }}}
+class HardwareError(xbh.Error):
+    pass
 
-class RetryError(Error):# {{{
-    def __init__(self, msg):
-        super().__init__(msg)
-# }}}
+
+class StateError(xbh.Error):
+    pass
+
+
+class ValueError(xbh.Error, ValueError):
+    pass
+
+
+class RetryError(Error):
+    pass
+
 
 class attempt:# {{{
     """Decorator to attempt XBH operation for tries tries
     
-    raise_err=True will allow exception to bubble up
+    Parameters: 
+        xbh         Either a string containing the name of an attribute to
+                    Xbh, or an instance of Xbh. None if no reconnection is to be
+                    attempted
+
+        tries       Number of attempts
+
+        raise_err   If True will allow exception to bubble up
 
     """
-    def __init__(self, xbh_varname=None, tries=3, raise_err=False):
-        self.xbh_varname = xbh_varname
+    def __init__(self, xbh_var=None, tries=3, raise_err=False):
+        self.xbh_var = xbh_var
         self.tries = tries
         self.raise_err = raise_err
 
     def __call__(self, func):
-        varname = self.xbh_varname
+        xbh_var = self.xbh_var
         tries = self.tries
         raise_err = self.raise_err
 
-        def func_wrapper(self, *args, **kwargs):
-            if varname != None:
-                xbh = getattr(self, varname)
-            ex = None
-            for t in range(tries):
-                try:
-                    return func(self, *args, **kwargs)
-                except Error as e:
-                    if varname != None:
-                        xbh.reconnect()
-                        xbh.reset_xbd()
-                    ex = e
-                    _logger.error(str(e))
-            if raise_err:
-                raise RetryError(
-                        "Errors exceeded retry count ["+tries+"]") from ex
+        if isinstance(xbh_var,str):
 
-        return func_wrapper
+            def func_wrapper(self, *args, **kwargs):
+                xbh = getattr(self, xbh_var)
+                ex = None
+                for t in range(tries):
+                    try:
+                        return func(self, *args, **kwargs)
+                    except Error as e:
+                        time.sleep(0.5)
+                        try:
+                            xbh.reconnect()
+                            xbh.reset_xbd()
+                        except:
+                            pass
+                        ex = e
+                        _logger.error(str(e))
+                if raise_err:
+                    raise RetryError(
+                            "Errors exceeded retry count ["+tries+"]") from ex
+            return func_wrapper
+        else:
+            def func_wrapper(*args, **kwargs):
+                xbh = xbh_var
+                ex = None
+                for t in range(tries):
+                    try:
+                        return func(*args, **kwargs)
+                    except Error as e:
+                        time.sleep(0.5)
+                        try:
+                            xbh.reconnect()
+                            xbh.reset_xbd()
+                        except:
+                            pass
+                        ex = e
+                        _logger.error(str(e))
+                if raise_err:
+                    raise RetryError(
+                            "Errors exceeded retry count ["+tries+"]") from ex
+            return func_wrapper
 # }}}
 
 class Xbh:# {{{
 
     
     def __init__(self, host="xbh", port=22595, page_size = 1024,
-            xbd_hz=16000000, timeout=100000, src_host=''):
+            xbd_hz=16000000, timeout=1, src_host=''):
         self._connargs = ((host,port), timeout, (src_host, 0))
         self._sock = socket.create_connection(*self._connargs)
         self._timeout = timeout
@@ -102,8 +133,10 @@ class Xbh:# {{{
         self.xbd_hz = xbd_hz
 
     def __del__(self):
-        if self._sock:
+        try:
             self._sock.close()
+        except:
+            pass
 
     def reconnect(self):
         try:
@@ -114,18 +147,23 @@ class Xbh:# {{{
 
         self._sock = socket.create_connection(*self._connargs)
 
-
     @property
     def bl_mode(self):
         return self._bl_mode
 
+
+# Internal functions# {{{
     def _recvall(self, size):
-        buf = bytearray()
-        while(size > 0):
-            msg = self._sock.recv(size)
-            buf += msg
-            size -= len(msg)
-        return buf
+        try:
+            buf = bytearray()
+            while(size > 0):
+                print("poll")
+                msg = self._sock.recv(size)
+                buf += msg
+                size -= len(msg)
+            return buf
+        except socket.timeout as e:
+            raise Error("Socket timeout") from e
 
 
     def _exec(self, command, data = b''):
@@ -165,7 +203,28 @@ class Xbh:# {{{
         # Return bytes after 8-byte command header
         return msg[8:]
 
+    def _upload_pages(self, addr, data):
+        #if data % page_size != 0:
+        #    raise ValueError("data length must be integer multiple of pagesize")
+            
+        self.req_bl()
 
+        #if self.verbose:
+        #    _logger.info("Uploading a page to address "+hexaddr)
+
+        self._exec("cd",struct.pack("!I",addr)+data)
+        self._xbh_response()
+
+    def _upload_data(self, typecode, addr, data):
+        self.req_app()
+        #if self.verbose:
+        #    _logger.info("Uploading parameters to address "+hexaddr)
+        self._exec("dp",struct.pack("!II",typecode,addr)+data)
+        self._xbh_response()
+
+# }}}
+
+# Low-level interfaces # {{{
     def switch_to_app(self):
         _logger.debug("Switching to application mode");
         self._exec("sa")
@@ -237,28 +296,6 @@ class Xbh:# {{{
 
         return self._bl_mode
 
-
-    def get_xbh_rev(self):
-        _logger.debug("Getting git revision (and MAC address) of XBH");
-
-        self._exec("sr")
-        msg = self._xbh_response().decode().split(',')
-        rev = msg[0]
-        mac = msg[1]
-
-        return rev, mac
-
-    def get_bl_rev(self):
-        self.req_bl()
-
-        _logger.debug("Getting git revision of XBD bootloader");
-
-        self._exec("tr")
-        msg = self._xbh_response().decode()
-
-        return msg
-
-
     def set_comm_mode(self, mode):
         # Currently don't support anything but I2C
         raise NotImplementedError("Setting xbh<->xbd communication mode not implemented. Always I2C.")
@@ -288,7 +325,9 @@ class Xbh:# {{{
 
         self._exec("ur")
         msg = self._xbh_response()
-        return binascii.hexlify(msg)
+        retval = binascii.hexlify(msg).decode()
+        return retval[0:8],retval[8:]
+
 
     def get_stack_usage(self):
         self.req_app()
@@ -319,25 +358,33 @@ class Xbh:# {{{
 
         return cycles
 
+    def get_xbh_rev(self):
+        _logger.debug("Getting git revision (and MAC address) of XBH");
 
-    def _upload_pages(self, addr, data):
-        #if data % page_size != 0:
-        #    raise ValueError("data length must be integer multiple of pagesize")
-            
+        self._exec("sr")
+        msg = self._xbh_response().decode().split(',')
+        rev = msg[0]
+        mac = msg[1]
+
+        return rev, mac
+
+    def get_bl_rev(self):
         self.req_bl()
 
-        #if self.verbose:
-        #    _logger.info("Uploading a page to address "+hexaddr)
+        _logger.debug("Getting git revision of XBD bootloader");
 
-        self._exec("cd",struct.pack("!I",addr)+data)
-        self._xbh_response()
+        self._exec("tr")
+        msg = self._xbh_response().decode()
 
-    def _upload_data(self, typecode, addr, data):
-        self.req_app()
-        #if self.verbose:
-        #    _logger.info("Uploading parameters to address "+hexaddr)
-        self._exec("dp",struct.pack("!II",typecode,addr)+data)
-        self._xbh_response()
+        return msg
+# }}}
+
+# High level interfaces # {{{
+    def get_measured_cycles(self):
+        seconds, fractions, frac_per_sec = self.get_timings()
+        # add 0.5 then cast to int to get rounded integer
+        measured_cycles = int((seconds + fractions/frac_per_sec)*self.xbd_hz+0.5)
+        return measured_cycles
 
 
     def upload_prog(self, filename, program_type=prog_reader.ProgramType.IHEX):
@@ -368,7 +415,7 @@ class Xbh:# {{{
 
 
 
-    def upload_param(self, data=1536, typecode=TypeCode.HASH):
+    def upload_param(self, data, typecode=TypeCode.HASH):
         """Uploads buffer to xbh. 
         
         If data is an int, upload random data of that length
@@ -394,13 +441,11 @@ class Xbh:# {{{
                         .format(uploaded_bytes,hex(addr+offset)))
             offset += MAX_DATA
 
-    def timing_error_calc(self):
+    def measure_timing_error(self):
         cycles = self.get_timing_cal()
         if cycles == 0:
             raise xbh.ValueError("Cycle count 0!")
-        seconds, fractions, frac_per_sec = self.get_timings()
-        # add 0.5 then cast to int to get rounded integer
-        measured_cycles = int((seconds + fractions/frac_per_sec)*self.xbd_hz+0.5)
+        measured_cycles = self.get_measured_cycles()
         if measured_cycles == 0:
             raise xbh.ValueError("Measured cycle count 0!")
         abs_error = measured_cycles - cycles
@@ -408,5 +453,7 @@ class Xbh:# {{{
         rel_error = abs_error/cycles
         
         return abs_error, rel_error, cycles, measured_cycles
+
+# }}}
 # }}}
 
