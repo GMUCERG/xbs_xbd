@@ -9,4 +9,16 @@ we checksum all the things for verifiability
 objcopy scripts reject .data+.bss > 3/4ths total RAM
 
 
-SQLAlchemy will duplicate objects if inserted into list and parent is set
+SQLAlchemy will duplicate objects if inserted into list and parent is set. We go
+w/ consistently having the child set the backreference, also inserting it into
+the parent list, as child object often needs the parent upon construction
+
+dirchecksum.py recursively checksums contents of directory
+
+
+In order to add a new operation, ensure the operation is in OPERATIONS (needs to
+conform to the SUPERCOP format). Modify xbxpy/xbx/run_op.py to add an [Operation
+Name]Run class using the others as a template, and add to the OPERATIONS
+constant at the top of that file. Add a directory in embedded/xbd/xbd_op named
+crypto_[operation] and add files to be linked in. See aead and hash for
+examples, and examine SUPERCOP
