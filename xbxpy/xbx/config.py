@@ -8,7 +8,6 @@ import shlex
 import shutil
 import string
 import subprocess
-import subprocess
 import sys
 import hashlib
 
@@ -141,7 +140,6 @@ class Primitive(Base):# {{{
         #collection_class=set
     )
 
-    
     __table_args__ = (
         PrimaryKeyConstraint("operation_name", "name"),
         ForeignKeyConstraint(
@@ -198,52 +196,59 @@ class Implementation(Base):# {{{
 
 
 @unique_constructor(scoped_session, 
-        lambda filename, **kwargs: xbx.util.sha256_file(filename), 
-        lambda query, config_path, **kwargs: 
-                    query.filter(Config.hash == xbx.util.sha256_file(config_path)))
+        lambda config_path, **kwargs: hash_config(config_path), 
+        lambda query, config_path, **kwargs: query.filter(Config.hash == hash_config(config_path)))
 class Config(Base):# {{{
     """Configuration for running benchmarks on a single operation on a single platform"""
 
-    __tablename__  = "config"
+    __tablename__    = "config"
 
-    hash           = Column(String)
+    hash             = Column(String)
 
-    config_path    = Column(String)
+    config_path      = Column(String)
 
-    platforms_path = Column(String)
-    algopack_path  = Column(String)
-    embedded_path  = Column(String)
-    work_path      = Column(String)
-    data_path      = Column(String)
+    platforms_path   = Column(String)
+    algopack_path    = Column(String)
+    embedded_path    = Column(String)
+    work_path        = Column(String)
+    data_path        = Column(String)
 
-    xbh_addr       = Column(String)
-    xbh_port       = Column(Integer)
+    xbh_addr         = Column(String)
+    xbh_port         = Column(Integer)
 
-    platform_hash  = Column(String)
-    operation_name = Column(String)
+    platform_hash    = Column(String)
+    operation_name   = Column(String)
 
-    one_compiler   = Column(Boolean)
-    parallel_build = Column(Boolean)
+    drift_measurements = Column(Integer)
+    checksum_tests   = Column(Integer)
+    operation_params = Column(xbxdb.JSONEncodedDict)
+    #xbh_timeout      = Column(Integer)
 
-    platform       = relationship( "Platform", uselist=False)
-    operation      = relationship( "Operation", uselist=False)
+    blacklist        = Column(xbxdb.JSONEncodedDict)
+    whitelist        = Column(xbxdb.JSONEncodedDict)
 
-    __table_args__ = (
+    one_compiler     = Column(Boolean)
+    parallel_build   = Column(Boolean)
+
+    platform         = relationship( "Platform", uselist=False)
+    operation        = relationship( "Operation", uselist=False)
+
+    __table_args__   = (
         PrimaryKeyConstraint("hash" ),
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
         ForeignKeyConstraint(["operation_name"], ["operation.name"]),
     )
 
 
-    def __init__(self, config_path, **kwargs):
+    def __init__(self, config_path,**kwargs):
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
-        config.read(default_conf)
+        config.read(DEFAULT_CONF)
         config.read(config_path)
         self.config_path = config_path
 
-        self.hash = xbx.util.sha256_file(config_path)
+        self.hash = hash_config(config_path)
 
         ## Basic path configuration
         self.platforms_path = config.get('paths','platforms')
@@ -261,46 +266,55 @@ class Config(Base):# {{{
         self.xbh_addr = config.get('xbh', 'address')
         self.xbh_port = config.get('xbh', 'port')
 
-        self.load_init()
 
-
-    @reconstructor
-    def load_init(self):
-        config = configparser.ConfigParser()
-        config.read(DEFAULT_CONF)
-        config.read(self.config_path)
         # Platform
         self.platform = Config.__enum_platform(
                 config.get('hardware','platform'),
                 self.platforms_path)
 
         # Operation
-        name           = config.get('algorithm','operation')
-        filename       = config.get('paths','operations')
-        self.operation = Config.__enum_operation(name, filename)
+        name                    = config.get('algorithm','operation')
+        op_filename             = config.get('paths','operations')
+        self.operation          = Config.__enum_operation(name, op_filename)
 
+        # Runtime parameters
+        self.drift_measurements = config.get('run','drift_measurements')
+        self.checksum_tests     = config.get('run','checksum_tests')
+        #self.xbh_timeout        = config.get('run','xbh_timeout')
+
+        # Parameters
+        self.operation_params   = []
+        op_params               = config.get('run',self.operation.name+"_parameters").split("\n")
+        for line in op_params:
+            row = line.split(',')
+            row = list(map(lambda val: int(val), row))
+            self.operation_params += [row]
 
 
         # TODO Read platform blacklists
         # Update platform blacklist sha256sums
 
-        blacklist = []
-        whitelist = []
+        self.blacklist = []
+        self.whitelist = []
 
         if config.has_option('implementation', 'blacklist') and config.get('implementation','blacklist'):
-            blacklist = config.get('implementation','blacklist').split("\n")
+            self.blacklist = config.get('implementation','blacklist').split("\n")
 
         if config.has_option('implementation', 'whitelist') and config.get('implementation','whitelist'):
-            whitelist = config.get('implementation','whitelist').split("\n")
+            self.whitelist = config.get('implementation','whitelist').split("\n")
 
         primitives = config.get('algorithm','primitives').split("\n")
         self.operation.primitives = Config.__enum_prim_impls(
             self.operation, 
             primitives, 
-            blacklist,
-            whitelist, 
+            self.blacklist,
+            self.whitelist, 
             self.algopack_path
         )
+
+
+
+        
 
     @staticmethod
     def __enum_platform(name, platforms_path):# {{{
@@ -498,5 +512,39 @@ class Config(Base):# {{{
     # }}}
 
 # }}}
+config_hash_cache = {}
 
+def hash_config(config_path):
+    config_hash = xbx.util.sha256_file(config_path)
 
+    if config_hash in config_hash_cache:
+        return config_hash_cache[config_hash]
+
+    config = configparser.ConfigParser()
+    config.read(DEFAULT_CONF)
+    config.read(config_path)
+
+    file_paths = (
+        DEFAULT_CONF,
+        config.get('paths','operations')
+    )
+
+    dir_paths = ( 
+        config.get('paths','platforms'),
+        config.get('paths','algopacks'),
+        config.get('paths','embedded'),
+        #config.get('paths','work')
+    )
+
+    dir_hashes = list(map(lambda x: dirchecksum(x), dir_paths))
+    file_hashes = list(map(lambda x: xbx.util.sha256_file(x), file_paths))
+
+    h = hashlib.sha256()
+    for f in (dir_hashes+file_hashes):
+        h.update(f.encode())
+
+    h.update(config_hash.encode())
+
+    config_hash_cache[config_hash] = h.hexdigest()
+
+    return config_hash_cache[config_hash]
