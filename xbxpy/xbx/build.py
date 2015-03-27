@@ -100,18 +100,14 @@ class Build(Base):# {{{
 
     rebuilt              = Column(Boolean)
 
-    checksumsmall_result = Column(String)
-    checksumlarge_result = Column(String)
-
     test_ok              = Column(Boolean)
 
-    #build_session        = relationship("BuildSession", backref="builds",
-    #                                    foreign_keys=[build_session_id])
     platform             = relationship("Platform", uselist=False,
                                         foreign_keys=[platform_hash])
 
     compiler             = relationship("Compiler", uselist=False)
     operation            = relationship("Operation", uselist=False)
+    primitive            = relationship("Primitive", uselist=False)
     implementation       = relationship("Implementation", uselist=False)
 
 
@@ -165,9 +161,6 @@ class Build(Base):# {{{
         self.hex_checksum = None
 
         self.rebuilt = False
-    
-        self.checksumsmall_result = None
-        self.checksumlarge_result = None
 
     def get_buildjob(self):
         """Returns instance of BuildJob"""
@@ -362,6 +355,8 @@ class Build(Base):# {{{
             return False
 
     
+    def __repr__(self):
+        return self.buildid
 
     def __lt__(self, other):
         return self.buildid < other.buildid
