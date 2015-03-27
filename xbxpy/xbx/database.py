@@ -16,122 +16,19 @@ _logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-#class RunSession(Base):
-#    __tablename__ = "run_session"
-#
-#    id = Column(Integer)
-#    timestamp = Column(Date)
-#    host = Column(String)
-#    xbx_version = Column(String)
-#    build_session = Column(Integer)
-#    config = Column(String)
-#    xbh_rev = Column(String)
-#    xbd_bl_rev = Column(String)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint(
-#            ["config"],
-#            ["config.hash"]),
-#        ForeignKeyConstraint(
-#            ["build_session"],
-#            ["build_session.id"]),
-#    )
-#
-#class DriftMeasurement(Base):
-#    __tablename__ = "drift_measurement"
-#
-#    id = Column(Integer)
-#    abs_error = Column(Integer)
-#    rel_error = Column(Integer)
-#    cycles = Column(Integer)
-#    measured_cycles = Column(Integer)
-#    run_session = Column(Integer)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint( ["run_session"], ["run_session.id"]),
-#    )
-#
-#class Run(Base):
-#    __tablename__ = "run"
-#
-#    id = Column(Integer)
-#
-#    measured_cycles = Column(Integer)
-#    reported_cycles = Column(Integer)
-#    time_ns = Column(Integer)
-#    stackUsage = Column(Integer)
-#
-#    min_power = Column(Integer)
-#    max_power = Column(Integer)
-#    avg_power = Column(Integer)
-#    median_power = Column(Integer)
-#
-#    power_data = Column(Text)
-#    timestamp = Column(Date)
-#    build = Column(Integer)
-#    run_session = Column(Integer)
-#
-#    type = Column(String)
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint( ["run_session"], ["run_session.id"]),
-#    )
-#
-#    __mapper_args__ = {
-#        'polymorphic_identity':'run',
-#        'polymorphic_on':type ,
-#    }
-#
-#
-## Creates another table that is joined to run to generate a Hashrun instance
-#class HashRun(Run):
-#    __tablename__ = "hash_run"
-#
-#    id = Column(Integer)
-#    input_len = Column(Integer)
-#
-#    __mapper_args__ = {
-#        'polymorphic_identity':'hash_run',
-#    }
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint(["id"], ["run.id"]))
-#
-#class AeadRun(Run):
-#    __tablename__ = "aead_run"
-#
-#    id = Column(Integer)
-#    auth_data_len = Column(Integer)
-#    secret_len = Column(Integer)
-#
-#    __mapper_args__ = {
-#        'polymorphic_identity':'aead_run',
-#    }
-#
-#    __table_args__ = (
-#        PrimaryKeyConstraint("id"),
-#        ForeignKeyConstraint(["id"], ["run.id"]))
-#
-#
-#
-#
-#
 from sqlalchemy.orm import scoped_session as ss, sessionmaker as sm
 scoped_session = ss(sm())
 def init(data_path):
-    # Import these so ORM builds tables
-    import xbx.config
-    import xbx.run
-    import xbx.build
 
     global scoped_session
     engine = None
     if not os.path.isfile(data_path):
         _logger.info("Database doesn't exist, initializing")
+        # Import these so ORM builds tables
+        import xbx.config
+        import xbx.build
+        import xbx.run
+        import xbx.run_op
         engine = create_engine('sqlite:///'+ data_path)
         Base.metadata.create_all(engine)
     else:
@@ -206,6 +103,7 @@ def unique_constructor(scoped_session, hashfunc, queryfunc):
 
 
 
+# SQLAlchemy typedecorator recipe
 from sqlalchemy.types import TypeDecorator 
 import json
 
