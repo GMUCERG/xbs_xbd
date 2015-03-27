@@ -20,9 +20,10 @@ def main():
     config = xbxc.Config("config.ini")
 
     rs = xbxr.RunSession(config)
-
     rs.init_xbh()
-#    rs.drift_measurements()
+    rs.runall()
+    s.add(rs)
+    s.commit()
 
 
 
