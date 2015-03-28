@@ -169,6 +169,7 @@ class BuildExec(Base):
 
     @xbhlib.attempt("xbh", tries=2, raise_err=True)
     def load_build(self):
+        _logger.info("Loading build {} into XBD".format(self.build))
         self.xbh.upload_prog(self.build.hex_path)
 
 
@@ -258,9 +259,12 @@ class RunSession(Base, xbxs.SessionMixin):
         c = self.config
         try:
             self.xbh = xbhlib.Xbh(
-                    c.xbh_addr, c.xbh_port, 
-                    c.platform.pagesize,
-                    c.platform.clock_hz)
+                c.xbh_addr, c.xbh_port, 
+                c.platform.pagesize,
+                c.platform.clock_hz,
+                c.xbh_timeout
+            )
+            
         except xbhlib.Error as e:
             logger.critical(str(e))
             sys.exit(1)
