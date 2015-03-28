@@ -223,7 +223,8 @@ class Config(Base):# {{{
     drift_measurements = Column(Integer)
     checksum_tests   = Column(Integer)
     operation_params = Column(xbxdb.JSONEncodedDict)
-    #xbh_timeout      = Column(Integer)
+    xbh_timeout      = Column(Integer)
+    exec_runs        = Column(Integer)
 
     blacklist        = Column(xbxdb.JSONEncodedDict)
     whitelist        = Column(xbxdb.JSONEncodedDict)
@@ -241,7 +242,7 @@ class Config(Base):# {{{
     )
 
 
-    def __init__(self, config_path,**kwargs):
+    def __init__(self, config_path, **kwargs):
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
@@ -281,7 +282,8 @@ class Config(Base):# {{{
         # Runtime parameters
         self.drift_measurements = config.get('run','drift_measurements')
         self.checksum_tests     = config.get('run','checksum_tests')
-        #self.xbh_timeout        = config.get('run','xbh_timeout')
+        self.xbh_timeout        = config.get('run','xbh_timeout')
+        self.exec_runs          = config.get('run','exec_runs')
 
         # Parameters
         self.operation_params   = []

@@ -95,7 +95,7 @@ class attempt:# {{{
                         _logger.error(str(e))
                 if raise_err:
                     raise RetryError(
-                            "Errors exceeded retry count ["+tries+"]") from ex
+                            "Errors exceeded retry count ["+str(tries)+"]") from ex
             return func_wrapper
         else:
             def func_wrapper(*args, **kwargs):
@@ -123,7 +123,7 @@ class Xbh:# {{{
 
     
     def __init__(self, host="xbh", port=22595, page_size = 1024,
-            xbd_hz=16000000, timeout=1, src_host=''):
+            xbd_hz=16000000, timeout=1000, src_host=''):
         self._connargs = ((host,port), timeout, (src_host, 0))
         self._sock = socket.create_connection(*self._connargs)
         self._timeout = timeout
@@ -157,7 +157,6 @@ class Xbh:# {{{
         try:
             buf = bytearray()
             while(size > 0):
-                print("poll")
                 msg = self._sock.recv(size)
                 buf += msg
                 size -= len(msg)
@@ -203,9 +202,9 @@ class Xbh:# {{{
         # Return bytes after 8-byte command header
         return msg[8:]
 
-    def _upload_pages(self, addr, data):
-        #if data % page_size != 0:
-        #    raise ValueError("data length must be integer multiple of pagesize")
+    def _upload_code_pages(self, addr, data):
+        if len(data) % self.page_size != 0 and len(data) > self.page_size:
+            raise ValueError("data length must be integer multiple of pagesize")
             
         self.req_bl()
 
@@ -215,11 +214,10 @@ class Xbh:# {{{
         self._exec("cd",struct.pack("!I",addr)+data)
         self._xbh_response()
 
-    def _upload_data(self, typecode, addr, data):
+    def _upload_data(self, addr, typecode, data):
         self.req_app()
-        #if self.verbose:
-        #    _logger.info("Uploading parameters to address "+hexaddr)
-        self._exec("dp",struct.pack("!II",typecode,addr)+data)
+        _logger.debug("Uploading parameters to address "+hex(addr))
+        self._exec("dp",struct.pack("!II",addr, typecode)+data)
         self._xbh_response()
 
 # }}}
@@ -311,7 +309,7 @@ class Xbh:# {{{
 
     def calc_checksum(self):
         self.req_app()
-        _logger.info("Calculating checksum")
+        _logger.debug("Calculating checksum")
 
         self._sock.settimeout(_CALC_TIMEOUT)
         self._exec("cc")
@@ -405,12 +403,11 @@ class Xbh:# {{{
                           .format(length, block_size, hex(addr)))
 
             while offset < length:
-                self._upload_pages(addr+offset, data[offset:offset+upload_bytes])
-                if self.verbose:
-                    uploaded_bytes = (upload_bytes if upload_bytes <
-                            (length - offset) else (length - offset))
-                    _logger.info("Uploading {} bytes starting at {}"
-                            .format(uploaded_bytes,hex(addr+offset)))
+                self._upload_code_pages(addr+offset, data[offset:offset+upload_bytes])
+                uploaded_bytes = (upload_bytes if upload_bytes <
+                        (length - offset) else (length - offset))
+                _logger.debug("Uploading {} bytes starting at {}"
+                        .format(uploaded_bytes,hex(addr+offset)))
                 offset += upload_bytes
 
 
@@ -418,13 +415,10 @@ class Xbh:# {{{
     def upload_param(self, data, typecode=TypeCode.HASH):
         """Uploads buffer to xbh. 
         
-        If data is an int, upload random data of that length
         """
         # Max payload - command length - 4 bytes for size - 4 bytes for type
         MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4 -4
 
-        if type(data) == int:
-            data = os.urandom(data)
 
         length = len(data)
         offset = 0
@@ -433,12 +427,11 @@ class Xbh:# {{{
                     .format(length, MAX_DATA))
 
         while offset < length:
-            self._upload_data(offset, data[offset:offset+MAX_DATA])
-            if self.verbose:
-                uploaded_bytes = (MAX_DATA if MAX_DATA <
-                        (length - offset) else (length - offset))
-                _logger.info("Uploading {} bytes starting at {}"
-                        .format(uploaded_bytes,hex(addr+offset)))
+            self._upload_data(offset, typecode, data[offset:offset+MAX_DATA])
+            uploaded_bytes = (MAX_DATA if MAX_DATA <
+                    (length - offset) else (length - offset))
+            _logger.debug("Uploading {} bytes starting at {}"
+                    .format(uploaded_bytes,hex(offset)))
             offset += MAX_DATA
 
     def measure_timing_error(self):

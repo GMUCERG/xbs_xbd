@@ -2,20 +2,18 @@ import logging
 import sys
 from datetime import datetime
 
-from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship, reconstructor
 from sqlalchemy.orm.exc import NoResultFound 
 from sqlalchemy.ext.declarative import declarative_base
 
 from xbx.database import JSONEncodedDict
+from xbx.database import Base, unique_constructor, scoped_session
 import xbx.database as xbxdb
 import xbx.build as xbxb
 import xbx.session as xbxs
 import xbh as xbhlib
-
-from xbx.database import Base
-#from xbx.run_op import *
 
 _logger = logging.getLogger(__name__)
 
@@ -63,6 +61,8 @@ class Run(Base):
     def __init__(self, build_exec, params=None, **kwargs):
         super().__init__(**kwargs)
         self.build_exec = build_exec
+        self.params = params
+
         self.xbh = self.build_exec.xbh
 
     @reconstructor
@@ -70,16 +70,19 @@ class Run(Base):
         pass
 
     def _assemble_params(self):
-        return None
+        pass
 
     def _calculate_power(self):
         pass
     
     def execute(self):
-        return
+        params = self.params
+        _logger.info("Running build {} with params {}".
+                     format(self.build_exec.build,self.params ))
         import xbx.run_op 
         operation_name = self.build_exec.run_session.config.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
+
         self.xbh.upload_param(self._assemble_params(), typecode)
         self.xbh.exec_and_time()
         self.measured_cycles = self.xbh.get_measured_cycles()
@@ -104,12 +107,14 @@ class TestRun(Run):
         ForeignKeyConstraint(["id"], ["run.id"]))
 
     def execute(self):
-        _logger.info("Testing build {}".format(self.build))
         self.xbh.calc_checksum()
         retval, self.checksumsmall_result = self.xbh.get_results()
-        if (int(retval) == 0 and 
-                self.checksumsmall_result ==
-                self.build_exec.build.primitive.checksumsmall): 
+        retcode = int(retval[0:2])
+        if retcode != 0:
+            _logger.error("Checksum failed with return code {}".format(retcode))
+            self.test_ok = False
+        elif (self.checksumsmall_result ==
+              self.build_exec.build.primitive.checksumsmall): 
             self.test_ok = True
         else:
             self.test_ok = False
@@ -120,10 +125,17 @@ class TestRun(Run):
 
 
 
+@unique_constructor(
+    scoped_session, 
+    lambda run_session, build, *args, **kwargs: 
+        str(run_session.id)+"_"+str(build.id), 
+    lambda query, run_session, build, *args, **kwargs: 
+        query.filter(BuildExec.build==build, BuildExec.run_session==run_session)
+)
 class BuildExec(Base):
     __tablename__  = "build_exec"
-
     id             = Column(Integer)
+
     build_id       = Column(Integer)
     run_session_id = Column(Integer)
 
@@ -135,8 +147,9 @@ class BuildExec(Base):
 
     __table_args__ = (
         PrimaryKeyConstraint("id"),
-        ForeignKeyConstraint( ["build_id"], ["build.id"]),
-        ForeignKeyConstraint( ["run_session_id"], ["run_session.id"]),
+        UniqueConstraint("run_session_id", "build_id"),
+        ForeignKeyConstraint(["build_id"], ["build.id"]),
+        ForeignKeyConstraint(["run_session_id"], ["run_session.id"]),
     )
 
     def __init__(self, run_session, build, *args, **kwargs):
@@ -156,8 +169,7 @@ class BuildExec(Base):
 
     @xbhlib.attempt("xbh", tries=2, raise_err=True)
     def load_build(self):
-        pass
-        #self.xbh.upload_prog(self.build.hex_path)
+        self.xbh.upload_prog(self.build.hex_path)
 
 
     @xbhlib.attempt("xbh")
@@ -170,6 +182,7 @@ class BuildExec(Base):
             num_end_tests = config.checksum_tests-num_start_tests
             _logger.info("Testing build {}".format(self.build))
             def test(num):
+                _logger.info("Calculating Checksum...")
                 for i in range(num):
                     t = TestRun(self)
                     t.execute()
@@ -179,9 +192,10 @@ class BuildExec(Base):
                 # Test for half specified runs before running benchmarks
                 test(num_start_tests)
 
-                for p in self.run_session.config.operation_params:
-                    r = self.RunType(self, p)
-                    r.execute()
+                for i in range(config.exec_runs):
+                    for p in self.run_session.config.operation_params:
+                        r = self.RunType(self, p)
+                        r.execute()
 
                 # Test for remaining specified runs after running benchmarks to see
                 # if results still valid to check if not corrupted
@@ -255,7 +269,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
         # Initialize xbh attribute on all build_execs and build_exec.runs if items loaded
         # from db
-        for be in build_execs:
+        for be in self.build_execs:
             be.xbh = self.xbh
             for r in be.runs:
                 r.xbh = self.xbh
@@ -290,7 +304,6 @@ class RunSession(Base, xbxs.SessionMixin):
 
     def runall(self):
         for b in self.build_session.builds:
-            #xbhlib.attempt(self.xbh)(self.xbh.upload_prog)(b.hex_path)
             be = BuildExec(self,b)
             be.load_build()
             be.execute()
