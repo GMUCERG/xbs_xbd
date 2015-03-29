@@ -257,15 +257,15 @@ class Build(Base):# {{{
         _gen_envfile(self.work_path, self.env)
 
         makefile = os.path.join(self.work_path, 'Makefile')
-        crypto_o_h = os.path.join(self.work_path, "crypto_"+operation.name+".h")
-        crypto_op_h = os.path.join(self.work_path, 
-                "crypto_"+operation.name + "_" + primitive.name+".h")
+        o_h = os.path.join(self.work_path, operation.name+".h")
+        op_h = os.path.join(self.work_path, 
+                operation.name + "_" + primitive.name+".h")
         if not os.path.isfile(makefile):
             self._genmake(makefile)
-        if not os.path.isfile(crypto_o_h):
-            self._gen_crypto_o_h(crypto_o_h, primitive)
-        if not os.path.isfile(crypto_op_h):
-            self._gen_crypto_op_h(crypto_op_h, self.implementation)
+        if not os.path.isfile(o_h):
+            self._gen_o_ho_h, primitive)
+        if not os.path.isfile(op_h):
+            self._gen_op_h(op_h, self.implementation)
     
     @property
     def valid_hex_checksum(self):
@@ -280,11 +280,11 @@ class Build(Base):# {{{
             f.write(buildfiles.MAKEFILE)
     
         
-    def _gen_crypto_o_h(self, filename, primitive):
+    def _gen_o_h(self, filename, primitive):
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         macro_expand = []
-        o = 'crypto_'+primitive.operation.name 
+        o = primitive.operation.name 
         op = o + '_'+primitive.name
 
         for m in primitive.operation.macros:
@@ -302,7 +302,7 @@ class Build(Base):# {{{
             f.write(string.Template(buildfiles.CRYPTO_O_H).substitute(subst_dict))
     
 
-    def _gen_crypto_op_h(self, filename, implementation):
+    def _gen_op_h(self, filename, implementation):
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         operation = implementation.primitive.operation
@@ -310,7 +310,7 @@ class Build(Base):# {{{
 
         macro_expand = []
         prototype_expand = []
-        o = 'crypto_'+primitive.operation.name 
+        o = primitive.operation.name 
         op = o + '_'+primitive.name
         opi = op + '_' + implementation.name
         api_h = ""

@@ -115,7 +115,7 @@ class Operation(Base):# {{{
 
     @reconstructor 
     def parse_opstring(self):
-        match            = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', self.operation_str)
+        match            = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
         self.macros      = match.group(2).split(':')
         self.macros     += '',
         self.prototypes  = match.group(3).split(':')
@@ -440,7 +440,7 @@ class Config(Base):# {{{
         primitives = []
 
         # Get operation path
-        op_path = os.path.join(algopack_path, "crypto_"+operation.name)
+        op_path = os.path.join(algopack_path, operation.name)
 
         # Get list of primitive directories
         primdirs = [d for d in os.listdir(op_path) if os.path.isdir(os.path.join(op_path, d))]
@@ -509,7 +509,7 @@ class Config(Base):# {{{
 
         with open(filename) as f:
             for l in f:
-                match = re.match(r'crypto_(\w+) ([:_\w]+) (.*)$', l)
+                match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
                 if match.group(1) == name:
                     return Operation(name=name, operation_str=l.strip())
     # }}}
