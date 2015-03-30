@@ -123,8 +123,9 @@ class Operation(Base):# {{{
 
 
 @unique_constructor(scoped_session, 
-        lambda **kwargs: kwargs['name'], 
-        lambda query, **kwargs: query.filter(Primitive.name == kwargs['name']))
+        lambda **kwargs: kwargs['name']+'_'+kwargs['operation'].name, 
+        lambda query, **kwargs: query.filter(Operation.name == kwargs['operation'].name, 
+                                             Primitive.name == kwargs['name']))
 class Primitive(Base):# {{{
     __tablename__  = "primitive"
 
@@ -280,10 +281,10 @@ class Config(Base):# {{{
         self.operation          = Config.__enum_operation(name, op_filename)
 
         # Runtime parameters
-        self.drift_measurements = config.get('run','drift_measurements')
-        self.checksum_tests     = config.get('run','checksum_tests')
-        self.xbh_timeout        = config.get('run','xbh_timeout')
-        self.exec_runs          = config.get('run','exec_runs')
+        self.drift_measurements = int(config.get('run','drift_measurements'))
+        self.checksum_tests     = int(config.get('run','checksum_tests'))
+        self.xbh_timeout        = int(config.get('run','xbh_timeout'))
+        self.exec_runs          = int(config.get('run','exec_runs'))
 
         # Parameters
         self.operation_params   = []
@@ -457,6 +458,7 @@ class Config(Base):# {{{
                 checksumsmall = f.readline().strip()
 
             p = Primitive(
+                    operation=operation,
                     name=name, 
                     path=path,
                     checksumsmall=checksumsmall

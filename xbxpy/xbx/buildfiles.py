@@ -61,7 +61,7 @@ FLAGS+=-I${HAL_PATH}/drivers
 FLAGS+=-I${XBD_PATH}/xbd_af
 FLAGS+=-I${XBD_PATH}/xbd_app
 FLAGS+=-I${IMPL_PATH}
-FLAGS+=-I${XBD_PATH}/xbd_op/crypto_${OP}
+FLAGS+=-I${XBD_PATH}/xbd_op/${OP}
 
 
 
@@ -73,7 +73,7 @@ CXX+=${FLAGS}
 BUILDDIR=build
 
 SRCS += $(wildcard ${XBD_PATH}/xbd_af/*.c ${XBD_PATH}/xbd_app/*.c)
-SRCS += $(wildcard ${XBD_PATH}/xbd_op/crypto_${OP}/*.c )
+SRCS += $(wildcard ${XBD_PATH}/xbd_op/${OP}/*.c )
 SRCS += $(shell find ${IMPL_PATH} -name "*.c" -or -name "*.cpp" -or -name "*.[Ss]")
 
 OBJS := $(SRCS:%.c=%.o)

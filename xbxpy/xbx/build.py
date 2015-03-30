@@ -263,7 +263,7 @@ class Build(Base):# {{{
         if not os.path.isfile(makefile):
             self._genmake(makefile)
         if not os.path.isfile(o_h):
-            self._gen_o_ho_h, primitive)
+            self._gen_o_h(o_h, primitive)
         if not os.path.isfile(op_h):
             self._gen_op_h(op_h, self.implementation)
     
