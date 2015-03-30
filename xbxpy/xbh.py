@@ -322,9 +322,11 @@ class Xbh:# {{{
         _logger.debug("Downloading results")
 
         self._exec("ur")
+        fmt = "!I"
         msg = self._xbh_response()
-        retval = binascii.hexlify(msg).decode()
-        return retval[0:8],retval[8:]
+        retval, = struct.unpack_from(fmt, msg)
+        data = msg[struct.calcsize(fmt):]
+        return retval, data
 
 
     def get_stack_usage(self):

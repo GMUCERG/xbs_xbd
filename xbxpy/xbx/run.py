@@ -1,3 +1,4 @@
+import binascii
 import logging
 import sys
 from datetime import datetime
@@ -108,10 +109,10 @@ class TestRun(Run):
 
     def execute(self):
         self.xbh.calc_checksum()
-        retval, self.checksumsmall_result = self.xbh.get_results()
-        retcode = int(retval[0:2])
-        if retcode != 0:
-            _logger.error("Checksum failed with return code {}".format(retcode))
+        retval, data = self.xbh.get_results()
+        self.checksumsmall_result = binascii.hexlify(data).decode()
+        if retval != 0:
+            _logger.error("Checksum failed with return code {}".format(retval))
             self.test_ok = False
         elif (self.checksumsmall_result ==
               self.build_exec.build.primitive.checksumsmall): 
