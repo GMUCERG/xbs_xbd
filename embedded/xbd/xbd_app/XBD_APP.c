@@ -1,10 +1,10 @@
 #include <stdalign.h>
 #include <string.h>
 
-#include "crypto_operation.h"
 #include "XBD_APP.h"
 #include "XBD_HAL.h"
 #include "XBD_OH.h"
+#include "XBD_operation.h"
 #include "XBD_commands.h"
 #include "XBD_crc.h"
 #include "XBD_debug.h"
@@ -13,7 +13,7 @@
 uint8_t XBD_response[XBD_COMMAND_LEN+1];
 
 #define XBD_PARAMLENG_MAX (2048+ADDRSIZE)
-#define XBD_RESULTLEN (1+3+CRYPTO_OPERATION_RESULT_DATALENG)
+#define XBD_RESULTLEN (1+3+OPERATION_RESULT_DATALENG)
 // Upload Results XBD00urr[TYPE][DATA][CRC]
 // The results in the DATA part are:
 // u8 returncode	//the hash function return code 0=success

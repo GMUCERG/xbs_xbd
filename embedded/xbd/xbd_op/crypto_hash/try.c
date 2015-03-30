@@ -46,10 +46,16 @@ static unsigned long long mlen;
  * @param buf Buffer to use as scratch space for tests
  */
 void test_allocate(unsigned char *buf) {
+    size_t i;
     h = buf+CANARY_SZ;
     h2 = h+crypto_hash_BYTES+CANARY_SZ+CANARY_SZ;
     m = h2+crypto_hash_BYTES+CANARY_SZ+CANARY_SZ;
     m2 = m+MAXTEST_BYTES+CANARY_SZ+CANARY_SZ;
+    
+    //Randomize contents
+    for (i = 0; i < (size_t)((m2+MAXTEST_BYTES+CANARY_SZ)-buf); i++){
+        buf[i]=(unsigned char)(myrandom() & 0xFF);
+    }
 }
 
 
