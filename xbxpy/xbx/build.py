@@ -299,7 +299,7 @@ class Build(Base):# {{{
                 }
 
         with open(filename, 'w') as f:
-            f.write(string.Template(buildfiles.CRYPTO_O_H).substitute(subst_dict))
+            f.write(string.Template(buildfiles.O_H).substitute(subst_dict))
     
 
     def _gen_op_h(self, filename, implementation):
@@ -337,7 +337,7 @@ class Build(Base):# {{{
                 }
 
         with open(filename, 'w') as f:
-            f.write(string.Template(buildfiles.CRYPTO_OP_H).substitute(subst_dict))
+            f.write(string.Template(buildfiles.OP_H).substitute(subst_dict))
 
     @property
     def test_ok(self):

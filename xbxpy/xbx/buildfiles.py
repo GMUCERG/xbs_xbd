@@ -134,7 +134,7 @@ DEPS := $(OBJS:%.o=%.d)
 -include ${DEPS} __dummy__
 endif"""
 
-CRYPTO_O_H="""#ifndef ${o}_H
+O_H="""#ifndef ${o}_H
 #define ${o}_H
 
 #include "${op}.h"
@@ -145,7 +145,7 @@ ${op_macros}
 
 #endif"""
 
-CRYPTO_OP_H="""#ifndef ${op}_H
+OP_H="""#ifndef ${op}_H
 #define ${op}_H
 
 ${api_h}
