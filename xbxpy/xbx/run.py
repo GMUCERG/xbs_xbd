@@ -1,10 +1,11 @@
 import binascii
 import logging
 import sys
+import binascii
 from datetime import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Numeric 
 from sqlalchemy.orm import relationship, reconstructor
 from sqlalchemy.orm.exc import NoResultFound 
 from sqlalchemy.ext.declarative import declarative_base
@@ -27,27 +28,76 @@ class NoBuildSessionError(Error):
 class XbdChecksumFailError(Error, ValueError):
     pass
 
+class PowerSample(Base):
+    __tablename__ = "power_sample"
+    run_id  = Column(Integer)
+    power   = Column(Numeric)
+    current = Column(Numeric)
+    voltage = Column(Numeric)
+    timestamp = Column(Numeric)
+
+    __table_args__ = (
+        PrimaryKeyConstraint("timestamp", "run_id"),
+        ForeignKeyConstraint( ["run_id"], ["run.id"]),
+    )
+
+    
 
 class Run(Base):
+    """Contains data generic to all runs
+
+    Power values are summarized for easy analysis and sorting, instead of adding
+    each sample as a row. 
+
+    This class should not be instantiated directly. Call the run() class method
+    of subclasses
+    
+    Attributes of interest:
+
+        measured_cycles     Cycles calculated from measured time and known clock
+                            rate
+
+        reported_cycles     Cycles reported by cycle counter if applicable
+
+        time                Time taken for run in seconds
+
+        stack_usage         Stack usage in bytes
+
+        min_power           Min power
+
+        max_power           Max power
+
+        avg_power           Average power
+
+        median_power        Median power
+
+        total_energy        Total energy
+
+        power_data          JSON encoded power data
+
+        timestamp           Timestamp of execution copmletion
+        
+    """
     __tablename__   = "run"
 
     id              = Column(Integer)
 
     measured_cycles = Column(Integer)
     reported_cycles = Column(Integer)
-    time_ns         = Column(Integer)
-    stackUsage      = Column(Integer)
+    time            = Column(Numeric)
+    stack_usage     = Column(Integer)
 
     min_power       = Column(Integer)
     max_power       = Column(Integer)
     avg_power       = Column(Integer)
     median_power    = Column(Integer)
+    total_energy    = Column(Integer)
 
-    power_data      = Column(JSONEncodedDict)
+    power_samples   = relationship("PowerSample")
     timestamp       = Column(DateTime)
     build_exec_id   = Column(Integer)
 
-    type            = Column(String)
+    run_type        = Column(String)
 
     __table_args__ = (
         PrimaryKeyConstraint("id"),
@@ -56,14 +106,12 @@ class Run(Base):
 
     __mapper_args__ = {
         'polymorphic_identity':'run',
-        'polymorphic_on': type ,
+        'polymorphic_on': run_type,
     }
 
-    def __init__(self, build_exec, params=None, **kwargs):
+    def __init__(self, build_exec, **kwargs):
         super().__init__(**kwargs)
         self.build_exec = build_exec
-        self.params = params
-
         self.xbh = self.build_exec.xbh
 
     @reconstructor
@@ -76,10 +124,8 @@ class Run(Base):
     def _calculate_power(self):
         pass
     
-    def execute(self):
-        params = self.params
-        _logger.info("Running build {} with params {}".
-                     format(self.build_exec.build,self.params ))
+    def _execute(self):
+        """Executes and returns results"""
         import xbx.run_op 
         operation_name = self.build_exec.run_session.config.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
@@ -88,7 +134,14 @@ class Run(Base):
         self.xbh.exec_and_time()
         self.measured_cycles = self.xbh.get_measured_cycles()
         self.timestamp = datetime.now()
+        return self.xbh.get_results()
 
+    @classmethod
+    def run(cls, build_exec, params=None):
+        """Does nothing, override this to instantiate run(s), execute, and
+        return"""
+        pass
+        ## Do nothing, let subclass handle this
 
 
 class TestRun(Run):
@@ -107,7 +160,7 @@ class TestRun(Run):
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
 
-    def execute(self):
+    def _execute(self):
         self.xbh.calc_checksum()
         retval, data = self.xbh.get_results()
         self.checksumsmall_result = binascii.hexlify(data).decode()
@@ -124,7 +177,16 @@ class TestRun(Run):
         self.timestamp = datetime.now()
 
 
-
+    @classmethod
+    def run(cls, build_exec, params=None):
+        """Factory method that generates run instances and attaches them to
+        buildexec. Call this instead of constructor"""
+        _logger.info("Running tests on {}".
+                     format(build_exec.build))
+        run = cls(build_exec)
+        run._execute()
+        return run
+        
 
 @unique_constructor(
     scoped_session, 
@@ -186,8 +248,7 @@ class BuildExec(Base):
             def test(num):
                 _logger.info("Calculating Checksum...")
                 for i in range(num):
-                    t = TestRun(self)
-                    t.execute()
+                    t = TestRun.run(self)
                     if not t.test_ok:
                         raise XbdChecksumFailError(t)
             try:
@@ -196,8 +257,7 @@ class BuildExec(Base):
 
                 for i in range(config.exec_runs):
                     for p in self.run_session.config.operation_params:
-                        r = self.RunType(self, p)
-                        r.execute()
+                        self.RunType.run(self, p)
 
                 # Test for remaining specified runs after running benchmarks to see
                 # if results still valid to check if not corrupted
@@ -279,10 +339,6 @@ class RunSession(Base, xbxs.SessionMixin):
             for r in be.runs:
                 r.xbh = self.xbh
 
-        s = xbxdb.scoped_session()
-        s.add(self)
-        s.commit()
-
 
     @xbhlib.attempt("xbh", raise_err=True)
     def do_drift_measurement(self):
@@ -312,6 +368,11 @@ class RunSession(Base, xbxs.SessionMixin):
             be = BuildExec(self,b)
             be.load_build()
             be.execute()
+
+            s = xbxdb.scoped_session()
+            s.add(be)
+            s.commit()
+            break;
 
 
 class DriftMeasurement(Base):# {{{
