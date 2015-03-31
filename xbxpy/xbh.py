@@ -7,6 +7,7 @@ import socket
 import struct
 import logging
 import time
+from decimal import Decimal
 
 import prog_reader
 import xbh
@@ -380,6 +381,11 @@ class Xbh:# {{{
 # }}}
 
 # High level interfaces # {{{
+    def get_measured_time(self):
+        seconds, fractions, frac_per_sec = self.get_timings()
+        measured_time = seconds + Decimal(fractions)/Decimal(frac_per_sec)
+        return measured_time
+
     def get_measured_cycles(self):
         seconds, fractions, frac_per_sec = self.get_timings()
         # add 0.5 then cast to int to get rounded integer
