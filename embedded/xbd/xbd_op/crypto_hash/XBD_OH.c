@@ -55,10 +55,11 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		/* Report Stack usage measurement */
 		*p_stackUse=*p_stackUse-XBD_countStack();
 
-		resultBuffer[0]=ret;
+        //Big endian format, so 0 pad
+		resultBuffer[0]=0;
 		resultBuffer[1]=0;
 		resultBuffer[2]=0;
-		resultBuffer[3]=0;
+		resultBuffer[3]=ret;
 		
 		/* stop the watchdog */
 		XBD_stopWatchDog();
