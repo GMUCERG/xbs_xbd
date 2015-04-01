@@ -76,6 +76,10 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 	{
 		XBD_DEBUG("Rec'd W-R-O-N-G EXecute req:");
 		XBD_DEBUG("\nparameterType="); XBD_DEBUG_32B(parameterType);
+		resultBuffer[0]=0;
+		resultBuffer[1]=0;
+		resultBuffer[2]=0;
+		resultBuffer[3]=2;
 		//prepare 'FAIL' response to XBH
 		return 1;
 	}
