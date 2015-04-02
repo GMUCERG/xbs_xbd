@@ -287,9 +287,9 @@ class Build(Base):# {{{
         o = primitive.operation.name 
         op = o + '_'+primitive.name
 
-        for m in primitive.operation.macros:
-            macro_expand+=("#define {}{} {}{}".format(
-                o, m, op, m),)
+        for m in primitive.operation.macro_names:
+            macro_expand+=("#define {}{} {}{}".format( o, m, op, m),)
+        macro_expand+=("#define {} {}".format(o, op),)
 
         subst_dict = {
                 'op': op,
@@ -313,9 +313,16 @@ class Build(Base):# {{{
         o = primitive.operation.name 
         op = o + '_'+primitive.name
         opi = op + '_' + implementation.name
-        api_h = ""
+        api_h = None
 
-        for m in operation.macros:
+        #for name, value in implementation.macros.items():
+        #    if type(name) == int:
+
+        #        value = 
+
+        #    api_h += (''.join(opi, name, ' ', value),)
+
+        for m in operation.macro_names:
             macro_expand+=("#define {}{} {}{}".format( op, m, opi, m),)
 
         for pr in operation.prototypes:
@@ -323,18 +330,19 @@ class Build(Base):# {{{
 
         with open(os.path.join(implementation.path, "api.h")) as f:
             api_h = f.read()
-            api_h = api_h.replace("CRYPTO_", opi+'_')
+            api_h = re.sub(r"^#define .*("+'|'.join(map(re.escape, implementation.macros.keys()))+")", 
+                           "#define "+opi+r"\1", api_h, flags=re.MULTILINE)
 
         subst_dict = {
-                'i': implementation.name,
-                'api_h': api_h,
-                'opi': opi,
-                'op': op,
-                'o': o,
-                'p': primitive.name,
-                'op_macros': '\n'.join(macro_expand),
-                'opi_prototypes': '\n'.join(prototype_expand)
-                }
+            'i': implementation.name,
+            'api_h': api_h,
+            'opi': opi,
+            'op': op,
+            'o': o,
+            'p': primitive.name,
+            'op_macros': '\n'.join(macro_expand),
+            'opi_prototypes': '\n'.join(prototype_expand)
+        }
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.OP_H).substitute(subst_dict))

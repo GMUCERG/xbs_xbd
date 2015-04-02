@@ -18,7 +18,7 @@ from sqlalchemy.orm import relationship, reconstructor
 from xbx.dirchecksum import dirchecksum
 import xbx.database as xbxdb
 
-from xbx.database import Base, unique_constructor, scoped_session
+from xbx.database import Base, unique_constructor, scoped_session, JSONEncodedDict
 import xbx.util
 
 _logger=logging.getLogger(__name__)
@@ -115,10 +115,10 @@ class Operation(Base):# {{{
 
     @reconstructor 
     def parse_opstring(self):
-        match            = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
-        self.macros      = match.group(2).split(':')
-        self.macros     += '',
-        self.prototypes  = match.group(3).split(':')
+        match             = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
+
+        self.macro_names  = list(filter(bool, match.group(2).split(':')))
+        self.prototypes   = match.group(3).split(':')
 # }}}
 
 
@@ -161,6 +161,7 @@ class Implementation(Base):# {{{
     operation_name = Column(String)
     primitive_name = Column(String)
     path           = Column(String)
+    macros         = Column(JSONEncodedDict)
 
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
@@ -169,31 +170,21 @@ class Implementation(Base):# {{{
             ["primitive.name", "primitive.operation_name"],
         ),
     )
+    
 
     @property
     def valid_hash(self):
         """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
         return hash == self.hash
-    # @reconstructor
-    # def load_init(self):
-    #     """Verifies if hash still valid and saves new result in DB"""
-    #     self.valid_hash = self.validate_hash()
-    #     scoped_session().add(self)
 
-    # def __init__(self, **kwargs):
-    #     super().__init__(**kwargs)
-    #     self.valid_hash = self.validate_hash()
-    #     
-    # def validate_hash(self):
-    #     """Indicates if current existing directory validates with stored hash"""
-    #     hash = dirchecksum(self.path)
-    #     valid_hash = None
-    #     if self.hash != hash:
-    #         valid_hash = False
-    #     else:
-    #         valid_hash = True
-    #     return valid_hash
+
+        
+
+
+
+
+
 # }}}
 
 
@@ -243,7 +234,7 @@ class Config(Base):# {{{
     )
 
 
-    def __init__(self, config_path, **kwargs):
+    def __init__(self, config_path, **kwargs):# {{{
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
@@ -315,7 +306,7 @@ class Config(Base):# {{{
             self.whitelist, 
             self.algopack_path
         )
-
+# }}}
 
 
         
@@ -488,16 +479,46 @@ class Config(Base):# {{{
             if whitelist:
                 impl_set &= set(whitelist);
 
+            # Assemble implementations that pass black/white list
             for name in impl_set:
                 path = os.path.join(p.path,all_impls[name])
                 checksum = dirchecksum(path)
+
+                api_h = None
+                with open(os.path.join(path, "api.h")) as f:
+                    api_h = f.read()
+
+                macros = {}
+                macro_names = operation.macro_names+['_VERSION']
+
+                for m in macro_names:
+                    value = None
+                    print(m)
+                    match = re.search(m+r'\s+"(.*)"\s*$', api_h, re.MULTILINE)
+                    if(match):
+                        value = match.group(1).strip('"')
+                    else:
+                        match = re.search(m+r'\s+(.*)\s*$', api_h, re.MULTILINE)
+                        try:
+                            value = int(match.group(1))
+                        except ValueError:
+                            value = match.group(1)
+                        except AttributeError:
+                            value = None
+                    macros[m] = value
+
+
+
+
+
                 # Don't have to add to p.implementations, as Implementation sets
                 # Primitive as parent, which inserts into list
                 Implementation(
                     hash=checksum,
                     name=name, 
                     path=path,
-                    primitive=p
+                    primitive=p,
+                    macros=macros
                 )
 
         return primitives
