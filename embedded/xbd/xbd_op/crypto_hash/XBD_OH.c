@@ -6,8 +6,10 @@
 #include "XBD_operation.h"
 #include "try.h"
 
-volatile uint32_t burner;
-volatile uint32_t afterburner;
+#ifdef I_AM_OS_BASED
+static volatile uint32_t burner;
+static volatile uint32_t afterburner;
+#endif	
 
 uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer, uint8_t* resultBuffer, uint32_t *p_stackUse) {
 	
@@ -31,20 +33,20 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 
 		/*	If running on an embedded OS, sleep some time to try and get the CPU
 			uninterrupted for the measurement	*/
-		#ifdef I_AM_OS_BASED
-                for(afterburner=65;afterburner<5000000;afterburner++)
-                {
-		        for(burner=13;burner<TC_VALUE_SEC;burner++)
-		        {
-		                burner=burner*1;
-		        }
-		}
-			usleep(TC_VALUE_SEC*100000);		
-		#endif	
+#ifdef I_AM_OS_BASED
+        for(afterburner=65;afterburner<5000000;afterburner++)
+        {
+            for(burner=13;burner<TC_VALUE_SEC;burner++)
+            {
+                burner=burner*1;
+            }
+        }
+        usleep(TC_VALUE_SEC*100000);		
+#endif	
 		
 		/** Sends the signal "start-of-execution" to the XBH */
 		XBD_sendExecutionStartSignal();
-		uint8_t ret = crypto_hash(
+		int32_t ret = crypto_hash(
 			       resultBuffer+4,
 			       p_in,
 			       (unsigned long long) inlen
@@ -55,11 +57,7 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 		/* Report Stack usage measurement */
 		*p_stackUse=*p_stackUse-XBD_countStack();
 
-        //Big endian format, so 0 pad
-		resultBuffer[0]=0;
-		resultBuffer[1]=0;
-		resultBuffer[2]=0;
-		resultBuffer[3]=ret;
+        *(int32_t*)resultBuffer=HTONL(ret);
 		
 		/* stop the watchdog */
 		XBD_stopWatchDog();
@@ -76,10 +74,7 @@ uint8_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 	{
 		XBD_DEBUG("Rec'd W-R-O-N-G EXecute req:");
 		XBD_DEBUG("\nparameterType="); XBD_DEBUG_32B(parameterType);
-		resultBuffer[0]=0;
-		resultBuffer[1]=0;
-		resultBuffer[2]=0;
-		resultBuffer[3]=2;
+        *(int32_t*)resultBuffer=HTONL(-2);
 		//prepare 'FAIL' response to XBH
 		return 1;
 	}
