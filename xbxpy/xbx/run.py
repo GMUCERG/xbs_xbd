@@ -28,10 +28,10 @@ class NoBuildSessionError(Error):
 class RunValueError(Error):
     pass
 
-class XbdChecksumFailError(Error, RunValueError):
+class XbdChecksumFailError(RunValueError):
     pass
 
-class XbdResultFailError(Error, RunValueError):
+class XbdResultFailError(RunValueError):
     pass
 
 
