@@ -315,15 +315,9 @@ class Build(Base):# {{{
         opi = op + '_' + implementation.name
         api_h = None
 
-        #for name, value in implementation.macros.items():
-        #    if type(name) == int:
-
-        #        value = 
-
-        #    api_h += (''.join(opi, name, ' ', value),)
-
         for m in operation.macro_names:
             macro_expand+=("#define {}{} {}{}".format( op, m, opi, m),)
+        macro_expand+=("#define {} {}".format(op, opi),)
 
         for pr in operation.prototypes:
             prototype_expand+=("extern int {}{};".format(opi, pr),)
