@@ -146,7 +146,7 @@ class Run(Base):
         if packed_params:
             xbh.upload_param(packed_params, typecode)
         xbh.exec_and_time()
-        self.measured_cycles = self.xbh.get_measured_cycles()
+        self.measured_cycles = xbh.get_measured_cycles()
         self.timestamp = datetime.now()
         return xbh.get_results()
 
@@ -175,8 +175,9 @@ class TestRun(Run):
         ForeignKeyConstraint(["id"], ["run.id"]))
 
     def _execute(self, packed_params=None):
-        self.xbh.calc_checksum()
-        retval, data = self.xbh.get_results()
+        xbh = self.build_exec.run_session.xbh
+        xbh.calc_checksum()
+        retval, data = xbh.get_results()
         self.checksumsmall_result = binascii.hexlify(data).decode()
         if retval != 0:
             _logger.error("Checksum failed with return code {}".format(retval))
@@ -187,7 +188,7 @@ class TestRun(Run):
         else:
             self.test_ok = False
 
-        self.measured_cycles = self.xbh.get_measured_cycles()
+        self.measured_cycles = xbh.get_measured_cycles()
         self.timestamp = datetime.now()
 
 
