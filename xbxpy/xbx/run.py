@@ -66,7 +66,7 @@ class Run(Base):
 
         reported_cycles     Cycles reported by cycle counter if applicable
 
-        time                Time taken for run in seconds
+        time                Time taken for run in nanoseconds
 
         stack_usage         Stack usage in bytes
 
@@ -91,7 +91,7 @@ class Run(Base):
 
     measured_cycles = Column(Integer)
     reported_cycles = Column(Integer)
-    time            = Column(Numeric)
+    time            = Column(Integer)
     stack_usage     = Column(Integer)
 
     min_power       = Column(Integer)
@@ -145,10 +145,13 @@ class Run(Base):
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
         if packed_params:
             xbh.upload_param(packed_params, typecode)
-        xbh.exec_and_time()
-        self.measured_cycles = xbh.get_measured_cycles()
+        results, timings, self.stack_usage = xbh.execute()
         self.timestamp = datetime.now()
-        return xbh.get_results()
+
+        self.measured_cycles = xbh.get_measured_cycles(timings)
+        self.time = xbh.get_measured_time(timings)
+
+        return results
 
     @classmethod
     def run(cls, build_exec, params=None):
@@ -176,8 +179,13 @@ class TestRun(Run):
 
     def _execute(self, packed_params=None):
         xbh = self.build_exec.run_session.xbh
-        xbh.calc_checksum()
-        retval, data = xbh.get_results()
+        results, timings, self.stack_usage = xbh.calc_checksum()
+        self.timestamp = datetime.now()
+        self.measured_cycles = xbh.get_measured_cycles(timings)
+        self.time = xbh.get_measured_time(timings)
+
+
+        retval, data = results
         self.checksumsmall_result = binascii.hexlify(data).decode()
         if retval != 0:
             _logger.error("Checksum failed with return code {}".format(retval))
@@ -188,8 +196,6 @@ class TestRun(Run):
         else:
             self.test_ok = False
 
-        self.measured_cycles = xbh.get_measured_cycles()
-        self.timestamp = datetime.now()
 
 
     @classmethod

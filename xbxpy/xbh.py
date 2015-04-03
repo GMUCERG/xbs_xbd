@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/env python3
 import binascii
 import sys
 import os
@@ -249,27 +249,6 @@ class Xbh:# {{{
             self.switch_to_app()
         return
     
-    def exec_and_time(self):
-        self.req_app()
-        _logger.debug("Executing code")
-
-        self._sock.settimeout(_CALC_TIMEOUT)
-        self._exec("ex")
-        self._xbh_response()
-        self._sock.settimeout(self._timeout)
-
-    def get_timings(self):
-        """Returns seconds, frac, frac_per_sec"""
-        _logger.debug("Downloading timing results")
-
-        self._exec("rp")
-        msg = self._xbh_response()
-        seconds, frac, frac_per_sec = struct.unpack("!III", msg)
-        _logger.debug("Receive {} {} {}".format(
-                seconds, frac, frac_per_sec))
-
-        return seconds, frac, frac_per_sec
-
     def reset_xbd(self, reset_active):
         param = 'y' if reset_active else 'n'
         _logger.debug("Setting XBD reset to "+reset_active)
@@ -307,8 +286,16 @@ class Xbh:# {{{
         self._exec("sc",mode)
         self._xbh_response()
 
+    def _exec_and_time(self):
+        self.req_app()
+        _logger.debug("Executing code")
 
-    def calc_checksum(self):
+        self._sock.settimeout(_CALC_TIMEOUT)
+        self._exec("ex")
+        self._xbh_response()
+        self._sock.settimeout(self._timeout)
+
+    def _calc_checksum(self):
         self.req_app()
         _logger.debug("Calculating checksum")
 
@@ -317,8 +304,37 @@ class Xbh:# {{{
         self._xbh_response()
         self._sock.settimeout(self._timeout)
 
+    def _get_timings(self):
+        """Returns seconds, frac, frac_per_sec"""
+        _logger.debug("Downloading timing results")
 
-    def get_results(self):
+        self._exec("rp")
+        msg = self._xbh_response()
+        seconds, frac, frac_per_sec = struct.unpack("!III", msg)
+        _logger.debug("Receive {} {} {}".format(
+                seconds, frac, frac_per_sec))
+
+        return seconds, frac, frac_per_sec
+
+    def _get_stack_usage(self):
+        self.req_app()
+        _logger.debug("Getting Stack Usage")
+
+        self._exec("su")
+        msg = self._xbh_response()
+
+        stack, = struct.unpack("!I", msg)
+
+        _logger.debug("Used "+str(stack)+" bytes on stack")
+        
+        return stack
+        
+
+    def _get_results(self):
+        """Gets operation output from exec_and_time()
+
+        Resets XBD for new run, so run after get_stack_usage() and get_timings()
+        """
         self.req_app()
         _logger.debug("Downloading results")
 
@@ -330,19 +346,6 @@ class Xbh:# {{{
         return retval, data
 
 
-    def get_stack_usage(self):
-        self.req_app()
-        _logger.debug("Getting Stack Usage")
-
-        self._exec("su")
-        msg = self._xbh_response()
-
-        stack = struct.unpack("!I", msg)[0]
-
-        _logger.debug("Used "+stack+" bytes on stack")
-        
-        return stack
-        
 
     def get_timing_cal(self):
         """Returns cycles counted by XBD"""
@@ -363,7 +366,8 @@ class Xbh:# {{{
         _logger.debug("Getting git revision (and MAC address) of XBH");
 
         self._exec("sr")
-        msg = self._xbh_response().decode().split(',')
+        msg = self._xbh_response()
+        msg = msg.decode().split(',')
         rev = msg[0]
         mac = msg[1]
 
@@ -381,17 +385,32 @@ class Xbh:# {{{
 # }}}
 
 # High level interfaces # {{{
-    def get_measured_time(self):
-        seconds, fractions, frac_per_sec = self.get_timings()
-        measured_time = seconds + Decimal(fractions)/Decimal(frac_per_sec)
+    @staticmethod
+    def get_measured_time(timings):
+        """Gets measured time in nanoseconds"""
+        seconds, fractions, frac_per_sec = timings
+        measured_time = int(round(10**9*(seconds + fractions/frac_per_sec)+0.5))
         return measured_time
 
-    def get_measured_cycles(self):
-        seconds, fractions, frac_per_sec = self.get_timings()
+    def get_measured_cycles(self, timings):
         # add 0.5 then cast to int to get rounded integer
+        seconds, fractions, frac_per_sec = timings
         measured_cycles = int((seconds + fractions/frac_per_sec)*self.xbd_hz+0.5)
         return measured_cycles
 
+    def execute(self):
+        self._exec_and_time()
+        timings = self._get_timings()
+        stack = self._get_stack_usage()
+        results = self._get_results()
+        return results, timings, stack
+        
+    def calc_checksum(self):
+        self._calc_checksum()
+        timings = self._get_timings()
+        stack = self._get_stack_usage()
+        results = self._get_results()
+        return results, timings, stack
 
     def upload_prog(self, filename, program_type=prog_reader.ProgramType.IHEX):
         """Uploads provided file to XBH to upload to XBD"""
