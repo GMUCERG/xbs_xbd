@@ -15,10 +15,11 @@ import xbh
 
 _logger = logging.getLogger(__name__)
 
-# Creates another table that is joined to run to generate a Hashrun instance
-class CryptoHashRun(xbx.run.Run):
+class CryptoHashRun(xbx.run.Run):# {{{
     """Contains data specific to cryptographic hash runs
     
+    Call run() to instantiate and run, do not use constructor
+
     Attributes of interest:
         msg_len     Message length
     """
@@ -35,9 +36,6 @@ class CryptoHashRun(xbx.run.Run):
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
 
-    def __init__(self, build_exec,**kwargs):
-        super().__init__(build_exec, **kwargs)
-
     def _assemble_params(self):
         data = bytearray(struct.pack("!I",self.msg_len))
         data += os.urandom(self.msg_len)
@@ -50,13 +48,14 @@ class CryptoHashRun(xbx.run.Run):
         _logger.info("Running benchmark on {} with msg length {}".
                      format(build_exec.build, params[0]))
         run = cls(build_exec, msg_len=params[0])
-        run._execute(run.__assemble_params())
+        run._execute(run._assemble_params())
         return run
+# }}}
 
-
-
-class CryptoAeadRun(xbxr.Run):
+class CryptoAeadRun(xbxr.Run):# {{{
     """Contains data specific to AEAD runs
+
+    Call run() to instantiate and run, do not use constructor
 
     Attributes of interest:
 
@@ -84,12 +83,6 @@ class CryptoAeadRun(xbxr.Run):
     __table_args__ = (
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
-
-
-    def __init__(self, build_exec, params=None, **kwargs):
-        super().__init__(build_exec, params,  **kwargs)
-        self.plaintext_len = params[0]
-        self.assoc_data_len = params[1]
 
     def _gen_enc_params(self):
         macros = self.buildexec.build.implementation.macros
@@ -120,7 +113,8 @@ class CryptoAeadRun(xbxr.Run):
 
         return data, plaintext, assoc_data, key, secret_num, public_num
 
-    def _assemble_dec_params(self, ciphertext, assoc_data, public_num, key):
+    @staticmethod
+    def _assemble_dec_params(ciphertext, assoc_data, public_num, key):
         header = bytearray(
             struct.pack(
                 "!IIII",
@@ -142,23 +136,49 @@ class CryptoAeadRun(xbxr.Run):
     
     @classmethod
     def run(cls, build_exec, params=None):
-        """Factory method that generates run instances and attaches them to
-        buildexec. Call this instead of constructor"""
-        _logger.info("Running benchmark on {} with msg length {}".
-                     format(build_exec.build, params[0]))
-        s = xbxdb.scoped_session()
-        enc_run = cls(build_exec, params, direction=CryptoAeadRun.ENCRYPT)
-        dec_run = cls(build_exec, params, direction=CryptoAeadRun.DECRYPT)
+        """Factory method to create and execute run instances.
+        
+        Call this instead of constructor
+        """
 
-        (data, plaintext, assoc_data, key, secret_num, public_num) = enc_run._gen_enc_params() 
+        _logger.info("Running benchmark on {} with plaintext length {} and"
+                     "associated data length {}".
+                     format(build_exec.build, params[0], params[1]))
+
+
+        enc_run = cls(build_exec, plaintext_len=params[0],
+                      assoc_data_len=params[1], direction=CryptoAeadRun.ENCRYPT)
+        dec_run = cls(build_exec, plaintext_len=params[0],
+                      assoc_data_len=params[1], direction=CryptoAeadRun.DECRYPT)
 
         # Set identical pair ids so we know encryption/decryption pairs
+        s = xbxdb.scoped_session()
+        s.add(enc_run)
+        s.add(dec_run)
+        s.flush()  # Need to add and flush to get id
         enc_run.pair_id = enc_run.id
         dec_run.pair_id = enc_run.id
-        enc_run._execute()
-        dec_run._execute()
-        return enc_run,dec_run
 
+        # Generate data 
+        (data, plaintext, assoc_data, 
+         key, secret_num, public_num) = enc_run._gen_enc_params() 
+
+        retval, ciphertext = enc_run._execute(data)
+
+        if retval != 0:
+            raise xbxr.XbdResultFailError("XBD execute returned {}".format(retval))
+
+        data = CryptoAeadRun._assemble_dec_params(ciphertext, assoc_data,
+                                                  public_num, key)
+        
+        retval, decrypted_plaintext = dec_run._execute(data)
+
+        if decrypted_plaintext != plaintext:
+            raise xbxr.XbdResultFailError(
+                "Decrypted plaintext does not match CipherText")
+
+        return enc_run, dec_run
+# }}}
 
 OPERATIONS={
     "crypto_aead": (CryptoAeadRun, xbh.TypeCode.AEAD),
