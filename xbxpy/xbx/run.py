@@ -25,8 +25,15 @@ class Error(Exception):
 class NoBuildSessionError(Error):
     pass
 
-class XbdChecksumFailError(Error, ValueError):
+class RunValueError(Error):
     pass
+
+class XbdChecksumFailError(Error, RunValueError):
+    pass
+
+class XbdResultFailError(Error, RunValueError):
+    pass
+
 
 class PowerSample(Base):
     __tablename__ = "power_sample"
@@ -112,7 +119,6 @@ class Run(Base):
     def __init__(self, build_exec, **kwargs):
         super().__init__(**kwargs)
         self.build_exec = build_exec
-        self.xbh = self.build_exec.xbh
 
     @reconstructor
     def __load_init(self):
@@ -132,14 +138,17 @@ class Run(Base):
         XBD. Format of packed parameters is defined by XBD code
         """
         import xbx.run_op 
+
+        xbh = self.build_exec.run_session.xbh
+
         operation_name = self.build_exec.run_session.config.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
         if packed_params:
-            self.xbh.upload_param(packed_params, typecode)
-        self.xbh.exec_and_time()
+            xbh.upload_param(packed_params, typecode)
+        xbh.exec_and_time()
         self.measured_cycles = self.xbh.get_measured_cycles()
         self.timestamp = datetime.now()
-        return self.xbh.get_results()
+        return xbh.get_results()
 
     @classmethod
     def run(cls, build_exec, params=None):
@@ -255,7 +264,9 @@ class BuildExec(Base):
                 for i in range(num):
                     t = TestRun.run(self)
                     if not t.test_ok:
-                        raise XbdChecksumFailError(t)
+                        raise XbdChecksumFailError("Build " + str(self.build) +
+                                                   " fails checksum tests") 
+
             try:
                 # Test for half specified runs before running benchmarks
                 test(num_start_tests)
@@ -267,9 +278,9 @@ class BuildExec(Base):
                 # Test for remaining specified runs after running benchmarks to see
                 # if results still valid to check if not corrupted
                 test(num_end_tests)
-            except XbdChecksumFailError as ve:
+            except RunValueError as e:
                 self.test_ok = False
-                _logger.error("Build " + str(self.build) + " fails checksum tests")
+                _logger.error(str(e))
             else:
                 self.test_ok = True
             
@@ -341,8 +352,6 @@ class RunSession(Base, xbxs.SessionMixin):
         # from db
         for be in self.build_execs:
             be.xbh = self.xbh
-            for r in be.runs:
-                r.xbh = self.xbh
 
 
     @xbhlib.attempt("xbh", raise_err=True)
