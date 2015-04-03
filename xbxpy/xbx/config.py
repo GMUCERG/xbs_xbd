@@ -493,7 +493,6 @@ class Config(Base):# {{{
 
                 for m in macro_names:
                     value = None
-                    print(m)
                     match = re.search(m+r'\s+"(.*)"\s*$', api_h, re.MULTILINE)
                     if(match):
                         value = match.group(1).strip('"')

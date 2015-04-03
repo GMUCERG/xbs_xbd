@@ -10,7 +10,6 @@ import time
 from decimal import Decimal
 
 import prog_reader
-import xbh
 
 
 # Maximum segment size, assuming IPv6 and all TCP options (for worst-case)
@@ -46,7 +45,7 @@ class StateError(xbh.Error):
     pass
 
 
-class ValueError(xbh.Error, ValueError):
+class XbhValueError(xbh.Error, ValueError):
     pass
 
 
@@ -183,14 +182,14 @@ class Xbh:# {{{
                 msg[0:8].decode())
 
         if match == None:
-            raise xbh.ValueError("Received invalid answer to " +
+            raise XbhValueError("Received invalid answer to " +
                     self._cmd_pending+": "+msg.decode()+".")
 
         version = match.group(1)
         status = match.group(2)
 
         if version != PROTO_VERSION:
-            raise xbh.ValueError("XBH protocol version was " + version + 
+            raise XbhValueError("XBH protocol version was " + version + 
                     ", this tool requires "+PROTO_VERSION+".")
 
         if status == 'a':
@@ -323,7 +322,7 @@ class Xbh:# {{{
         _logger.debug("Downloading results")
 
         self._exec("ur")
-        fmt = "!I"
+        fmt = "!i"
         msg = self._xbh_response()
         retval, = struct.unpack_from(fmt, msg)
         data = msg[struct.calcsize(fmt):]

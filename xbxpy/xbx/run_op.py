@@ -50,7 +50,7 @@ class CryptoHashRun(xbx.run.Run):
         _logger.info("Running benchmark on {} with msg length {}".
                      format(build_exec.build, params[0]))
         run = cls(build_exec, msg_len=params[0])
-        run._execute()
+        run._execute(run.__assemble_params())
         return run
 
 
@@ -60,19 +60,22 @@ class CryptoAeadRun(xbxr.Run):
 
     Attributes of interest:
 
-        msg_len         Message Length
+        plaintext_len    Plaintext message Length
 
-        auth_data_len   Authenticated Data Length
+        assoc_data_len   Associated Data Length
 
-        direction       Encryption or Decryption
+        direction        CryptoAeadRun.ENCRYPT or CryptoAeadRun.DECRYPT
 
     """
+    ENCRYPT="enc"
+    DECRYPT="dec"
     __tablename__ = "crypto_aead_run"
 
     id = Column(Integer)
+    pair_id = Column(Integer)
     msg_len = Column(Integer)
-    auth_data_len = Column(Integer)
-    direction = Column(Enum("enc", "dec"))
+    assoc_data_len = Column(Integer)
+    direction = Column(Enum(ENCRYPT, DECRYPT))
 
     __mapper_args__ = {
         'polymorphic_identity':'crypto_aead_run',
@@ -82,20 +85,60 @@ class CryptoAeadRun(xbxr.Run):
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
 
-    ENCRYPT="enc"
-    DECRYPT="dec"
 
     def __init__(self, build_exec, params=None, **kwargs):
         super().__init__(build_exec, params,  **kwargs)
-        self.msg_len = params[0]
-        self.auth_data_len = params[1]
+        self.plaintext_len = params[0]
+        self.assoc_data_len = params[1]
 
-    def _assemble_params(self):
-        data = bytearray(struct.pack("!I",self.msg_len))
-        data += os.urandom(self.msg_len)
-        data += bytearray(struct.pack("!I",self.auth_data_len))
-        data += os.urandom(self.auth_data_len)
-        return data 
+    def _gen_enc_params(self):
+        macros = self.buildexec.build.implementation.macros
+
+        key_bytes = macros['_KEYBYTES']
+        secret_number_bytes = macros['_NSECBYTES']
+        public_number_bytes = macros['_NPUBBYTES']
+        header = struct.pack(
+            "!IIIII",
+            self.plaintext_len, 
+            self.assoc_data_len,
+            secret_number_bytes,
+            public_number_bytes,
+            key_bytes
+        )
+        plaintext  = os.urandom(self.plaintext_len)
+        assoc_data = os.urandom(self.assoc_data_len)
+        secret_num = os.urandom(secret_number_bytes)
+        public_num = os.urandom(public_number_bytes)
+        key        = os.urandom(key_bytes)
+
+        data = b''.join((header, 
+                         plaintext, 
+                         assoc_data, 
+                         secret_num, 
+                         public_num,
+                         key))
+
+        return data, plaintext, assoc_data, key, secret_num, public_num
+
+    def _assemble_dec_params(self, ciphertext, assoc_data, public_num, key):
+        header = bytearray(
+            struct.pack(
+                "!IIII",
+                len(ciphertext),
+                len(assoc_data),
+                len(public_num),
+                len(key),
+            )
+        )
+
+        data = b''.join((header,
+                         ciphertext, 
+                         assoc_data, 
+                         public_num, 
+                         key))
+        
+        return data
+
     
     @classmethod
     def run(cls, build_exec, params=None):
@@ -103,10 +146,18 @@ class CryptoAeadRun(xbxr.Run):
         buildexec. Call this instead of constructor"""
         _logger.info("Running benchmark on {} with msg length {}".
                      format(build_exec.build, params[0]))
+        s = xbxdb.scoped_session()
         enc_run = cls(build_exec, params, direction=CryptoAeadRun.ENCRYPT)
         dec_run = cls(build_exec, params, direction=CryptoAeadRun.DECRYPT)
-        run._execute()
-        return run
+
+        (data, plaintext, assoc_data, key, secret_num, public_num) = enc_run._gen_enc_params() 
+
+        # Set identical pair ids so we know encryption/decryption pairs
+        enc_run.pair_id = enc_run.id
+        dec_run.pair_id = enc_run.id
+        enc_run._execute()
+        dec_run._execute()
+        return enc_run,dec_run
 
 
 OPERATIONS={

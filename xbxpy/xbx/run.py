@@ -119,18 +119,23 @@ class Run(Base):
         pass
 
     def _assemble_params(self):
+        """Extend this to return parameters packed to send to XBD"""
         pass
 
     def _calculate_power(self):
         pass
     
-    def _execute(self):
-        """Executes and returns results"""
+    def _execute(self, packed_params=None):
+        """Executes and returns results 
+        
+        packed_params is an optional bytearray containing parameters to pass to
+        XBD. Format of packed parameters is defined by XBD code
+        """
         import xbx.run_op 
         operation_name = self.build_exec.run_session.config.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
-
-        self.xbh.upload_param(self._assemble_params(), typecode)
+        if packed_params:
+            self.xbh.upload_param(packed_params, typecode)
         self.xbh.exec_and_time()
         self.measured_cycles = self.xbh.get_measured_cycles()
         self.timestamp = datetime.now()
@@ -160,7 +165,7 @@ class TestRun(Run):
         PrimaryKeyConstraint("id"),
         ForeignKeyConstraint(["id"], ["run.id"]))
 
-    def _execute(self):
+    def _execute(self, packed_params=None):
         self.xbh.calc_checksum()
         retval, data = self.xbh.get_results()
         self.checksumsmall_result = binascii.hexlify(data).decode()
