@@ -167,6 +167,7 @@ class TestRun(Run):
     id = Column(Integer)
     checksumsmall_result = Column(String)
     checksumlarge_result = Column(String)
+    checksumfail_cause   = Column(String)
     test_ok              = Column(Boolean)
 
     __mapper_args__ = {
@@ -179,7 +180,13 @@ class TestRun(Run):
 
     def _execute(self, packed_params=None):
         xbh = self.build_exec.run_session.xbh
-        results, timings, self.stack_usage = xbh.calc_checksum()
+        results = None
+        timings = None
+        try:
+            results, timings, self.stack_usage = xbh.calc_checksum()
+        except xbhlib.ChecksumFailError as e:
+            self.checksumfail_cause = str(e)
+
         self.timestamp = datetime.now()
         self.measured_cycles = xbh.get_measured_cycles(timings)
         self.time = xbh.get_measured_time(timings)

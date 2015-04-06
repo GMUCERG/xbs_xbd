@@ -45,6 +45,9 @@ class Error(Exception):
 class XbdFailError(xbh.Error):
     pass
 
+class ChecksumFailError(xbh.Error):
+    pass
+
 class XbhValueError(xbh.Error, ValueError):
     pass
 
@@ -416,7 +419,7 @@ class Xbh:# {{{
         except XbdFailError as e:
             retval, msg = self._get_results();
             if retval == FAIL_CHECKSUM:
-                raise XbdFailError("Test failure: "+msg.decode()) from e
+                raise ChecksumFailError("Test failure: "+msg.decode()) from e
             else:
                 raise
 
