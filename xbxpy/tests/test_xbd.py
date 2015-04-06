@@ -15,7 +15,8 @@ import xbx.config as xbxc
 import xbx.build as xbxb
 import xbx.database as xbxdb
 
-UPLOAD=False
+#UPLOAD=False
+UPLOAD=True
 
 CONFIG_PATH="test_config.ini"
 
@@ -52,7 +53,7 @@ class XbdCryptoHashTest(unittest.TestCase):
         )
 
         if UPLOAD:
-            xbh.upload_prog(build.hex_path)
+            XbdCryptoHashTest.xbh.upload_prog(XbdCryptoHashTest.build.hex_path)
 
 
     def test_checksum(self):
