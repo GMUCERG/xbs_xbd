@@ -6,9 +6,15 @@ import unittest.case
 
 import xbh
 import xbx.config as xbxc
+import xbx.util as xbxu
+import xbx.config as xbxc
+import xbx.build as xbxb
+import xbx.database as xbxdb
+
+CONFIG_PATH="config.ini"
 
 
-# Test with Keccakc512
+# Test with Keccakc512/Simple
 class XbhTest(unittest.TestCase):
     config = None
     xbh = None
@@ -17,7 +23,7 @@ class XbhTest(unittest.TestCase):
         self.config = xbxc.Config("test_config.ini")
         c = self.config
         self.xbh = xbh.Xbh(
-                    c.xbh_addr, c.xbh_port, 
+                    c.xbh_addr, c.xbh_port,
                     c.platform.pagesize,
                     c.platform.clock_hz)
     def tearDown(self):
@@ -36,7 +42,8 @@ class XbhTest(unittest.TestCase):
     def test_calibration(self):
         cycles = self.xbh.get_timing_cal()
         self.assertAlmostEqual(cycles, self.config.platform.clock_hz, delta=1000)
-        
+
+
 
 
 
