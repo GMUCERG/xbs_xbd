@@ -52,7 +52,7 @@ class BuildJob:# {{{
             self.buildid,
             self.platform_name), extra=self.log_attr)
 
-        _make(self.work_path, _buildjob_logger.debug, _buildjob_logger.debug, "all", 
+        _make(self.work_path, _buildjob_logger.debug, _buildjob_logger.debug, "all",
               self.parallel_make, extra=self.log_attr)
 
         if os.path.isfile(self.hex_path):
@@ -549,6 +549,7 @@ def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
     def read_thread(fd, log_fn):
         for l in iter(fd.readline, b''):
             log_fn(l.decode().strip("\n"), extra=extra)
+        fd.close()
 
     stdout_t = threading.Thread(target=read_thread, args=(process.stdout, log_fn))
     stderr_t = threading.Thread(target=read_thread, args=(process.stderr, err_log_fn))
