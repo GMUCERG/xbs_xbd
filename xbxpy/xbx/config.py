@@ -28,7 +28,7 @@ DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "config.ini")
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['hash'], 
         lambda query, **kwargs: query.filter(Platform.hash == kwargs['hash']))
-class Platform(Base):# {{{
+class Platform(Base):
     __tablename__  = "platform"
 
     hash           = Column(String)
@@ -39,7 +39,7 @@ class Platform(Base):# {{{
     tmpl_path      = Column(String)
 
     compilers = relationship(
-        "Compiler", 
+        "Compiler",
         backref="platform",
     )
 
@@ -51,6 +51,7 @@ class Platform(Base):# {{{
         """Verifies if hash still valid"""
         hash = dirchecksum(self.path)
         return hash == self.hash
+
     # @reconstructor
     # def load_init(self):
     #     """Verifies if hash still valid and saves new result in DB"""
@@ -70,10 +71,10 @@ class Platform(Base):# {{{
     #     else:
     #         valid_hash = True
     #     return valid_hash
-# }}}
 
 
-class Compiler(Base):# {{{
+
+class Compiler(Base):
     __tablename__ = "compiler"
 
     platform_hash = Column(String)
@@ -91,12 +92,12 @@ class Compiler(Base):# {{{
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
     )
     pass # For indentation
-# }}}
+
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['name'], 
         lambda query, **kwargs: query.filter(Operation.name == kwargs['name']))
-class Operation(Base):# {{{
+class Operation(Base):
     __tablename__ = "operation"
 
     name          = Column(String)
@@ -119,20 +120,20 @@ class Operation(Base):# {{{
 
         self.macro_names  = list(filter(bool, match.group(2).split(':')))
         self.prototypes   = match.group(3).split(':')
-# }}}
+
 
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['name']+'_'+kwargs['operation'].name, 
         lambda query, **kwargs: query.filter(Operation.name == kwargs['operation'].name, 
                                              Primitive.name == kwargs['name']))
-class Primitive(Base):# {{{
+class Primitive(Base):
     __tablename__  = "primitive"
 
     name           = Column(String)
     operation_name = Column(String)
     checksumsmall  = Column(String)
-    checksumlarge  = Column(String)
+    checksumbig    = Column(String)
     path           = Column(String)
 
     implementations = relationship(
@@ -148,13 +149,13 @@ class Primitive(Base):# {{{
             ["operation.name"]
         ),
     )
-# }}}
+
 
 
 @unique_constructor(scoped_session, 
         lambda **kwargs: kwargs['hash'], 
         lambda query, **kwargs: query.filter(Implementation.hash == kwargs['hash']))
-class Implementation(Base):# {{{
+class Implementation(Base):
     __tablename__  = "implementation"
     hash           = Column(String)
     name           = Column(String)
@@ -185,13 +186,13 @@ class Implementation(Base):# {{{
 
 
 
-# }}}
+
 
 
 @unique_constructor(scoped_session, 
         lambda config_path, **kwargs: hash_config(config_path), 
         lambda query, config_path, **kwargs: query.filter(Config.hash == hash_config(config_path)))
-class Config(Base):# {{{
+class Config(Base):
     """Configuration for running benchmarks on a single operation on a single platform"""
 
     __tablename__    = "config"
@@ -234,7 +235,7 @@ class Config(Base):# {{{
     )
 
 
-    def __init__(self, config_path, **kwargs):# {{{
+    def __init__(self, config_path, **kwargs):
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
@@ -251,10 +252,8 @@ class Config(Base):# {{{
         self.work_path      = config.get('paths','work')
         self.data_path      = config.get('paths','data')
 
-        self.one_compiler = bool(distutils.util.strtobool(
-            config.get('build', 'one_compiler')))
-        self.parallel_build = bool(distutils.util.strtobool(
-            config.get('build', 'parallel_build')))
+        self.one_compiler = config.getboolean('build', 'one_compiler')
+        self.parallel_build = config.getboolean('build', 'parallel_build')
 
         # XBH address
         self.xbh_addr = config.get('xbh', 'address')
@@ -272,10 +271,10 @@ class Config(Base):# {{{
         self.operation          = Config.__enum_operation(name, op_filename)
 
         # Runtime parameters
-        self.drift_measurements = int(config.get('run','drift_measurements'))
-        self.checksum_tests     = int(config.get('run','checksum_tests'))
-        self.xbh_timeout        = int(config.get('run','xbh_timeout'))
-        self.exec_runs          = int(config.get('run','exec_runs'))
+        self.drift_measurements = config.getint('run','drift_measurements')
+        self.checksum_tests     = config.getint('run','checksum_tests')
+        self.xbh_timeout        = config.getint('run','xbh_timeout')
+        self.exec_runs          = config.getint('run','exec_runs')
 
         # Parameters
         self.operation_params   = []
@@ -306,13 +305,13 @@ class Config(Base):# {{{
             self.whitelist, 
             self.algopack_path
         )
-# }}}
+
 
 
         
 
     @staticmethod
-    def __enum_platform(name, platforms_path):# {{{
+    def __enum_platform(name, platforms_path):
         """Enumerate platform settings, given path to platform directory"""
         _logger.debug("Enumerating platforms")
 
@@ -350,10 +349,10 @@ class Config(Base):# {{{
                 compilers=compilers
             )
 
-    # }}}
+    
 
     @staticmethod
-    def __enum_compilers(platform_path, tmpl_path):# {{{
+    def __enum_compilers(platform_path, tmpl_path):
         _logger.debug("Enumerating compilers")
         cc_list = []
         cxx_list = []
@@ -412,10 +411,10 @@ class Config(Base):# {{{
         
         return compilers
 
-    # }}}
+    
 
     @staticmethod
-    def __enum_prim_impls(operation, primitive_names, blacklist, whitelist, algopack_path):# {{{
+    def __enum_prim_impls(operation, primitive_names, blacklist, whitelist, algopack_path):
         """Get primitive implementations 
         
         Blacklist has priority: impls = whitelist & ~blacklist
@@ -443,16 +442,23 @@ class Config(Base):# {{{
             # path and implementations as value
             path = os.path.join(op_path,name)
             operation = operation
+
             checksumfile = os.path.join(path, "checksumsmall")
             checksumsmall = ""
             with open(checksumfile) as f:
                 checksumsmall = f.readline().strip()
 
+            checksumfile = os.path.join(path, "checksumbig")
+            checksumbig= ""
+            with open(checksumfile) as f:
+                checksumbig = f.readline().strip()
+
             p = Primitive(
                     operation=operation,
-                    name=name, 
+                    name=name,
                     path=path,
-                    checksumsmall=checksumsmall
+                    checksumsmall=checksumsmall,
+                    checksumbig=checksumbig
                 )
 
             primitives += p,
@@ -506,10 +512,6 @@ class Config(Base):# {{{
                             value = None
                     macros[m] = value
 
-
-
-
-
                 # Don't have to add to p.implementations, as Implementation sets
                 # Primitive as parent, which inserts into list
                 Implementation(
@@ -522,10 +524,10 @@ class Config(Base):# {{{
 
         return primitives
 
-    # }}}
+    
 
     @staticmethod
-    def __enum_operation(name, filename):# {{{
+    def __enum_operation(name, filename):
         """Generate operation"""
         _logger.debug("Enumerating operations")
 
@@ -534,9 +536,9 @@ class Config(Base):# {{{
                 match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
                 if match.group(1) == name:
                     return Operation(name=name, operation_str=l.strip())
-    # }}}
+    
 
-# }}}
+
 config_hash_cache = {}
 
 def hash_config(config_path):

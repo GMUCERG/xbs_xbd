@@ -5,9 +5,9 @@ import binascii
 from datetime import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Numeric 
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Numeric
 from sqlalchemy.orm import relationship, reconstructor
-from sqlalchemy.orm.exc import NoResultFound 
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
 
 from xbx.database import JSONEncodedDict
@@ -48,17 +48,17 @@ class PowerSample(Base):
         ForeignKeyConstraint( ["run_id"], ["run.id"]),
     )
 
-    
+
 
 class Run(Base):
     """Contains data generic to all runs
 
     Power values are summarized for easy analysis and sorting, instead of adding
-    each sample as a row. 
+    each sample as a row.
 
     This class should not be instantiated directly. Call the run() class method
     of subclasses
-    
+
     Attributes of interest:
 
         measured_cycles     Cycles calculated from measured time and known clock
@@ -83,7 +83,7 @@ class Run(Base):
         power_data          JSON encoded power data
 
         timestamp           Timestamp of execution copmletion
-        
+
     """
     __tablename__   = "run"
 
@@ -130,14 +130,14 @@ class Run(Base):
 
     def _calculate_power(self):
         pass
-    
+
     def _execute(self, packed_params=None):
-        """Executes and returns results 
-        
+        """Executes and returns results
+
         packed_params is an optional bytearray containing parameters to pass to
         XBD. Format of packed parameters is defined by XBD code
         """
-        import xbx.run_op 
+        import xbx.run_op
 
         xbh = self.build_exec.run_session.xbh
 
@@ -191,7 +191,7 @@ class TestRun(Run):
             _logger.error("Checksum failed with return code {}".format(retval))
             self.test_ok = False
         elif (self.checksumsmall_result ==
-              self.build_exec.build.primitive.checksumsmall): 
+              self.build_exec.build.primitive.checksumsmall):
             self.test_ok = True
         else:
             self.test_ok = False
@@ -207,13 +207,13 @@ class TestRun(Run):
         run = cls(build_exec)
         run._execute()
         return run
-        
+
 
 @unique_constructor(
-    scoped_session, 
-    lambda run_session, build, *args, **kwargs: 
-        str(run_session.id)+"_"+str(build.id), 
-    lambda query, run_session, build, *args, **kwargs: 
+    scoped_session,
+    lambda run_session, build, *args, **kwargs:
+        str(run_session.id)+"_"+str(build.id),
+    lambda query, run_session, build, *args, **kwargs:
         query.filter(BuildExec.build==build, BuildExec.run_session==run_session)
 )
 class BuildExec(Base):
@@ -246,7 +246,7 @@ class BuildExec(Base):
 
     @reconstructor
     def __load_init(self):
-        import xbx.run_op 
+        import xbx.run_op
         op_name = self.run_session.config.operation.name
         self.RunType, typecode = xbx.run_op.OPERATIONS[op_name]
 
@@ -272,7 +272,7 @@ class BuildExec(Base):
                     t = TestRun.run(self)
                     if not t.test_ok:
                         raise XbdChecksumFailError("Build " + str(self.build) +
-                                                   " fails checksum tests") 
+                                                   " fails checksum tests")
 
             try:
                 # Test for half specified runs before running benchmarks
@@ -290,20 +290,20 @@ class BuildExec(Base):
                 _logger.error(str(e))
             else:
                 self.test_ok = True
-            
 
 
 
 
-    
+
+
 
 class RunSession(Base, xbxs.SessionMixin):
     """Manages runs specified in config that are defined in the last
     BuildSession
 
     Pass in database object into constructor to save session and
-    populate id 
-    
+    populate id
+
     """
     __tablename__ = "run_session"
 
@@ -324,7 +324,7 @@ class RunSession(Base, xbxs.SessionMixin):
         super().__init__(config=config, *args, **kwargs)
         self._setup_session()
 
-        try: 
+        try:
             if build_session_id == None:
                 s = xbxdb.scoped_session()
                 q = s.query(xbxb.BuildSession).order_by(
@@ -343,12 +343,12 @@ class RunSession(Base, xbxs.SessionMixin):
         c = self.config
         try:
             self.xbh = xbhlib.Xbh(
-                c.xbh_addr, c.xbh_port, 
+                c.xbh_addr, c.xbh_port,
                 c.platform.pagesize,
                 c.platform.clock_hz,
                 c.xbh_timeout
             )
-            
+
         except xbhlib.Error as e:
             logger.critical(str(e))
             sys.exit(1)
@@ -364,10 +364,10 @@ class RunSession(Base, xbxs.SessionMixin):
     @xbhlib.attempt("xbh", raise_err=True)
     def do_drift_measurement(self):
         for i in range(self.config.drift_measurements):
-            (abs_error, 
-             rel_error, 
-             cycles, 
-             measured_cycles) = self.xbh.measure_timing_error()  
+            (abs_error,
+             rel_error,
+             cycles,
+             measured_cycles) = self.xbh.measure_timing_error()
 
             logger.debug(("Abs Error: {}, Rel Error: {}, Cycles: {}, "
                           "Measured Cycles: {}").format(abs_error,
@@ -376,9 +376,9 @@ class RunSession(Base, xbxs.SessionMixin):
                                                        measured_cycles))
 
             DriftMeasurement(
-                abs_error=abs_error, 
+                abs_error=abs_error,
                 rel_error=rel_error,
-                cycles=cycles, 
+                cycles=cycles,
                 measured_cycles=measured_cycles,
                 run_session=self
             )
