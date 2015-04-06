@@ -400,7 +400,6 @@ class RunSession(Base, xbxs.SessionMixin):
             s = xbxdb.scoped_session()
             s.add(be)
             s.commit()
-            break;
 
 
 class DriftMeasurement(Base):# {{{
