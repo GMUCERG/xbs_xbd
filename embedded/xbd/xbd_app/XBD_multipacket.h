@@ -1,12 +1,31 @@
-#ifndef XBD_multipacket_h
-#define XBD_multipacket_h
+#ifndef _XBD_MULTIPACKET_H
+#define _XBD_MULTIPACKET_H
 
-extern uint32_t xbd_genmp_dataleft;
-extern uint8_t realTXlen;
+#include <stdbool.h>
+#include <inttypes.h>
 
-uint32_t XBD_genSucessiveMultiPacket(const uint8_t* srcdata, uint8_t* dstbuf, uint32_t dstlenmax, const char  *code);
-uint32_t XBD_genInitialMultiPacket(const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr);
-uint8_t XBD_recSucessiveMultiPacket(const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const char *code);
-uint8_t XBD_recInitialMultiPacket(const uint8_t* recdata, uint32_t reclen, const char *code, uint8_t hastype, uint8_t hasaddr);
+#include "XBD_commands.h"
 
-#endif
+#define NO_MP_TYPE 0xFFFFFFFF
+#define NO_MP_ADDR 0xFFFFFFFF
+
+
+struct xbd_multipkt_state{
+uint32_t addr;
+uint32_t datanext;
+uint32_t dataleft;
+uint32_t seqn;
+uint32_t type;
+const void *tgt_data;
+};
+
+size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *srcdata, size_t srclen, void *dstbuf, const char *cmd_code, uint32_t addr, uint32_t type);
+
+size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void *dstbuf, uint32_t dstlenmax, const char *cmd_code);
+
+int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, const char *cmd_code, bool hastype, bool hasaddr);
+
+int XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, void *dstbuf, uint32_t dstlenmax, const char *code);
+
+
+#endif /* _XBD_MULTIPACKET_H */

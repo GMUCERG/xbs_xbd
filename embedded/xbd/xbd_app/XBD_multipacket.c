@@ -1,186 +1,143 @@
-#include <stdint.h>
-
-#include <XBD_commands.h>
-#include <XBD_debug.h>
+#include <stdbool.h>
+#include <inttypes.h>
+#include "string.h"
+#include "XBD_HAL.h"
+#include "XBD_debug.h"
+#include "XBD_commands.h"
 
 #include "XBD_multipacket.h"
+#define htonl HTONL
+#define ntohl NTOHL
 
-#include <string.h>
+size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *srcdata, size_t srclen, void *dstbuf, const char *cmd_code, uint32_t addr, uint32_t type) {
+    size_t offset=0;
+    state->seqn=0;
+    state->datanext=0;
+    state->dataleft=srclen;
 
-uint8_t realTXlen;
+    memcpy(dstbuf, cmd_code, XBD_COMMAND_LEN);
+    offset+=XBD_COMMAND_LEN;
 
-uint32_t xbd_genmp_seqn,xbd_genmp_dataleft,xbd_genmp_datanext;
-uint32_t xbd_recmp_seqn,xbd_recmp_dataleft,xbd_recmp_datanext,xbd_recmp_type,xbd_recmp_addr;
+    if(NO_MP_TYPE != type) {
+        *((uint32_t*) ((uint8_t*)dstbuf + offset)) = htonl(type);
+        offset+=TYPESIZE;
+    }
 
-uint32_t XBD_genSucessiveMultiPacket(const uint8_t* srcdata, uint8_t* dstbuf, uint32_t dstlenmax, const char  *code)
-{
-	uint32_t offset=0;
-	uint32_t cpylen;
+    if(NO_MP_ADDR != addr)
+    {
+        *((uint32_t*) ((uint8_t*)dstbuf + offset)) = htonl(addr);
+        offset+=ADDRSIZE;
+    }
 
-	if(0 == xbd_genmp_dataleft)
-		return 0;
+    *((uint32_t*) ((uint8_t*)dstbuf + offset)) = htonl(srclen);
+    offset+=LENGSIZE;
 
-	memset(dstbuf,0x77,dstlenmax);
-	
-		
+    state->type = type;
+    state->tgt_data = srcdata;
 
-	XBD_loadStringFromConstDataArea((char *)dstbuf, code);
-	offset+=XBD_COMMAND_LEN;
+    return offset;
+}
+size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void* dstbuf, uint32_t dstlenmax, const char *cmd_code) {
+    uint32_t offset=0;
+    uint32_t cpylen;
 
-	//XBD_debugOutBuffer("smp1:",dstbuf, XBD_ANSWERLENG_MAX+2);
+    if(0 == state->dataleft)
+        return 0;
 
-	*((uint32_t*) (dstbuf + offset)) = HTONL(xbd_genmp_seqn);
-	xbd_genmp_seqn++;
-	offset+=SEQNSIZE;
-
-	//XBD_debugOutBuffer("smp2:",dstbuf, XBD_ANSWERLENG_MAX+2);
-
-	cpylen=(dstlenmax-offset);	//&(~3);	//align 32bit
-	if(cpylen > xbd_genmp_dataleft)
-		cpylen=xbd_genmp_dataleft;
-
-	memcpy((dstbuf+offset),(srcdata+xbd_genmp_datanext),cpylen);
-
-
-	xbd_genmp_dataleft-=cpylen;
-	xbd_genmp_datanext+=cpylen;
-	offset+=cpylen;
-
+    memcpy(dstbuf, cmd_code, XBD_COMMAND_LEN);
+    offset+=XBD_COMMAND_LEN;
 
 
-//	XBD_debugOutBuffer("offset:",&offset, 2);
+    XBD_DEBUG("SQN:");
+    XBD_DEBUG_32B(state->seqn);
+    *((uint32_t*) ((uint8_t *)dstbuf + offset)) = htonl(state->seqn);
+    offset+=SEQNSIZE;
+    state->seqn++;
 
+    cpylen=(dstlenmax-offset);  //&(~3);    //align 32bit
+    if(cpylen > state->dataleft)
+        cpylen = state->dataleft;
 
-//	XBD_debugOutBuffer("smp3:",dstbuf, XBD_ANSWERLENG_MAX+2);
+    memcpy(((uint8_t *)dstbuf+offset),((uint8_t *)state->tgt_data+state->datanext), cpylen);
+    state->dataleft-=cpylen;
+    state->datanext+=cpylen;
+    offset+=cpylen;
 
-
-//	XBD_debugOutBuffer("smp4:",dstbuf, XBD_ANSWERLENG_MAX+2);
-	realTXlen=XBD_ANSWERLENG_MAX;
-	return offset;
+    return offset;
 }
 
-uint32_t XBD_genInitialMultiPacket(const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr)
-{
-	uint32_t offset=0;
+int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, const char *cmd_code, bool hastype, bool hasaddr) {
+    uint32_t offset=0;
 
-	xbd_genmp_seqn=0;
-	xbd_genmp_datanext=0;
-	xbd_genmp_dataleft=srclen;
+    state->seqn=0;
+    state->datanext=0;
 
-	XBD_loadStringFromConstDataArea((char *) dstbuf, (char *)code);
-	offset+=XBD_COMMAND_LEN;
+    if(memcmp(cmd_code,recdata,XBD_COMMAND_LEN)){
+        return 1;   //wrong command code
+    }
 
+    offset+=XBD_COMMAND_LEN;
+    if(offset > reclen)
+        return 2;   //rec'd packet too short
 
-	if(0xffffffff != type)
-	{	
-		//uint32_t target=dstbuf+offset;
-		//XBD_debugOutBuffer("type:",&type, 4);
-		//XBD_debugOutBuffer("target:",&target, 4);
-	
-		
-		*((uint32_t*) (dstbuf + offset)) = HTONL(type);
-		//XBD_debugOutBuffer("type@target:",dstbuf+offset, 4);
-		offset+=TYPESIZE;
-	}
+    if(hastype) {
+        state->type=ntohl(*((uint32_t*) ((uint8_t *)recdata + offset)));
+        offset+=TYPESIZE;
+        if(offset > reclen)
+            return 2;   //rec'd packet too short
+    }
 
-	if(0xffffffff != addr)
-	{
-		*((uint32_t*) (dstbuf + offset)) = HTONL(addr);
-		offset+=ADDRSIZE;
-	}
+    if(hasaddr) {
+        state->addr=ntohl(*((uint32_t*) ((uint8_t *)recdata + offset)));
+        offset+=ADDRSIZE;
+        if(offset > reclen)
+            return 2;   //rec'd packet too short
+    }
 
+    state->dataleft=ntohl(*((uint32_t*) ((uint8_t *)recdata + offset)));
+    offset+=LENGSIZE;
+    if(offset > reclen)
+        return 2;   //rec'd packet too short
 
-	
-	*((uint32_t*) (dstbuf + offset)) = HTONL(srclen);
-	//XBD_debugOutBuffer("srclen:",&srclen, 4);
-	//XBD_debugOutBuffer("srclen@target:",dstbuf+offset, 4);
-	offset+=LENGSIZE;
-#ifdef DEBUG
-	XBD_DEBUG("\noffset="); XBD_DEBUG_32B(offset);
-    XBD_DEBUG("\n");
-#endif
-	realTXlen=XBD_ANSWERLENG_MAX;
-	return offset;
+    return 0;
 }
 
-uint8_t XBD_recSucessiveMultiPacket(const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const char *code)
-{
-	uint32_t offset=0;
-	uint32_t cpylen;
-	char strtmp[XBD_COMMAND_LEN+1];
+int XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, void *dstbuf, uint32_t dstlenmax, const char *code) {
+    uint32_t offset=0;
+    uint32_t cpylen;
 
-	if(0 == xbd_recmp_dataleft)
-		return 0;
+    if(0 == state->dataleft)
+        return 0;
 
-	XBD_loadStringFromConstDataArea(strtmp, code);
-	if(strncmp(strtmp,(char *) recdata,XBD_COMMAND_LEN))
-		return 1;	//wrong command code
-	offset+=XBD_COMMAND_LEN;
-	if(offset > reclen)
-		return 2;	//rec'd packet too shor
+    if(memcmp(code,recdata,XBD_COMMAND_LEN))
+        return 1;   //wrong command code
+    offset+=XBD_COMMAND_LEN;
+    if(offset > reclen)
+        return 2;   //rec'd packet too shor
 
-	if(xbd_recmp_seqn==NTOHL(*((uint32_t*) (recdata + offset))))
-	{
-		offset+=SEQNSIZE;
-		if(offset > reclen)
-			return 2;	//rec'd packet too short
-		++xbd_recmp_seqn;
-	}
-	else
-		return 3;	//seqn error
+    if(state->seqn==ntohl(*((uint32_t*) ((uint8_t *)recdata + offset))))
+    {
+        offset+=SEQNSIZE;
+        if(offset > reclen)
+            return 2;   //rec'd packet too short
+        ++state->seqn;
+    }
+    else
+        return 3;   //seqn error
 
 
-	cpylen=(reclen-offset);	//&(~3);	//align 32bit
-	if(cpylen > xbd_recmp_dataleft)
-		cpylen=xbd_recmp_dataleft;
+    cpylen=(reclen-offset); //&(~3);    //align 32bit
+    if(cpylen > state->dataleft)
+        cpylen=state->dataleft;
 
-	if(xbd_recmp_datanext+cpylen > dstlenmax)
-		return 4;	//destination buffer full
+    if(state->datanext+cpylen > dstlenmax)
+        return 4;   //destination buffer full
 
-	memcpy((dstbuf+xbd_recmp_datanext),(recdata+offset),cpylen);
-	xbd_recmp_dataleft-=cpylen;
-	xbd_recmp_datanext+=cpylen;
-	offset+=cpylen;
+    memcpy(((uint8_t *)dstbuf+state->datanext),((uint8_t *)recdata+offset),cpylen);
+    state->dataleft-=cpylen;
+    state->datanext+=cpylen;
+    offset+=cpylen;
 
-	return 0;	//OK
+    return 0;
 }
 
-uint8_t XBD_recInitialMultiPacket(const uint8_t* recdata, uint32_t reclen, const char *code, uint8_t hastype, uint8_t hasaddr)
-{
-	uint32_t offset=0;
-	char strtmp[XBD_COMMAND_LEN+1];
-
-	xbd_recmp_seqn=0;
-	xbd_recmp_datanext=0;
-
-	XBD_loadStringFromConstDataArea(strtmp, code);
-	if(strncmp(strtmp,(const char *)recdata,XBD_COMMAND_LEN))
-		return 1;	//wrong command code
-
-	offset+=XBD_COMMAND_LEN;
-	if(offset > reclen)
-		return 2;	//rec'd packet too short
-
-	if(hastype)
-	{
-		xbd_recmp_type=NTOHL(*((uint32_t*) (recdata + offset)));
-		offset+=TYPESIZE;
-		if(offset > reclen)
-			return 2;	//rec'd packet too short
-	}
-
-	if(hasaddr)
-	{
-		xbd_recmp_addr=NTOHL(*((uint32_t*) (recdata + offset)));
-		offset+=ADDRSIZE;
-		if(offset > reclen)
-			return 2;	//rec'd packet too short
-	}
-
-	xbd_recmp_dataleft=NTOHL(*((uint32_t*) (recdata + offset)));
-	offset+=LENGSIZE;
-	if(offset > reclen)
-		return 2;	//rec'd packet too short
-
-	return 0;	//OK
-}

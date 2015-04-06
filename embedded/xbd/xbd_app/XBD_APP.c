@@ -11,9 +11,6 @@
 #include "XBD_multipacket.h"
 
 uint8_t XBD_response[XBD_COMMAND_LEN+1];
-
-#define XBD_PARAMLENG_MAX (2048+ADDRSIZE)
-#define XBD_RESULTLEN (1+3+OPERATION_RESULT_DATALENG)
 // Upload Results XBD00urr[TYPE][DATA][CRC]
 // The results in the DATA part are:
 // u8 returncode	//the hash function return code 0=success
@@ -29,17 +26,15 @@ static alignas(sizeof(uint32_t)) uint8_t xbd_parameter_buffer[XBD_PARAMLENG_MAX]
 static alignas(sizeof(uint32_t)) uint8_t xbd_result_buffer[XBD_RESULTBUF_LENG];
 static alignas(sizeof(uint32_t)) uint8_t xbd_answer_buffer[XBD_ANSWERLENG_MAX];
 
+static struct xbd_multipkt_state multipkt_state;
+static size_t result_buffer_len;
+static uint32_t xbd_stack_use;
 
-uint32_t xbd_stack_use;
 
-
-#define XBD_MUPA_UNUSED 0xFFFFFFFF
 
 #ifndef DEVICE_SPECIFIC_SANE_TC_VALUE
 	#define DEVICE_SPECIFIC_SANE_TC_VALUE 30000
 #endif
-
-
 
 typedef enum enum_XBD_State {
 	fresh = 0, paramdownload, paramok, executed, reporting, reportuploaded, checksummed
@@ -47,11 +42,9 @@ typedef enum enum_XBD_State {
 
 XBD_State xbd_state = fresh;
 
-uint32_t xbd_parameter_type,xbd_parameter_addr, xbd_parameter_leng, xbd_parameter_seqn;
-uint16_t xbd_parambuf_idx;
-
 // These are used by XBD_AF_MsgRecHand and its sub-functions
 char buf[8+1];
+uint16_t txDataLen; //I2C transmit size not including CRC16
 uint16_t ctr, crc, rx_crc;
 
 /**
@@ -77,214 +70,115 @@ void XBD_AF_DisregardBlock(uint8_t len, uint8_t *data) {
 	XBD_DEBUG_BYTE(rx_crc >> 8); XBD_DEBUG_BYTE(rx_crc & 0xff);
 	XBD_DEBUG("\n---------------------\n");
 
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
+	txDataLen=XBD_COMMAND_LEN;
 	return;
 }
 
 void XBD_AF_HandleProgramParametersRequest(uint8_t len, uint8_t* data) {
-	xbd_parameter_type = NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN)) );
-	xbd_parameter_addr = NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN+ ADDRSIZE)) );
-	xbd_parameter_leng = NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE)) );
-	
+    uint8_t retval;
+    XBD_loadStringFromConstDataArea(buf, XBDppr);
+    retval = XBD_recInitialMultiPacket(&multipkt_state, data, len, buf, true, true);
+
 	#ifdef XBX_DEBUG_APP
-	XBD_DEBUG("\ntype="); XBD_DEBUG_32B(xbd_parameter_type);
-	XBD_DEBUG("\naddr="); XBD_DEBUG_32B(xbd_parameter_addr);
-	XBD_DEBUG("\nleng="); XBD_DEBUG_32B(xbd_parameter_leng);
+	XBD_DEBUG("\ntype="); XBD_DEBUG_32B(multipkt_state.type);
+	XBD_DEBUG("\naddr="); XBD_DEBUG_32B(multipkt_state.addr);
+	XBD_DEBUG("\nleng="); XBD_DEBUG_32B(multipkt_state.dataleft);
 	XBD_DEBUG("\ndataptr="); XBD_DEBUG_32B((uint32_t)data);
 	XBD_DEBUG("\ndataptr+offset="); XBD_DEBUG_32B((uint32_t)(data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE));
 	#endif
 
-	if ((XBD_TYPE_EBASH == xbd_parameter_type)
-		&& (xbd_parameter_leng <= XBD_PARAMLENG_MAX) //length small enough
-	) {
-		
-		/*
-		XBD_DEBUG("AF Rec'd correct PP req:");
-		XBD_DEBUG("\nTYPE="), XBD_DEBUG_32B(xbd_parameter_type);
-		XBD_DEBUG("\nADDR="), XBD_DEBUG_32B(xbd_parameter_addr);
-		XBD_DEBUG("\nLENG="), XBD_DEBUG_32B(xbd_parameter_leng);
-		for (ctr = 0; ctr < xbd_parameter_leng; ++ctr) {
-			if (0 == ctr % 16)
-				XBD_DEBUG_CHAR('\n');
-			XBD_DEBUG_BYTE(data[ctr]);
-		}
-		XBD_DEBUG("\n--------");
-		*/
-		xbd_parambuf_idx = 0;
-		xbd_state = paramdownload;
-		xbd_parameter_seqn = 0;
+    if(retval){
+        //prepare 'OK' response to XBH
+        txDataLen=XBD_COMMAND_LEN;
+        XBD_loadStringFromConstDataArea((char *)XBD_response, XBDppf);
+        return;
+    }
 
-		//prepare 'OK' response to XBH
-		XBD_loadStringFromConstDataArea(buf, XBDppo);
-
-	} else {
-		XBD_DEBUG("Rec'd W-R-O-N-G PP req:");
-		XBD_DEBUG("\nTYPE="); XBD_DEBUG_32B(xbd_parameter_type);
-		XBD_DEBUG("\nLENG="); XBD_DEBUG_32B(xbd_parameter_leng);
-		//prepare 'FAIL' response to XBH
-		XBD_loadStringFromConstDataArea(buf, XBDppf);
-	}
-
-	#ifdef XBX_DEBUG_APP
-	XBD_DEBUG_CHAR('\n');
-	XBD_DEBUG(buf);
-	XBD_DEBUG_CHAR('\n');
-	#endif
-
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
-        strcpy((char *)XBD_response, buf);
+    xbd_state = paramdownload;
+    //prepare 'OK' response to XBH
+    txDataLen=XBD_COMMAND_LEN;
+    XBD_loadStringFromConstDataArea((char *)XBD_response, XBDppo);
 	return;
 }
 
 void XBD_AF_HandleParameterDownloadRequest(uint8_t len, uint8_t* data) {
+    XBD_DEBUG("XBDpdr");
 
-	uint8_t cpylen = len - XBD_COMMAND_LEN - SEQNSIZE;
-	#ifdef XBX_DEBUG_APP
-	XBD_DEBUG("\ncpylen="); XBD_DEBUG_32B(cpylen);
-	XBD_DEBUG("\nxbd_parambuf_idx="); XBD_DEBUG_32B(xbd_parambuf_idx);
-	XBD_DEBUG("\nxbd_parameter_leng="); XBD_DEBUG_32B(xbd_parameter_leng);				
-	#endif
-	if ( xbd_parameter_seqn == NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN)) ) ) 
-	{
-		if (xbd_state == paramdownload)
-		{
-			if ((xbd_parambuf_idx+cpylen)<=xbd_parameter_leng)
-			{
-				
-				uint8_t *p_src = (void*) (data+XBD_COMMAND_LEN + SEQNSIZE);
-				memcpy(xbd_parameter_buffer+xbd_parameter_addr+xbd_parambuf_idx, p_src,cpylen );
-				xbd_parambuf_idx+=cpylen;
+    if (xbd_state == paramdownload){
 
-				++xbd_parameter_seqn;
-
-				if(xbd_parambuf_idx == xbd_parameter_leng) {xbd_state = paramok;}
-				/*
-				XBD_DEBUG("\npd data rec'd:");
-				for (ctr = 0; ctr < cpylen; ++ctr) {
-					if (0 == ctr % 16)
-						XBD_DEBUG_CHAR('\n');
-					XBD_DEBUG_BYTE(p_src[ctr]);
-				}
-				XBD_DEBUG("\n--------");
-				*/
-
-
-				//prepare 'OK' response to XBH
-				XBD_loadStringFromConstDataArea(buf, XBDpdo);
-			} else {
-				XBD_DEBUG("Rec'd W-R-O-N-G PD #3 req:");
-				XBD_DEBUG("\ncpylen="); XBD_DEBUG_32B(cpylen);
-				XBD_DEBUG("\nxbd_parambuf_idx="); XBD_DEBUG_32B(xbd_parambuf_idx);
-				XBD_DEBUG("\nxbd_parameter_leng="); XBD_DEBUG_32B(xbd_parameter_leng);				
-				XBD_DEBUG_BUF("arsch", data, len);
-				XBD_loadStringFromConstDataArea(buf, XBDpdf);
-			}	
-		} else {
-			XBD_DEBUG("Rec'd W-R-O-N-G PD #2 req:");
-			XBD_DEBUG("\nxbd_state != paramdownload ="); XBD_DEBUG_32B(xbd_state);
-			XBD_DEBUG_BUF("arsch", data, len);
-			XBD_loadStringFromConstDataArea(buf, XBDpdf);
-
-		}
-	} else {
-		XBD_DEBUG("Rec'd W-R-O-N-G PD #1 req:");
-		XBD_DEBUG("\nSEQN="); XBD_DEBUG_32B( NTOHL( *((uint32_t*) (data + XBD_COMMAND_LEN)) ));
-		XBD_DEBUG("\nxbd_parameter_seqn="); XBD_DEBUG_32B(xbd_parameter_seqn);
-
-		XBD_DEBUG("\ncpylen="); XBD_DEBUG_32B(cpylen);
-		XBD_DEBUG("\nxbd_parambuf_idx="); XBD_DEBUG_32B(xbd_parambuf_idx);
-		XBD_DEBUG("\nxbd_parameter_leng="); XBD_DEBUG_32B(xbd_parameter_leng);
-		
-		XBD_DEBUG("\nstate="); XBD_DEBUG_32B(xbd_state);
-		XBD_DEBUG("\nlen="); XBD_DEBUG_32B(len);
-		XBD_DEBUG_BUF("arsch", data, len);
-		//prepare 'FAIL' response to XBH
-		XBD_loadStringFromConstDataArea(buf, XBDpdf);
-	}
-
-    #ifdef XBX_DEBUG_APP
-	XBD_DEBUG_CHAR('\n');
-	XBD_DEBUG(buf);
-	XBD_DEBUG_CHAR('\n');
-	#endif
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
-	strcpy((char *)XBD_response, buf);
-	return;
-
+        int8_t ret = XBD_recSucessiveMultiPacket(&multipkt_state, data, len, xbd_parameter_buffer+multipkt_state.addr, XBD_PARAMLENG_MAX, XBDpdr);
+        if(ret){
+            XBD_DEBUG("Rec'd W-R-O-N-G Program Parameters Req");
+            XBD_loadStringFromConstDataArea((char *)XBD_response, XBDpdf);
+            txDataLen=XBD_COMMAND_LEN;
+            return;
+        }else{
+            if(multipkt_state.dataleft == 0){
+                xbd_state = paramok;
+            }
+            txDataLen=XBD_COMMAND_LEN;
+            XBD_loadStringFromConstDataArea((char *)XBD_response, XBDpdo);
+            return;
+        }
+    }
+    XBD_DEBUG("Not in parameter download state")
+    XBD_loadStringFromConstDataArea((char *)XBD_response, XBDpdf);
+    txDataLen=XBD_COMMAND_LEN;
 }
 
-void XBD_AF_HandleUploadResultsRequest(uint8_t len, uint8_t* data) {
-	if( ( (XBD_TYPE_EBASH == xbd_parameter_type) && (xbd_state == executed) ) 
-		|| ( checksummed == xbd_state )	 
-	)
-	{
-		//prepare 'OK' response to XBH
-		XBD_genInitialMultiPacket(xbd_result_buffer, XBD_RESULTLEN, xbd_answer_buffer,(uint8_t *) XBDuro, XBD_TYPE_EBASH, XBD_MUPA_UNUSED);
-		xbd_state = reporting;
-		#ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nxbd_result_buffer:");
-		for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
-			if (0 == ctr % 16)
-				XBD_DEBUG_CHAR('\n');
-			XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
-		}
-		XBD_DEBUG("\n--------");
-		#endif
+    
 
+void XBD_AF_HandleUploadResultsRequest(uint8_t len, uint8_t* data) {
+    XBD_DEBUG("XBDurr");
+	if( (xbd_state == executed) || ( checksummed == xbd_state )) {
+		//prepare 'OK' response to XBH
+        XBD_loadStringFromConstDataArea(buf, XBDuro);
+		XBD_genInitialMultiPacket(&multipkt_state, xbd_result_buffer, result_buffer_len, xbd_answer_buffer, buf, NO_MP_ADDR, XBD_OPERATION_TYPE);
+        xbd_state = reporting;
+        txDataLen = XBD_ANSWERLENG_MAX-CRC16SIZE;
+        return;
 	} else {
 		XBD_DEBUG("Rec'd W-R-O-N-G UploadResults req:");
 
 		XBD_DEBUG("\nxbd_state="); XBD_DEBUG_32B(xbd_state);
 		//prepare 'FAIL' response to XBH
-		XBD_loadStringFromConstDataArea(buf, XBDurf);
-		realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
+		XBD_loadStringFromConstDataArea((char *)XBD_response, XBDurf);
+		txDataLen=XBD_COMMAND_LEN;
+        return;
 	}
 
-        #ifdef XBX_DEBUG_APP
-	XBD_DEBUG_CHAR('\n');
-	XBD_DEBUG(buf);
-	XBD_DEBUG_CHAR('\n');
-	#endif
-	strcpy((char *)XBD_response, buf);
-	return;
 
 }
 
 void XBD_AF_HandleResultDataRequest(uint8_t len, uint8_t* data) {
-	if( xbd_state == reporting )
-	{
-		//prepare 'OK' response to XBH
-		XBD_genSucessiveMultiPacket(xbd_result_buffer,xbd_answer_buffer, XBD_ANSWERLENG_MAX-CRC16SIZE, XBDrdo);
-		
-		if(0 == xbd_genmp_dataleft)
-			xbd_state = reportuploaded;
+    if( xbd_state == reporting )
+    {
+        //prepare 'OK' response to XBH
+        XBD_loadStringFromConstDataArea(buf, XBDrdo);
+        XBD_genSucessiveMultiPacket(&multipkt_state, xbd_answer_buffer, XBD_ANSWERLENG_MAX-CRC16SIZE, buf);
+        txDataLen = XBD_ANSWERLENG_MAX-CRC16SIZE;
 
-                #ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nxbd_genmp_dataleft="); XBD_DEBUG_32B(xbd_genmp_dataleft);
+        if(0 == multipkt_state.dataleft)
+            xbd_state = reportuploaded;
 
-		XBD_DEBUG("\nxbd_result_buffer:");
-		for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
-			if (0 == ctr % 16)
-				XBD_DEBUG_CHAR('\n');
-			XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
-		}
-		XBD_DEBUG("\n--------");
-		#endif
-	} else {
-		XBD_DEBUG("Rec'd W-R-O-N-G UploadResults req:");
-		XBD_DEBUG("\nxbd_state="); XBD_DEBUG_32B(xbd_state);
-		//prepare 'FAIL' response to XBH
-		XBD_loadStringFromConstDataArea(buf, XBDurf);
-		realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
-	}
+#ifdef XBX_DEBUG_APP
+        XBD_DEBUG("\nxbd_genmp_dataleft="); XBD_DEBUG_32B(multipkt_state.dataleft);
 
-  #ifdef XBX_DEBUG_APP
-	XBD_DEBUG_CHAR('\n');
-	XBD_DEBUG(buf);
-	XBD_DEBUG_CHAR('\n');
-	#endif
-	strcpy((char *)XBD_response, buf);
-	return;
+        XBD_DEBUG("\nxbd_result_buffer:");
+        for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
+            if (0 == ctr % 16)
+                XBD_DEBUG_CHAR('\n');
+            XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
+        }
+        XBD_DEBUG("\n--------");
+#endif
+    } else {
+        XBD_DEBUG("Rec'd W-R-O-N-G UploadResults req:");
+        XBD_DEBUG("\nxbd_state="); XBD_DEBUG_32B(xbd_state);
+        //prepare 'FAIL' response to XBH
+        XBD_loadStringFromConstDataArea((char *)XBD_response, XBDurf);
+        txDataLen=XBD_COMMAND_LEN;
+    }
 
 }
 
@@ -297,11 +191,12 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 		#endif
 		
 			
-		uint8_t ret = OH_handleExecuteRequest(
-			       xbd_parameter_type,
-			       xbd_parameter_buffer,
-			       xbd_result_buffer,
-				&xbd_stack_use );
+        int32_t ret = OH_handleExecuteRequest(
+                multipkt_state.type,
+                xbd_parameter_buffer,
+                xbd_result_buffer,
+                &xbd_stack_use,
+                &result_buffer_len);
 
 		#ifdef XBX_DEBUG_APP
 		XBD_DEBUG("\nOH_handleExecuteRequest ret="); XBD_DEBUG_BYTE(ret);
@@ -309,15 +204,7 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 		#endif
 
 		xbd_state = executed;
-		/*
-		XBD_DEBUG("\nxbd_result_buffer:");
-		for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
-			if (0 == ctr % 16)
-				XBD_DEBUG_CHAR('\n');
-			XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
-		}
-		XBD_DEBUG("\n--------");
-		*/
+
 		if(0 == ret )
 		{
 			//prepare 'OK' response to XBH
@@ -342,58 +229,56 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 	XBD_DEBUG(buf);
 	XBD_DEBUG_CHAR('\n');
 	#endif
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
+	txDataLen=XBD_COMMAND_LEN;
 	strcpy((char *) XBD_response, buf);
 	return;
 }
 
 void XBD_AF_HandleChecksumComputeRequest(uint8_t len, uint8_t* data) {
-		
-        #ifdef XBX_DEBUG_APP
-	XBD_DEBUG("Rec'd good CC req:");
-	#endif
-				
-	uint8_t ret = OH_handleChecksumRequest(
-		       xbd_parameter_buffer,
-		       xbd_result_buffer,
-			 &xbd_stack_use );
 
-	xbd_state = checksummed;
+#ifdef XBX_DEBUG_APP
+    XBD_DEBUG("Rec'd good CC req:");
+#endif
 
-        #ifdef XBX_DEBUG_APP
-	XBD_DEBUG("\nOH_handleCCRequest ret="); XBD_DEBUG_BYTE(ret);
-	XBD_DEBUG("\nOH_handleCCRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
+    int32_t ret = OH_handleChecksumRequest(
+            xbd_parameter_buffer,
+            xbd_result_buffer,
+            &xbd_stack_use, 
+            &result_buffer_len);
+    
 
-	XBD_DEBUG("\nxbd_result_buffer:");
-	for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
-		if (0 == ctr % 16)
-			XBD_DEBUG_CHAR('\n');
-		XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
-	}
-	XBD_DEBUG("\n--------");
-	#endif
+    xbd_state = checksummed;
 
-	if(0 == ret )
-	{
+#ifdef XBX_DEBUG_APP
+    XBD_DEBUG("\nOH_handleCCRequest ret="); XBD_DEBUG_BYTE(ret);
+    XBD_DEBUG("\nOH_handleCCRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
+
+    XBD_DEBUG("\nxbd_result_buffer:");
+    for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
+        if (0 == ctr % 16)
+            XBD_DEBUG_CHAR('\n');
+        XBD_DEBUG_BYTE(xbd_result_buffer[ctr]);
+    }
+    XBD_DEBUG("\n--------");
+#endif
+
+	if(ret == 0) {
 		//prepare 'OK' response to XBH
 		XBD_loadStringFromConstDataArea(buf, XBDcco);
-	}
-	else
-	{
+	} else {
 		//prepare 'FAIL' response to XBH
 		XBD_loadStringFromConstDataArea(buf, XBDccf);
 	}
 	 
+#ifdef XBX_DEBUG_APP
+    XBD_DEBUG_CHAR('\n');
+    XBD_DEBUG(buf);
+    XBD_DEBUG_CHAR('\n');
+#endif
 
-
-        #ifdef XBX_DEBUG_APP
-        XBD_DEBUG_CHAR('\n');
-	XBD_DEBUG(buf);
-	XBD_DEBUG_CHAR('\n');
-	#endif
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
-	strcpy((char *)XBD_response, (char *)buf);
-	return;
+    txDataLen=XBD_COMMAND_LEN;
+    strcpy((char *)XBD_response, (char *)buf);
+    return;
 
 }
 
@@ -402,7 +287,7 @@ void XBD_AF_HandleStartBootloaderRequest() {
 }
 
 void XBD_AF_HandleVersionInformationRequest() {
-	realTXlen=XBD_COMMAND_LEN+CRC16SIZE;
+	txDataLen=XBD_COMMAND_LEN;
 	XBD_loadStringFromConstDataArea((char *)XBD_response, XBDafo);
 }
 
@@ -410,7 +295,7 @@ void XBD_AF_HandleTimingCalibrationRequest() {
 	uint32_t elapsed = XBD_busyLoopWithTiming(DEVICE_SPECIFIC_SANE_TC_VALUE);
 	XBD_loadStringFromConstDataArea((char *)xbd_answer_buffer, XBDtco);
 	*((uint32_t*) (xbd_answer_buffer + XBD_COMMAND_LEN)) = HTONL(elapsed);
-	realTXlen=XBD_COMMAND_LEN+NUMBSIZE+CRC16SIZE;
+	txDataLen=XBD_COMMAND_LEN+NUMBSIZE;
 	xbd_state = reportuploaded;
 }
 
@@ -419,7 +304,7 @@ void XBD_AF_HandleStackUsageRequest() {
 	XBD_loadStringFromConstDataArea((char *)xbd_answer_buffer, XBDsuo);
 	*((uint32_t*) (xbd_answer_buffer + XBD_COMMAND_LEN)) = HTONL( (uint32_t)xbd_stack_use );
 	xbd_stack_use |= 0x80000000;
-	realTXlen=XBD_COMMAND_LEN+NUMBSIZE+CRC16SIZE;
+	txDataLen=XBD_COMMAND_LEN+NUMBSIZE;
 }
 
 void FRW_msgRecHand(uint8_t len, uint8_t* data) {
@@ -535,18 +420,20 @@ void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 
 	//no known command recognized
 	XBD_loadStringFromConstDataArea((char *) XBD_response, XBDunk);
-        #ifdef XBX_DEBUG_APP
-	XBD_DEBUG((char *) XBD_response);
-	XBD_DEBUG(": [");
-	XBD_DEBUG((char *) data);
-	XBD_DEBUG("]\n");
-	#endif
+#ifdef XBX_DEBUG_APP
+    XBD_DEBUG((char *) XBD_response);
+    XBD_DEBUG(": [");
+    XBD_DEBUG((char *) data);
+    XBD_DEBUG("]\n");
+#endif
 }
 
 uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 	#ifdef XBX_DEBUG_APP
 		uint16_t ctr;
 	#endif
+    if (maxlen > XBD_ANSWERLENG_MAX)
+        maxlen = XBD_ANSWERLENG_MAX;
 	
 	if(maxlen <= CRC16SIZE) {
 	  XBD_DEBUG("MsgTraHand: Maxlen too small: ");
@@ -555,8 +442,7 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 	}
 
 
-	if( xbd_state == reporting  || xbd_state == reportuploaded)
-	{
+	if( xbd_state == reporting  || xbd_state == reportuploaded) {
 		if(xbd_state == reportuploaded)
 			xbd_state = fresh;
 
@@ -572,36 +458,32 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 		#endif
 		memcpy(data, xbd_answer_buffer, maxlen-CRC16SIZE);
 	}
-	else if (   (xbd_state == executed  || xbd_state == checksummed) 
-			 && (xbd_stack_use & 0x80000000)
-			)
-	{
-		xbd_stack_use &= 0x7fffffff;	
-		if (maxlen > XBD_ANSWERLENG_MAX)
-			maxlen = XBD_ANSWERLENG_MAX;
+    else if ( (xbd_state == executed  || xbd_state == checksummed) && 
+            (xbd_stack_use & 0x80000000)) {
+        xbd_stack_use &= 0x7fffffff;	
 
-		#ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nxbd_answer_buffer:");
-		for (ctr = 0; ctr < maxlen; ++ctr) {
-			if (0 == ctr % 16)
-				XBD_DEBUG_CHAR('\n');
-			XBD_DEBUG_BYTE(xbd_answer_buffer[ctr]);
-		}
-		XBD_DEBUG("\n--------");
-		#endif
-		memcpy(data, xbd_answer_buffer, maxlen-CRC16SIZE);
-	} else {
-   	  strncpy((char*) data, (char *)XBD_response, XBD_COMMAND_LEN);
-	}
-	
-	crc = crc16buffer(data, realTXlen-CRC16SIZE);
-	uint8_t *target=data+realTXlen-CRC16SIZE; 
-	PACK_CRC(crc,target);	
 #ifdef XBX_DEBUG_APP
-	// do not remove this debug out, there's a timing problem otherwise with i2c
-        XBD_DEBUG_BUF("FRW_msgTraHand", data, realTXlen);
+        XBD_DEBUG("\nxbd_answer_buffer:");
+        for (ctr = 0; ctr < maxlen; ++ctr) {
+            if (0 == ctr % 16)
+                XBD_DEBUG_CHAR('\n');
+            XBD_DEBUG_BYTE(xbd_answer_buffer[ctr]);
+        }
+        XBD_DEBUG("\n--------");
 #endif
-        return maxlen;
+        memcpy(data, xbd_answer_buffer, maxlen-CRC16SIZE);
+    } else {
+        strncpy((char*) data, (char *)XBD_response, XBD_COMMAND_LEN);
+    }
+
+    crc = crc16buffer(data, txDataLen);
+    uint8_t *target=data+txDataLen; 
+    PACK_CRC(crc,target);	
+#ifdef XBX_DEBUG_APP
+    // do not remove this debug out, there's a timing problem otherwise with i2c
+    XBD_DEBUG_BUF("FRW_msgTraHand", data, txDataLen);
+#endif
+    return maxlen;
 }
 
 void XBD_AF_EndianCheck()

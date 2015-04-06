@@ -14,7 +14,6 @@
 
 #include "crypto_hash.h"
 #include "try.h"
-
 const char *primitiveimplementation = crypto_hash_IMPLEMENTATION;
 
 /*
@@ -59,29 +58,34 @@ void test_allocate(unsigned char *buf) {
 }
 
 
-void test(void)
+int test(void)
 {
-  unsigned long long loop;
-  
-  for (loop = 0;loop < LOOPS;++loop) {
-    mlen = myrandom() % (MAXTEST_BYTES + 1);
-    
-    output_prepare(h2,h,hlen);
-    input_prepare(m2,m,mlen);
-    if (crypto_hash(h,m,mlen) != 0) fail("crypto_hash returns nonzero");
-    checksum(h,hlen);
-    output_compare(h2,h,hlen,"crypto_hash");
-    input_compare(m2,m,mlen,"crypto_hash");
-    
-    double_canary(h2,h,hlen);
-    double_canary(m2,m,mlen);
-    if (crypto_hash(h2,m2,mlen) != 0) fail("crypto_hash returns nonzero");
-    if (memcmp(h2,h,hlen) != 0) fail("crypto_hash is nondeterministic");
-    
-    double_canary(h2,h,hlen);
-    double_canary(m2,m,mlen);
-    if (crypto_hash(m2,m2,mlen) != 0) fail("crypto_hash with m=h overlap returns nonzero");
-    if (memcmp(m2,h,hlen) != 0) fail("crypto_hash does not handle m=h overlap");
-    memcpy(m2,m,mlen);
-  }
+    unsigned long long loop;
+
+    if(!setjmp(test_fail_jmp)){
+        for (loop = 0;loop < LOOPS;++loop) {
+            mlen = myrandom() % (MAXTEST_BYTES + 1);
+
+            output_prepare(h2,h,hlen);
+            input_prepare(m2,m,mlen);
+            if (crypto_hash(h,m,mlen) != 0) fail("crypto_hash returns nonzero");
+            checksum(h,hlen);
+            output_compare(h2,h,hlen,"crypto_hash");
+            input_compare(m2,m,mlen,"crypto_hash");
+
+            double_canary(h2,h,hlen);
+            double_canary(m2,m,mlen);
+            if (crypto_hash(h2,m2,mlen) != 0) fail("crypto_hash returns nonzero");
+            if (memcmp(h2,h,hlen) != 0) fail("crypto_hash is nondeterministic");
+
+            double_canary(h2,h,hlen);
+            double_canary(m2,m,mlen);
+            if (crypto_hash(m2,m2,mlen) != 0) fail("crypto_hash with m=h overlap returns nonzero");
+            if (memcmp(m2,h,hlen) != 0) fail("crypto_hash does not handle m=h overlap");
+            memcpy(m2,m,mlen);
+        }
+        return 0;
+    }else{
+        return FAIL_RETVAL;
+    }
 }

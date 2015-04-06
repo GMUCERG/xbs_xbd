@@ -24,9 +24,14 @@
 #include "try.h"
 
 
+
+/** Should point to a buffer at least 256 bytes long. Typically will point to
+ * result buffer, as upon failure we don't care what the checksum value is.*/
+char* try_errmsg_buf = NULL;
+jmp_buf test_fail_jmp;
+
 static unsigned char testvector_n[8];
 
-bool try_failed;
 typedef crypto_uint8 u8;
 typedef crypto_uint32 u32;
 typedef crypto_uint64 u64;
@@ -192,13 +197,13 @@ void output_prepare(unsigned char *x2,unsigned char *x,unsigned long long xlen)
 void output_compare(const unsigned char *x2,const unsigned char *x,unsigned long long xlen,const char *fun)
 {
   if (memcmp(x2 - CANARY_SZ,x - CANARY_SZ,CANARY_SZ)) {
-      XBD_DEBUG(fun);
-      XBD_DEBUG(" writes before output");
+      errmsg_write(fun);
+      errmsg_write(" writes before output");
       fail("");
   }
   if (memcmp(x2 + xlen,x + xlen,CANARY_SZ)) {
-      XBD_DEBUG(fun);
-      XBD_DEBUG(" writes after output");
+      errmsg_write(fun);
+      errmsg_write(" writes after output");
       fail("");
   }
 }
@@ -228,10 +233,23 @@ void checksum(const unsigned char *x,unsigned long long xlen)
 
 void fail(const char *why)
 {
-  XBD_DEBUG(why);
-  XBD_DEBUG("\n");
-  try_failed = true;
+  errmsg_write(why);
+  errmsg_write("\0");
+  longjmp(test_fail_jmp, 1);
 }
+
+
+
+/** 
+ * Total error messages sent should not exceed buffer length!
+ */
+void errmsg_write(const char *msg){
+    size_t len = strlen(msg);
+    memcpy(try_errmsg_buf, msg, len);
+    try_errmsg_buf+= len;
+}
+
+
 // Below code unused and inapplicable for microcontroller
 
 #if 0/*{{{*/
