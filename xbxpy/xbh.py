@@ -22,6 +22,11 @@ XBH_MAX_PAYLOAD = 1400
 # Always 2 bytes
 PROTO_VERSION = '05'
 
+FAIL_CHECKSUM = -62
+FAIL_DEFAULT = -63
+FAIL_TYPE_MISMATCH = -61
+
+
 _XBH_CMD_LEN = 8
 _CALC_TIMEOUT = 5*60
 
@@ -37,20 +42,16 @@ class TypeCode(object):# {{{
 class Error(Exception):
     pass
 
-
-class HardwareError(xbh.Error):
+class XbdFailError(xbh.Error):
     pass
-
-
-class StateError(xbh.Error):
-    pass
-
 
 class XbhValueError(xbh.Error, ValueError):
     pass
 
-
 class RetryError(Error):
+    pass
+
+class HardwareError(xbh.Error):
     pass
 
 
@@ -198,7 +199,7 @@ class Xbh:# {{{
         elif status == 'o':
                 _logger.debug("Received 'o'kay")
         elif status == 'f':
-            raise HardwareError("Received 'f'ail")
+            raise XbdFailError("Received 'f'ail")
 
         # Return bytes after 8-byte command header
         return msg[8:]
@@ -206,7 +207,7 @@ class Xbh:# {{{
     def _upload_code_pages(self, addr, data):
         if len(data) % self.page_size != 0 and len(data) > self.page_size:
             raise ValueError("data length must be integer multiple of pagesize")
-            
+
         self.req_bl()
 
         #if self.verbose:
@@ -406,11 +407,19 @@ class Xbh:# {{{
         return results, timings, stack
         
     def calc_checksum(self):
-        self._calc_checksum()
-        timings = self._get_timings()
-        stack = self._get_stack_usage()
-        results = self._get_results()
-        return results, timings, stack
+        try:
+            self._calc_checksum()
+            timings = self._get_timings()
+            stack = self._get_stack_usage()
+            results = self._get_results()
+            return results, timings, stack
+        except XbdFailError as e:
+            retval, msg = self._get_results();
+            if retval == FAIL_CHECKSUM:
+                raise XbdFailError("Test failure: "+msg.decode()) from e
+            else:
+                raise
+
 
     def upload_prog(self, filename, program_type=prog_reader.ProgramType.IHEX):
         """Uploads provided file to XBH to upload to XBD"""

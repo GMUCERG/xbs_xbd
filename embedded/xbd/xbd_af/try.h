@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <setjmp.h>
 
-#define FAIL_RETVAL -62
+#define FAIL_CHECKSUM -62
 #define CANARY_SZ 16
 #define CHECKSUM_LEN 32
 

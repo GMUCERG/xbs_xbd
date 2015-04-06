@@ -22,6 +22,8 @@ int32_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t *resultBuffer
 	
     test_allocate(parameterBuffer);
     test_reset();
+    // Set pointer to write error message to
+    try_errmsg_buf = resultBuffer+NUMBSIZE;
 
 	/* Sends the signal "start-of-execution" to the XBH */
 	XBD_sendExecutionStartSignal();
@@ -43,7 +45,7 @@ int32_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t *resultBuffer
     //Big endian format, so 0 pad first
     *(int32_t*)resultBuffer=HTONL(retval);
 
-    if(retval == FAIL_RETVAL){
+    if(retval == FAIL_CHECKSUM){
         // Return value + message string + null terminator
         *result_len = NUMBSIZE+strlen(resultBuffer+4)+1;
     }else if (retval == 0){

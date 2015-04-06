@@ -86,6 +86,6 @@ int test(void)
         }
         return 0;
     }else{
-        return FAIL_RETVAL;
+        return FAIL_CHECKSUM;
     }
 }
