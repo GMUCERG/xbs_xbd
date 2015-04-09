@@ -17,7 +17,7 @@ _logger = logging.getLogger(__name__)
 
 class CryptoHashRun(xbx.run.Run):# {{{
     """Contains data specific to cryptographic hash runs
-    
+
     Call run() to instantiate and run, do not use constructor
 
     Attributes of interest:
@@ -90,8 +90,9 @@ class CryptoAeadRun(xbxr.Run):# {{{
         secret_number_bytes = macros['_NSECBYTES']
         public_number_bytes = macros['_NPUBBYTES']
         header = struct.pack(
-            "!IIIII",
-            self.plaintext_len, 
+            "!IIIIII",
+            0,          # Encrypt
+            self.plaintext_len,
             self.assoc_data_len,
             secret_number_bytes,
             public_number_bytes,
@@ -103,10 +104,10 @@ class CryptoAeadRun(xbxr.Run):# {{{
         public_num = os.urandom(public_number_bytes)
         key        = os.urandom(key_bytes)
 
-        data = b''.join((header, 
-                         plaintext, 
-                         assoc_data, 
-                         secret_num, 
+        data = b''.join((header,
+                         plaintext,
+                         assoc_data,
+                         secret_num,
                          public_num,
                          key))
 
@@ -116,7 +117,8 @@ class CryptoAeadRun(xbxr.Run):# {{{
     def _assemble_dec_params(ciphertext, assoc_data, public_num, key):
         header = bytearray(
             struct.pack(
-                "!IIII",
+                "!IIIII",
+                1,      # Decrypt
                 len(ciphertext),
                 len(assoc_data),
                 len(public_num),
@@ -125,18 +127,18 @@ class CryptoAeadRun(xbxr.Run):# {{{
         )
 
         data = b''.join((header,
-                         ciphertext, 
-                         assoc_data, 
-                         public_num, 
+                         ciphertext,
+                         assoc_data,
+                         public_num,
                          key))
-        
+
         return data
 
-    
+
     @classmethod
     def run(cls, build_exec, params=None):
         """Factory method to create and execute run instances.
-        
+
         Call this instead of constructor
         """
 
@@ -158,21 +160,36 @@ class CryptoAeadRun(xbxr.Run):# {{{
         enc_run.pair_id = enc_run.id
         dec_run.pair_id = enc_run.id
 
-        # Generate data 
-        (data, plaintext, assoc_data, 
-         key, secret_num, public_num) = enc_run._gen_enc_params() 
+        # Generate data
+        (data, plaintext, assoc_data,
+         key, secret_num, public_num) = enc_run._gen_enc_params()
 
         retval, ciphertext = enc_run._execute(data)
 
         if retval != 0:
-            raise xbxr.XbdResultFailError("XBD execute returned {}".format(retval))
+            raise xbxr.XbdResultFailError(
+                "XBD execute returned {}".format(retval))
 
         data = CryptoAeadRun._assemble_dec_params(ciphertext, assoc_data,
                                                   public_num, key)
-        
-        retval, decrypted_plaintext = dec_run._execute(data)
 
-        if decrypted_plaintext != plaintext:
+        retval, data = dec_run._execute(data)
+
+
+        # Unpack lengths
+        # We put secret num first since it is fixed length
+        fmt = "II"
+        secnum_len, plaintext_len = struct.unpack_from(fmt, data)
+
+        # Unpack data
+        (decrypted_secret_num,
+         decrypted_plaintext) = struct.unpack("{}s{}s".format(secnum_len,
+                                                               plaintext_len),
+                                               data[struct.calcsize(fmt):])
+
+
+        if (decrypted_plaintext != plaintext or
+                decrypted_secret_num != secret_num):
             raise xbxr.XbdResultFailError(
                 "Decrypted plaintext does not match CipherText")
 
