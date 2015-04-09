@@ -106,7 +106,9 @@ void XBD_AF_HandleParameterDownloadRequest(uint8_t len, uint8_t* data) {
 
     if (xbd_state == paramdownload){
 
-        int8_t ret = XBD_recSucessiveMultiPacket(&multipkt_state, data, len, xbd_parameter_buffer+multipkt_state.addr, XBD_PARAMLENG_MAX, XBDpdr);
+        int8_t ret = XBD_recSucessiveMultiPacket(&multipkt_state, data, len,
+                xbd_parameter_buffer+multipkt_state.addr,
+                XBD_PARAMLENG_MAX-multipkt_state.addr, XBDpdr);
         if(ret){
             XBD_DEBUG("Rec'd W-R-O-N-G Program Parameters Req");
             XBD_loadStringFromConstDataArea((char *)XBD_response, XBDpdf);
