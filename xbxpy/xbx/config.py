@@ -118,8 +118,9 @@ class Operation(Base):
     def parse_opstring(self):
         match             = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
 
+        # Use filter to ignore ''
         self.macro_names  = list(filter(bool, match.group(2).split(':')))
-        self.prototypes   = match.group(3).split(':')
+        self.prototypes   = list(filter(bool, match.group(3).split(':')))
 
 
 
@@ -280,9 +281,10 @@ class Config(Base):
         self.operation_params   = []
         op_params               = config.get('run',self.operation.name+"_parameters").split("\n")
         for line in op_params:
-            row = line.split(',')
-            row = list(map(lambda val: int(val), row))
-            self.operation_params += [row]
+            if line:
+                row = line.split(',')
+                row = list(map(lambda val: int(val), row))
+                self.operation_params += [row]
 
 
         # TODO Read platform blacklists
@@ -299,16 +301,15 @@ class Config(Base):
 
         primitives = config.get('algorithm','primitives').split("\n")
         self.operation.primitives = Config.__enum_prim_impls(
-            self.operation, 
-            primitives, 
+            self.operation,
+            primitives,
             self.blacklist,
-            self.whitelist, 
+            self.whitelist,
             self.algopack_path
         )
 
 
 
-        
 
     @staticmethod
     def __enum_platform(name, platforms_path):
