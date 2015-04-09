@@ -37,10 +37,9 @@ class CryptoHashRun(xbx.run.Run):# {{{
         ForeignKeyConstraint(["id"], ["run.id"]))
 
     def _assemble_params(self):
-        data = bytearray(struct.pack("!I",self.msg_len))
-        data += os.urandom(self.msg_len)
-        return data 
-    
+        data = os.urandom(self.msg_len)
+        return data
+
     @classmethod
     def run(cls, build_exec, params=None):
         """Factory method that generates run instances and attaches them to
