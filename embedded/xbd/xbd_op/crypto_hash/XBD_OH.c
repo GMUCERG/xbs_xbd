@@ -85,8 +85,10 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
     XBD_DEBUG_BUF("resultBuffer", resultBuffer, crypto_hash_BYTES+1);
 #endif
 
-    //Return size of return code plus hash size
+    //Set result size
     *result_len = NUMBSIZE+crypto_hash_BYTES;
+
+    //Return return code
     return ret;
 }
 
