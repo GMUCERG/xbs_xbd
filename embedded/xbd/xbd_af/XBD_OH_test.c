@@ -10,7 +10,18 @@
 volatile uint32_t burner;
 volatile uint32_t afterburner;
 
-
+/** 
+ * Executes a checksum operation 
+ *
+ * resultBuffer contains 32 bit signed integer for err code in first 4 bytes in network byte
+ * order, then buffers to send directly to XBH
+ *
+ * @param parameterBuffer A buffer to be used for temporary storage - will be overwritten
+ * @param resultBuffer A preallocated buffer to write the return value and checksum results into
+ * @param p_stackUse poiter to a global variable to report the amount of stack used
+ * @param result_len  Length of data in resultBuffer
+ * @returns 0 if success, else error code
+ */
 int32_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t *resultBuffer, uint32_t *p_stackUse, size_t *result_len) {
     int retval;
 
