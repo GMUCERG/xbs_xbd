@@ -15,8 +15,8 @@ import xbx.config as xbxc
 import xbx.build as xbxb
 import xbx.database as xbxdb
 
-#UPLOAD=False
-UPLOAD=True
+UPLOAD=False
+#UPLOAD=True
 
 CONFIG_PATH="test_config.ini"
 
@@ -64,8 +64,7 @@ class XbdCryptoHashTest(unittest.TestCase):
         self.assertEqual(binascii.hexlify(checksum).decode(), ref_checksum)
 
     def test_execute(self):
-        data = bytearray(struct.pack("!I",len(TEST_TEXT)))
-        data += TEST_TEXT
+        data = TEST_TEXT
         XbdCryptoHashTest.xbh.upload_param(data, xbhlib.TypeCode.HASH)
         result, timing, stack = XbdCryptoHashTest.xbh.execute()
         retval, hash = result
