@@ -26,7 +26,7 @@ class Database:
         self.config_hash = self.save_config()
         self.commit()
 
-    # xbx.build.Build # {{{
+    # xbx.build.Build 
     def save_build(self, build, build_session):
         """Saves build stats using given sql cursor"""
 
@@ -139,9 +139,9 @@ class Database:
 
         return builds
 
-    # }}}
+    
 
-    # xbx.build.BuildSession# {{{
+    # xbx.build.BuildSession
     def save_buildsession(self, build_session):
 
         data = (build_session.timestamp, 
@@ -232,12 +232,12 @@ class Database:
         #             "build. Run compile again")
 
         return self.load_buildsession(rowid)
-    # }}}
+    
 
-    # xbx.run.Run #{{{ 
-    # }}}
+    # xbx.run.Run # 
+    
 
-    # xbx.build.RunSession# {{{
+    # xbx.build.RunSession
     def save_runsession(self, run_session):
 
         data = (datetime.datetime.now(), 
@@ -253,9 +253,9 @@ class Database:
 
         return cursor.lastrowid
 
-    # }}}
+    
 
-    # xbx.config.Config# {{{
+    # xbx.config.Config
     def save_config(self):
         """Saves dump of config, and loads operation and primitive info
         into database"""
@@ -314,7 +314,7 @@ class Database:
             cursor.execute(
                     op + " into primitive(operation, name, " 
                     "checksumsmall) values (?, ?, ?)", data)
-    # }}}
+    
     
     def initdb(self):
         schema = os.path.join(os.path.dirname(__file__), "schema.sql")

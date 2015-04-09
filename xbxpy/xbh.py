@@ -34,10 +34,10 @@ _logger=logging.getLogger(__name__)
 
 
 # Replace object w/ Enum when 3.4 is current
-class TypeCode(object):# {{{
+class TypeCode(object):
     HASH = 1
     AEAD = 2
-# }}}
+
 
 class Error(Exception):
     pass
@@ -58,7 +58,7 @@ class HardwareError(xbh.Error):
     pass
 
 
-class attempt:# {{{
+class attempt:
     """Decorator to attempt XBH operation for tries tries
     
     Parameters: 
@@ -122,9 +122,9 @@ class attempt:# {{{
                     raise RetryError(
                             "Errors exceeded retry count ["+tries+"]") from ex
             return func_wrapper
-# }}}
 
-class Xbh:# {{{
+
+class Xbh:
 
     
     def __init__(self, host="xbh", port=22595, page_size = 1024,
@@ -157,7 +157,7 @@ class Xbh:# {{{
         return self._bl_mode
 
 
-# Internal functions# {{{
+# Internal functions
     def _recvall(self, size):
         try:
             buf = bytearray()
@@ -225,9 +225,9 @@ class Xbh:# {{{
         self._exec("dp",struct.pack("!II",addr, typecode)+data)
         self._xbh_response()
 
-# }}}
 
-# Low-level interfaces # {{{
+
+# Low-level interfaces 
     def switch_to_app(self):
         _logger.debug("Switching to application mode");
         self._exec("sa")
@@ -386,9 +386,9 @@ class Xbh:# {{{
         msg = self._xbh_response().decode()
 
         return msg
-# }}}
 
-# High level interfaces # {{{
+
+# High level interfaces 
     @staticmethod
     def get_measured_time(timings):
         """Gets measured time in nanoseconds"""
@@ -486,6 +486,6 @@ class Xbh:# {{{
         
         return abs_error, rel_error, cycles, measured_cycles
 
-# }}}
-# }}}
+
+
 

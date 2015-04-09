@@ -15,7 +15,7 @@ import xbh
 
 _logger = logging.getLogger(__name__)
 
-class CryptoHashRun(xbx.run.Run):# {{{
+class CryptoHashRun(xbx.run.Run):
     """Contains data specific to cryptographic hash runs
 
     Call run() to instantiate and run, do not use constructor
@@ -49,9 +49,9 @@ class CryptoHashRun(xbx.run.Run):# {{{
         run = cls(build_exec, msg_len=params[0])
         run._execute(run._assemble_params())
         return run
-# }}}
 
-class CryptoAeadRun(xbxr.Run):# {{{
+
+class CryptoAeadRun(xbxr.Run):
     """Contains data specific to AEAD runs
 
     Call run() to instantiate and run, do not use constructor
@@ -194,7 +194,7 @@ class CryptoAeadRun(xbxr.Run):# {{{
                 "Decrypted plaintext does not match CipherText")
 
         return enc_run, dec_run
-# }}}
+
 
 OPERATIONS={
     "crypto_aead": (CryptoAeadRun, xbh.TypeCode.AEAD),

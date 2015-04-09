@@ -29,9 +29,9 @@ HEX_NAME="xbdprog.hex"
 _logger = logging.getLogger(__name__)
 _buildjob_logger = logging.getLogger(__name__+".BuildJob")
 
-class BuildJob:# {{{
+class BuildJob:
     """Separate object for actually building
-    
+
     Build does not serialize well, thus obtain an instance of this with
     Build.get_buildjob() and run this instead
 
@@ -61,11 +61,11 @@ class BuildJob:# {{{
         else:
             _buildjob_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
-# }}}
 
-class Build(Base):# {{{
+
+class Build(Base):
     """Sets up a build
-    
+
     Parameters:
         config          xbx.Config object
         index           compiler index
@@ -365,9 +365,9 @@ class Build(Base):# {{{
 
     def __lt__(self, other):
         return self.buildid < other.buildid
-    # }}}
+    
 
-class BuildSession(Base, xbxs.SessionMixin):# {{{
+class BuildSession(Base, xbxs.SessionMixin):
     """Manages builds for all instances specified in xbx config
 
     Pass in database object into constructor to save session and populate id
@@ -474,9 +474,9 @@ class BuildSession(Base, xbxs.SessionMixin):# {{{
     def __lt__(self, other):
         return self.session_id < other.session_id
 
-# }}}
-    
-# Support fxns# {{{
+
+
+# Support fxns
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
 
@@ -581,4 +581,4 @@ def _parse_envfile(path):
             name, _, value = l.partition("=")
             env[name.strip()]=value.strip("\n")
     return env
-# }}}
+
