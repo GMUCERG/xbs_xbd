@@ -12,7 +12,18 @@ static volatile uint32_t burner;
 static volatile uint32_t afterburner;
 #endif	
 
-int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer, uint8_t* resultBuffer, uint32_t *p_stackUse, size_t *result_len) {
+/** 
+ * Executes an operation 
+ *
+ * @param parameterType The type of parameters currently in the parameter buffer
+ * @param parameterBuffer [4 bytes length, network order][data bytes]
+ * @param parameterBufferLen Length of parameterBuffer
+ * @param resultBuffer return [4 bytes network order return code][crypto_hash_BYTES hash value]
+ * @param p_stackUse pointer to a global variable to report the amount of stack used
+ * @param result_len  Length of data in resultBuffer
+ * @returns 0 if success, else errorcode from operation
+ */
+int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer, size_t parameterBufferLen, uint8_t* resultBuffer, uint32_t *p_stackUse, size_t *result_len) {
 
     if( CRYPTO_HASH_TYPE != parameterType ) {
         XBD_DEBUG("Rec'd W-R-O-N-G EXecute req:");
@@ -23,9 +34,6 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
         return NUMBSIZE;
     }
 
-    uint32_t inlen = NTOHL(*(uint32_t*)parameterBuffer);
-
-    uint8_t *p_in=&parameterBuffer[sizeof(uint32_t)];
 
 #ifdef XBX_DEBUG_EBASH
     XBD_DEBUG("\ninlen=");XBD_DEBUG_32B(inlen);
@@ -53,10 +61,13 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 
     /** Sends the signal "start-of-execution" to the XBH */
     XBD_sendExecutionStartSignal();
+
+    //We can use paramterBuffer directly since it only contains data to be
+    //hashed with no length prefix
     int32_t ret = crypto_hash(
             resultBuffer+4,
-            p_in,
-            (unsigned long long) inlen
+            parameterBuffer,
+            (unsigned long long) parameterBufferLen 
             );
     /** Sends the signal "end-of-execution" to the XBH */
     XBD_sendExecutionCompleteSignal();

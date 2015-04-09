@@ -192,10 +192,12 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 		XBD_DEBUG("Rec'd good EXecute req:");
 		#endif
 		
+        size_t xbd_parameter_buffer_len = multipkt_state.addr+multipkt_state.datanext;
 			
         int32_t ret = OH_handleExecuteRequest(
                 multipkt_state.type,
                 xbd_parameter_buffer,
+                xbd_parameter_buffer_len,
                 xbd_result_buffer,
                 &xbd_stack_use,
                 &result_buffer_len);
