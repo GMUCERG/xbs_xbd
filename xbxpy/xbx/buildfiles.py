@@ -12,6 +12,9 @@ endif
 
 FLAGS+=-MD
 
+# Disable asserts
+FLAGS+=-DNDEBUG
+
 CC+=${FLAGS}
 
 BUILDDIR=build
@@ -66,6 +69,10 @@ FLAGS+=-I${XBD_PATH}/xbd_op/${OP}
 
 
 FLAGS+=-MD
+
+# Disable asserts
+FLAGS+=-DNDEBUG
+
 
 CC+=${FLAGS}
 CXX+=${FLAGS}
