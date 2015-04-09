@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <strings.h>
-#include "crypto_hash.h"
 #include "XBD_commands.h"
 #include "XBD_debug.h"
 #include "XBD_operation.h"
