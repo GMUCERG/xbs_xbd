@@ -12,6 +12,7 @@
 
 #define XBD_PROTO_VERSION "04"
 
+// Must not use sizeof in below macros, as they are used in #if macros
 
 #define REVNSIZE 7
 #define TIMESIZE 4
@@ -24,8 +25,9 @@
 
 
 
-#define XBD_COMMAND_LEN 8
 #define XBD_ANSWERLENG_MAX 48
+
+#define XBD_COMMAND_LEN 8
 
 
 // This is the interface that is required for eBASH:
