@@ -60,7 +60,7 @@ void test_allocate(unsigned char *buf) {
 
 int test(void)
 {
-    unsigned long long loop;
+    unsigned loop;
 
     if(!setjmp(test_fail_jmp)){
         for (loop = 0;loop < LOOPS;++loop) {
