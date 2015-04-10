@@ -146,7 +146,7 @@ class Build(Base):
         self.work_path      = os.path.join(
             config.work_path,
             config.platform.name,
-            config.operation.name,
+            self.implementation.primitive.operation.name,
             self.implementation.primitive.name,
             self.implementation.name,
             str(compiler_idx)
@@ -411,19 +411,18 @@ class BuildSession(Base, xbxs.SessionMixin):
             if self.config.one_compiler:
                 break
 
-        for p in self.config.operation.primitives:
-            for j in p.implementations:
-                # Skip if hash is not current
-                if not j.valid_hash:
-                    continue
-                for i in range(num_compilers):
-                    # Don't have to add to self.builds as Build sets
-                    # BuildSession as parent, which inserts into
-                    # BuildSession.builds
-                    b = Build(self, i, j)
-                    build_map[b.buildid] = b
-                    if self.config.one_compiler:
-                        break
+        for j in self.config.implementations:
+            # Skip if hash is not current
+            if not j.valid_hash:
+                continue
+            for i in range(num_compilers):
+                # Don't have to add to self.builds as Build sets
+                # BuildSession as parent, which inserts into
+                # BuildSession.builds
+                b = Build(self, i, j)
+                build_map[b.buildid] = b
+                if self.config.one_compiler:
+                    break
         
         if self.config.parallel_build:
             q_out = mp.Queue()

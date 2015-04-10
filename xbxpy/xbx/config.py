@@ -12,7 +12,7 @@ import sys
 import hashlib
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship, reconstructor
 
 from xbx.dirchecksum import dirchecksum
@@ -25,8 +25,8 @@ _logger=logging.getLogger(__name__)
 
 DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "config.ini")
 
-@unique_constructor(scoped_session, 
-        lambda **kwargs: kwargs['hash'], 
+@unique_constructor(scoped_session,
+        lambda **kwargs: kwargs['hash'],
         lambda query, **kwargs: query.filter(Platform.hash == kwargs['hash']))
 class Platform(Base):
     __tablename__  = "platform"
@@ -52,28 +52,6 @@ class Platform(Base):
         hash = dirchecksum(self.path)
         return hash == self.hash
 
-    # @reconstructor
-    # def load_init(self):
-    #     """Verifies if hash still valid and saves new result in DB"""
-    #     self.valid_hash = self.validate_hash()
-    #     scoped_session().add(self)
-
-    # def __init__(self, **kwargs):
-    #     super().__init__(**kwargs)
-    #     self.valid_hash = self.validate_hash()
-    #     
-    # def validate_hash(self):
-    #     """Indicates if current existing directory validates with stored hash"""
-    #     hash = dirchecksum(self.path)
-    #     valid_hash = None
-    #     if self.hash != hash:
-    #         valid_hash = False
-    #     else:
-    #         valid_hash = True
-    #     return valid_hash
-
-
-
 class Compiler(Base):
     __tablename__ = "compiler"
 
@@ -91,11 +69,10 @@ class Compiler(Base):
         PrimaryKeyConstraint("platform_hash", "idx", ),
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
     )
-    pass # For indentation
 
 
-@unique_constructor(scoped_session, 
-        lambda **kwargs: kwargs['name'], 
+@unique_constructor(scoped_session,
+        lambda **kwargs: kwargs['name'],
         lambda query, **kwargs: query.filter(Operation.name == kwargs['name']))
 class Operation(Base):
     __tablename__ = "operation"
@@ -114,7 +91,7 @@ class Operation(Base):
         super().__init__(**kwargs)
         self.parse_opstring()
 
-    @reconstructor 
+    @reconstructor
     def parse_opstring(self):
         match             = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
 
@@ -124,9 +101,9 @@ class Operation(Base):
 
 
 
-@unique_constructor(scoped_session, 
-        lambda **kwargs: kwargs['name']+'_'+kwargs['operation'].name, 
-        lambda query, **kwargs: query.filter(Operation.name == kwargs['operation'].name, 
+@unique_constructor(scoped_session,
+        lambda **kwargs: kwargs['name']+'_'+kwargs['operation'].name,
+        lambda query, **kwargs: query.filter(Operation.name == kwargs['operation'].name,
                                              Primitive.name == kwargs['name']))
 class Primitive(Base):
     __tablename__  = "primitive"
@@ -138,7 +115,7 @@ class Primitive(Base):
     path           = Column(String)
 
     implementations = relationship(
-        "Implementation", 
+        "Implementation",
         backref="primitive",
         #collection_class=set
     )
@@ -153,8 +130,8 @@ class Primitive(Base):
 
 
 
-@unique_constructor(scoped_session, 
-        lambda **kwargs: kwargs['hash'], 
+@unique_constructor(scoped_session,
+        lambda **kwargs: kwargs['hash'],
         lambda query, **kwargs: query.filter(Implementation.hash == kwargs['hash']))
 class Implementation(Base):
     __tablename__  = "implementation"
@@ -172,7 +149,7 @@ class Implementation(Base):
             ["primitive.name", "primitive.operation_name"],
         ),
     )
-    
+
 
     @property
     def valid_hash(self):
@@ -181,18 +158,21 @@ class Implementation(Base):
         return hash == self.hash
 
 
-        
+# Join table for primitves connected to config
+_config_impl_join_table = Table('config_implementation_join', Base.metadata,
+    Column('implementation_hash', Integer, ForeignKey('implementation.hash')),
+    Column('config_hash', Integer, ForeignKey('config.hash'))
+)
 
 
 
-
-
-
-
-
-@unique_constructor(scoped_session, 
-        lambda config_path, **kwargs: hash_config(config_path), 
-        lambda query, config_path, **kwargs: query.filter(Config.hash == hash_config(config_path)))
+@unique_constructor(
+    scoped_session,
+    lambda config_path, **kwargs: hash_config(config_path),
+    lambda query, config_path, **kwargs: query.filter(
+        Config.hash == hash_config(config_path)
+    )
+)
 class Config(Base):
     """Configuration for running benchmarks on a single operation on a single platform"""
 
@@ -226,8 +206,10 @@ class Config(Base):
     one_compiler     = Column(Boolean)
     parallel_build   = Column(Boolean)
 
-    platform         = relationship( "Platform", uselist=False)
-    operation        = relationship( "Operation", uselist=False)
+    platform         = relationship("Platform", uselist=False)
+    operation        = relationship("Operation", uselist=False)
+    implementations  = relationship("Implementation",
+                                    secondary=_config_impl_join_table) 
 
     __table_args__   = (
         PrimaryKeyConstraint("hash" ),
@@ -300,7 +282,14 @@ class Config(Base):
             self.whitelist = config.get('implementation','whitelist').split("\n")
 
         primitives = config.get('algorithm','primitives').split("\n")
-        self.operation.primitives = Config.__enum_prim_impls(
+        #self.operation.primitives = Config.__enum_prim_impls(
+        #    self.operation,
+        #    primitives,
+        #    self.blacklist,
+        #    self.whitelist,
+        #    self.algopack_path
+        #)
+        self.__enum_prim_impls(
             self.operation,
             primitives,
             self.blacklist,
@@ -332,7 +321,7 @@ class Config(Base):
 
         compilers = Config.__enum_compilers(path, tmpl_path)
 
-        
+
         hash = dirchecksum(path)
         if tmpl_path:
             h = hashlib.sha256()
@@ -342,15 +331,14 @@ class Config(Base):
 
         return Platform(
                 hash=hash,
-                name=name, 
-                path=path, 
-                tmpl_path=tmpl_path, 
+                name=name,
+                path=path,
+                tmpl_path=tmpl_path,
                 clock_hz=clock_hz,
-                pagesize=pagesize, 
+                pagesize=pagesize,
                 compilers=compilers
             )
 
-    
 
     @staticmethod
     def __enum_compilers(platform_path, tmpl_path):
@@ -401,7 +389,7 @@ class Config(Base):
 
             compilers += Compiler(
                 idx=i,
-                cc=cc_list[i], 
+                cc=cc_list[i],
                 cxx=cxx_list[i],
                 cc_version=cc_version,
                 cxx_version=cxx_version,
@@ -409,15 +397,14 @@ class Config(Base):
                 cxx_version_full=cxx_version_full
             ),
 
-        
+
         return compilers
 
-    
 
-    @staticmethod
-    def __enum_prim_impls(operation, primitive_names, blacklist, whitelist, algopack_path):
-        """Get primitive implementations 
-        
+    def __enum_prim_impls(self, operation, primitive_names, blacklist, whitelist, algopack_path):
+        """Enumerations primitives and implementation, and sets lists of
+        implementations in config
+
         Blacklist has priority: impls = whitelist & ~blacklist
 
         Parameters:
@@ -426,7 +413,7 @@ class Config(Base):
             blacklist       List of regexes to match of implementations to
                             remove
             whitelist       List of implementations to consider. """
-            
+
 
         _logger.debug("Enumerating primitives and implementations")
         primitives = []
@@ -515,17 +502,16 @@ class Config(Base):
 
                 # Don't have to add to p.implementations, as Implementation sets
                 # Primitive as parent, which inserts into list
-                Implementation(
+                self.implementations += Implementation(
                     hash=checksum,
-                    name=name, 
+                    name=name,
                     path=path,
                     primitive=p,
                     macros=macros
-                )
+                ),
 
         return primitives
 
-    
 
     @staticmethod
     def __enum_operation(name, filename):
@@ -537,7 +523,7 @@ class Config(Base):
                 match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
                 if match.group(1) == name:
                     return Operation(name=name, operation_str=l.strip())
-    
+
 
 
 config_hash_cache = {}
@@ -557,7 +543,7 @@ def hash_config(config_path):
         config.get('paths','operations')
     )
 
-    dir_paths = ( 
+    dir_paths = (
         config.get('paths','platforms'),
         config.get('paths','algopacks'),
         config.get('paths','embedded'),
@@ -576,3 +562,4 @@ def hash_config(config_path):
     config_hash_cache[config_hash] = h.hexdigest()
 
     return config_hash_cache[config_hash]
+

@@ -141,7 +141,7 @@ class Run(Base):
 
         xbh = self.build_exec.run_session.xbh
 
-        operation_name = self.build_exec.run_session.config.operation.name
+        operation_name = self.build_exec.build.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
         if packed_params:
             xbh.upload_param(packed_params, typecode)
@@ -254,7 +254,7 @@ class BuildExec(Base):
     @reconstructor
     def __load_init(self):
         import xbx.run_op
-        op_name = self.run_session.config.operation.name
+        op_name = self.build.operation.name
         self.RunType, typecode = xbx.run_op.OPERATIONS[op_name]
 
 
