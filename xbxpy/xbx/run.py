@@ -29,9 +29,6 @@ class NoBuildSessionError(Error):
 class RunValueError(Error):
     pass
 
-class XbdChecksumFailError(RunValueError):
-    pass
-
 class XbdResultFailError(RunValueError):
     pass
 
@@ -214,6 +211,8 @@ class TestRun(Run):
         return run
 
 
+# Decorator to pull BuildExec out of database if instance already exists for
+# given Build and this run_session
 @unique_constructor(
     scoped_session,
     lambda run_session, build, *args, **kwargs:
@@ -231,7 +230,6 @@ class BuildExec(Base):
     build          = relationship("Build")
     runs           = relationship("Run", backref="build_exec",
                                   cascade="all,delete-orphan")
-    #primaryjoin="and_(Run.build_exec_id==BuildExec.id," "Run.type!='test_run')")
     test_ok        = Column(Boolean)
 
     __table_args__ = (
