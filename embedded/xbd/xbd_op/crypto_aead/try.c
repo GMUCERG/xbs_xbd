@@ -67,21 +67,21 @@ static unsigned long long tlen;
  */
 void test_allocate(unsigned char *buf) {
     k  = buf + CANARY_SZ;
-    s  = k   + CANARY_SZ + MAX_KEYBYTES       + CANARY_SZ;
-    p  = s   + CANARY_SZ + MAX_NSECBYTES      + CANARY_SZ;
-    a  = p   + CANARY_SZ + MAX_NPUBBYTES      + CANARY_SZ;
-    m  = a   + CANARY_SZ + MAX_TEST_AD_BYTES  + CANARY_SZ;
-    c  = m   + CANARY_SZ + MAX_TEST_MSG_BYTES + CANARY_SZ;
-    t  = c   + CANARY_SZ + MAX_TEST_MSG_BYTES + MAX_ABYTES + CANARY_SZ;
-    r  = t   + CANARY_SZ + MAX_TEST_MSG_BYTES + CANARY_SZ;
-    k2 = r   + CANARY_SZ + MAX_NSECBYTES      + CANARY_SZ;
-    s2 = k2  + CANARY_SZ + MAX_KEYBYTES       + CANARY_SZ;
-    p2 = s2  + CANARY_SZ + MAX_NSECBYTES      + CANARY_SZ;
-    a2 = p2  + CANARY_SZ + MAX_NPUBBYTES      + CANARY_SZ;
-    m2 = a2  + CANARY_SZ + MAX_TEST_AD_BYTES  + CANARY_SZ;
-    c2 = m2  + CANARY_SZ + MAX_TEST_MSG_BYTES + CANARY_SZ;
-    t2 = c2  + CANARY_SZ + MAX_TEST_MSG_BYTES + MAX_ABYTES + CANARY_SZ;
-    r2 = t2  + CANARY_SZ + MAX_TEST_MSG_BYTES + CANARY_SZ;
+    s  = k   + MAX_KEYBYTES        + CANARY_SZ  + CANARY_SZ;
+    p  = s   + MAX_NSECBYTES       + CANARY_SZ  + CANARY_SZ;
+    a  = p   + MAX_NPUBBYTES       + CANARY_SZ  + CANARY_SZ;
+    m  = a   + MAX_TEST_AD_BYTES   + CANARY_SZ  + CANARY_SZ;
+    c  = m   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
+    t  = c   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + MAX_ABYTES + CANARY_SZ;
+    r  = t   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
+    k2 = r   + MAX_NSECBYTES       + CANARY_SZ  + CANARY_SZ;
+    s2 = k2  + MAX_KEYBYTES        + CANARY_SZ  + CANARY_SZ;
+    p2 = s2  + MAX_NSECBYTES       + CANARY_SZ  + CANARY_SZ;
+    a2 = p2  + MAX_NPUBBYTES       + CANARY_SZ  + CANARY_SZ;
+    m2 = a2  + MAX_TEST_AD_BYTES   + CANARY_SZ  + CANARY_SZ;
+    c2 = m2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
+    t2 = c2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + MAX_ABYTES + CANARY_SZ;
+    r2 = t2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
          
     //Randomize contents
     for (size_t i = 0; i < MAX_TESTBUFFER_SIZE; i++){
@@ -242,6 +242,7 @@ int test(void) {
                 if ((tlen != mlen) || (memcmp(t,m,mlen) != 0) || (memcmp(r,s,slen) != 0))
                     fail("crypto_aead_decrypt allows trivial forgeries");
         }
+        return 0;
     }else{
         return FAIL_CHECKSUM;
     }
