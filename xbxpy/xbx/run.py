@@ -13,6 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from xbx.database import JSONEncodedDict
 from xbx.database import Base, unique_constructor, scoped_session
+import xbx.config as xbxc
 import xbx.database as xbxdb
 import xbx.build as xbxb
 import xbx.session as xbxs
@@ -298,17 +299,15 @@ class BuildExec(Base):
 
 
 # Gets build session, or latest if none is provided
-def _get_build_session(build_session_id=None):
+def _get_build_session(config, build_session_id=None):
     try:
         s = xbxdb.scoped_session()
         if build_session_id == None:
-            q = s.query(xbxb.BuildSession).order_by(
-                xbxb.BuildSession.timestamp.desc())
-
-            return q.first()
+            return (s.query(xbxb.BuildSession).join("config","operation").
+                    filter(xbxc.Operation.name == config.operation.name).
+                    order_by(xbxb.BuildSession.timestamp.desc())).first()
         else:
-            return s.query(xbxb.BuildSession).filter(BuildSession.id ==
-                                                     build_session_id).one()
+            return s.query(xbxb.BuildSession).filter(BuildSession.id == build_session_id).one()
     except NoResultFound as e:
         raise NoBuildSessionError("Build must be run first") from e
 
@@ -320,12 +319,12 @@ def _get_build_session(build_session_id=None):
     scoped_session,
     lambda config, build_session_id=None, *args, **kwargs:
         (str(config.hash)+"_"+
-         str(_get_build_session(build_session_id).id)),
+         str(_get_build_session(config, build_session_id).id)),
     lambda query, config, build_session_id=None, *args, **kwargs:
         query.filter(RunSession.config_hash==config.hash,
                      RunSession.host==socket.gethostname(),
                      RunSession.build_session_id==
-                     _get_build_session(build_session_id).id)
+                     _get_build_session(config, build_session_id).id)
 )
 class RunSession(Base, xbxs.SessionMixin):
     """Manages runs specified in config that are defined in the last
@@ -353,7 +352,7 @@ class RunSession(Base, xbxs.SessionMixin):
     def __init__(self, config, build_session_id=None, *args, **kwargs):
         super().__init__(config=config, *args, **kwargs)
         self._setup_session()
-        self.build_session = _get_build_session(build_session_id)
+        self.build_session = _get_build_session(config, build_session_id)
 
 
 
@@ -415,7 +414,7 @@ class RunSession(Base, xbxs.SessionMixin):
             # If not already run w/ a pass/fail, or if rerunning results is
             # enabled, then do run
             if be.test_ok == None or self.config.rerun:
-                be.load_build()
+#                be.load_build()
                 be.execute()
                 s.add(be)
                 s.commit()
