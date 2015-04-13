@@ -190,7 +190,6 @@ class CryptoAeadRun(xbxr.Run):
         fmt = "!II"
         secnum_len, plaintext_len = struct.unpack_from(fmt, dec_output)
 
-        print((secnum_len,plaintext_len))
         # Unpack data
         (decrypted_secret_num,
          decrypted_plaintext) = struct.unpack(
