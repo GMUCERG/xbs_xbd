@@ -170,19 +170,25 @@ class Build(Base):
 
         if os.path.isdir(self.work_path):
             self.rebuilt = True
+            try:
+                os.remove(self.hex_path)
+                os.remove(self.exe_path)
+            except FileNotFoundError:
+                pass
+
 
         self._gen_files()
 
         return BuildJob(
-                self.work_path, self.parallel_make, 
+                self.work_path, self.parallel_make,
                 {'buildid': self.buildid},
                 self.buildid, self.platform.name, self.hex_path
                 )
 
     def do_postbuild(self, job):
         """Extracts data from completed buildjob
-        
-        Alsoinspects post build environment for stats
+
+        Also inspects post build environment for stats
         """
         if os.path.isfile(self.hex_path):
             size = os.path.join(self.platform.path, 'size')
@@ -365,7 +371,7 @@ class Build(Base):
 
     def __lt__(self, other):
         return self.buildid < other.buildid
-    
+
 
 class BuildSession(Base, xbxs.SessionMixin):
     """Manages builds for all instances specified in xbx config
@@ -572,7 +578,7 @@ def _gen_envfile(path, env):
         for key, value in env.items():
             f.write("{}={}\n".format(key,value))
     return False
-    
+
 def _parse_envfile(path):
     env = {}
     with open(path) as f:
