@@ -287,7 +287,7 @@ class BuildExec(Base):
             # Test for remaining specified runs after running benchmarks to see
             # if results still valid to check if not corrupted
             test(num_end_tests)
-        except XbdResultFailError,RunValueError as e:
+        except (XbdResultFailError,RunValueError) as e:
             self.test_ok = False
             _logger.error(str(e))
         else:
