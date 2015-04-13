@@ -194,6 +194,7 @@ class Config(Base):
     platform_hash    = Column(String)
     operation_name   = Column(String)
 
+    rerun            = Column(Boolean)
     drift_measurements = Column(Integer)
     checksum_tests   = Column(Integer)
     operation_params = Column(xbxdb.JSONEncodedDict)
@@ -222,7 +223,7 @@ class Config(Base):
         super().__init__(**kwargs)
         _logger.debug("Loading configuration")
         config = configparser.ConfigParser()
-        config.read(DEFAULT_CONF)
+        config.read_file(open(DEFAULT_CONF))
         config.read(config_path)
         self.config_path = config_path
 
@@ -254,6 +255,7 @@ class Config(Base):
         self.operation          = Config.__enum_operation(name, op_filename)
 
         # Runtime parameters
+        self.rerun              = config.getboolean('run', 'rerun')
         self.drift_measurements = config.getint('run','drift_measurements')
         self.checksum_tests     = config.getint('run','checksum_tests')
         self.xbh_timeout        = config.getint('run','xbh_timeout')
