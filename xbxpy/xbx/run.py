@@ -1,5 +1,6 @@
 import binascii
 import logging
+import socket
 import sys
 import binascii
 from datetime import datetime
