@@ -137,7 +137,7 @@ class Run(Base):
 
         operation_name = self.build_exec.build.operation.name
         runtype, typecode = xbx.run_op.OPERATIONS[operation_name]
-        if packed_params:
+        if packed_params != None:
             xbh.upload_param(packed_params, typecode)
         results, timings, self.stack_usage = xbh.execute()
         self.timestamp = datetime.now()

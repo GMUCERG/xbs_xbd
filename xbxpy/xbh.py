@@ -465,13 +465,16 @@ class Xbh:
         _logger.debug("Uploading {} bytes {} at a time"
                     .format(length, MAX_DATA))
 
-        while offset < length:
-            self._upload_data(offset, typecode, data[offset:offset+MAX_DATA])
+        while True:
             uploaded_bytes = (MAX_DATA if MAX_DATA <
                     (length - offset) else (length - offset))
             _logger.debug("Uploading {} bytes starting at {}"
                     .format(uploaded_bytes,hex(offset)))
+            self._upload_data(offset, typecode,
+                              data[offset:offset+MAX_DATA])
             offset += MAX_DATA
+            if not offset < length:
+                break
 
     def measure_timing_error(self):
         cycles = self.get_timing_cal()

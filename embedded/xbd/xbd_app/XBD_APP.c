@@ -94,7 +94,13 @@ void XBD_AF_HandleProgramParametersRequest(uint8_t len, uint8_t* data) {
         return;
     }
 
-    xbd_state = paramdownload;
+    //Handle case of empty 0 byte packet
+    if(multipkt_state.dataleft == 0){
+        xbd_state = paramok;
+    }else{
+        xbd_state = paramdownload;
+    }
+
     //prepare 'OK' response to XBH
     txDataLen=XBD_COMMAND_LEN;
     XBD_loadStringFromConstDataArea((char *)XBD_response, XBDppo);
