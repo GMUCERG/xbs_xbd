@@ -5,7 +5,7 @@ import binascii
 from datetime import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Numeric
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Float 
 from sqlalchemy.orm import relationship, reconstructor
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.ext.declarative import declarative_base
@@ -38,10 +38,10 @@ class XbdResultFailError(RunValueError):
 class PowerSample(Base):
     __tablename__ = "power_sample"
     run_id  = Column(Integer)
-    power   = Column(Numeric)
-    current = Column(Numeric)
-    voltage = Column(Numeric)
-    timestamp = Column(Numeric)
+    power   = Column(Float)
+    current = Column(Float)
+    voltage = Column(Float)
+    timestamp = Column(Integer)
 
     __table_args__ = (
         PrimaryKeyConstraint("timestamp", "run_id"),
@@ -119,10 +119,6 @@ class Run(Base):
     def __init__(self, build_exec, **kwargs):
         super().__init__(**kwargs)
         self.build_exec = build_exec
-
-    @reconstructor
-    def __load_init(self):
-        pass
 
     def _assemble_params(self):
         """Extend this to return parameters packed to send to XBD"""
