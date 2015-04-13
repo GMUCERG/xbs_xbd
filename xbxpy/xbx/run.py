@@ -182,6 +182,7 @@ class TestRun(Run):
             results, timings, self.stack_usage = xbh.calc_checksum()
         except xbhlib.ChecksumFailError as e:
             self.checksumfail_cause = str(e)
+            raise e
 
         self.timestamp = datetime.now()
         self.measured_cycles = xbh.get_measured_cycles(timings)
@@ -273,7 +274,7 @@ class BuildExec(Base):
                 _logger.info("Calculating Checksum...")
                 t = TestRun.run(self)
                 if not t.test_ok:
-                    raise XbdChecksumFailError("Build " + str(self.build) +
+                    raise XbdResultFailError("Build " + str(self.build) +
                                                " fails checksum tests")
 
         try:
@@ -287,7 +288,7 @@ class BuildExec(Base):
             # Test for remaining specified runs after running benchmarks to see
             # if results still valid to check if not corrupted
             test(num_end_tests)
-        except RunValueError as e:
+        except XbdResultFailError,RunValueError as e:
             self.test_ok = False
             _logger.error(str(e))
         else:
