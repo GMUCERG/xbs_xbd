@@ -421,25 +421,34 @@ class Config(Base):
         # Get operation path
         op_path = os.path.join(algopack_path, operation.name)
 
+        if not os.path.isdir(op_path):
+            raise ValueError(
+                "Operation {} directory does not exist!".format(operation.name))
+
         # Get list of primitive directories
         primdirs = [d for d in os.listdir(op_path) if os.path.isdir(os.path.join(op_path, d))]
 
         # Get prim directories intersecting w/ primitive list
-        for name in set(primitive_names) & set(primdirs):
-            # Insert primitive as key into primitives
-            # path and implementations as value
+        for name in primitive_names :
+            if name not in primdirs:
+                raise ValueError("Primitive {} directory does not exist!".
+                                 format(name))
+
             path = os.path.join(op_path,name)
-            operation = operation
+            try:
+                checksumfile = os.path.join(path, "checksumsmall")
+                checksumsmall = ""
+                with open(checksumfile) as f:
+                    checksumsmall = f.readline().strip()
 
-            checksumfile = os.path.join(path, "checksumsmall")
-            checksumsmall = ""
-            with open(checksumfile) as f:
-                checksumsmall = f.readline().strip()
-
-            checksumfile = os.path.join(path, "checksumbig")
-            checksumbig= ""
-            with open(checksumfile) as f:
-                checksumbig = f.readline().strip()
+                checksumfile = os.path.join(path, "checksumbig")
+                checksumbig= ""
+                with open(checksumfile) as f:
+                    checksumbig = f.readline().strip()
+            except FileNotFoundError:
+                _logger.error(("Checksum(big|small) files not found for "
+                               "{}/{}").format(operation.name,name))
+                continue
 
             p = Primitive(
                     operation=operation,
