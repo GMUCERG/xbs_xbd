@@ -63,18 +63,23 @@ class CryptoAeadRun(xbxr.Run):
 
         assoc_data_len   Associated Data Length
 
-        direction        CryptoAeadRun.ENCRYPT or CryptoAeadRun.DECRYPT
+        mode             CryptoAeadRun.ENCRYPT or CryptoAeadRun.DECRYPT or
+                         CryptoAeadRun.FORGED_DEC
+
+        data_id      ID number to identify crypt,decrypt,forge_dec runs as
+                         working with the same data
 
     """
     ENCRYPT="enc"
     DECRYPT="dec"
+    FORGED_DEC ="frg"
     __tablename__ = "crypto_aead_run"
 
     id = Column(Integer)
-    pair_id = Column(Integer)
-    msg_len = Column(Integer)
+    data_id = Column(Integer)
+    plaintext_len = Column(Integer)
     assoc_data_len = Column(Integer)
-    direction = Column(Enum(ENCRYPT, DECRYPT))
+    mode = Column(Enum(ENCRYPT, DECRYPT, FORGED_DEC))
 
     __mapper_args__ = {
         'polymorphic_identity':'crypto_aead_run',
@@ -142,52 +147,56 @@ class CryptoAeadRun(xbxr.Run):
 
         Call this instead of constructor
         """
-
-        _logger.info("Running benchmark on {} with plaintext length {} and"
+        _logger.info("Running benchmark on {} with plaintext length {} and "
                      "associated data length {}".
                      format(build_exec.build, params[0], params[1]))
 
 
         enc_run = cls(build_exec, plaintext_len=params[0],
-                      assoc_data_len=params[1], direction=CryptoAeadRun.ENCRYPT)
+                      assoc_data_len=params[1], mode=CryptoAeadRun.ENCRYPT)
         dec_run = cls(build_exec, plaintext_len=params[0],
-                      assoc_data_len=params[1], direction=CryptoAeadRun.DECRYPT)
+                      assoc_data_len=params[1], mode=CryptoAeadRun.DECRYPT)
+        dec_forged_run = cls(build_exec, plaintext_len=params[0],
+                      assoc_data_len=params[1], mode=CryptoAeadRun.FORGED_DEC)
 
         # Set identical pair ids so we know encryption/decryption pairs
         s = xbxdb.scoped_session()
         s.add(enc_run)
         s.add(dec_run)
+        s.add(dec_forged_run)
         s.flush()  # Need to add and flush to get id
-        enc_run.pair_id = enc_run.id
-        dec_run.pair_id = enc_run.id
+        enc_run.data_id = enc_run.id
+        dec_run.data_id = enc_run.id
+        dec_forged_run.data_id = enc_run.id
 
         # Generate data
-        (data, plaintext, assoc_data,
+        (enc_data, plaintext, assoc_data,
          key, secret_num, public_num) = enc_run._gen_enc_params()
 
-        retval, ciphertext = enc_run._execute(data)
+        retval, ciphertext = enc_run._execute(enc_data)
 
         if retval != 0:
             raise xbxr.XbdResultFailError(
                 "XBD execute returned {}".format(retval))
 
-        data = CryptoAeadRun._assemble_dec_params(ciphertext, assoc_data,
+        dec_data = CryptoAeadRun._assemble_dec_params(ciphertext, assoc_data,
                                                   public_num, key)
 
-        retval, data = dec_run._execute(data)
+        retval, dec_output = dec_run._execute(dec_data)
 
 
         # Unpack lengths
         # We put secret num first since it is fixed length
         fmt = "!II"
-        secnum_len, plaintext_len = struct.unpack_from(fmt, data)
+        secnum_len, plaintext_len = struct.unpack_from(fmt, dec_output)
 
+        print((secnum_len,plaintext_len))
         # Unpack data
         (decrypted_secret_num,
-         decrypted_plaintext) = struct.unpack("{}s{}s".format(secnum_len,
-                                                               plaintext_len),
-                                               data[struct.calcsize(fmt):])
-
+         decrypted_plaintext) = struct.unpack(
+             "{}s{}s".format(secnum_len, plaintext_len),
+             dec_output[struct.calcsize(fmt):]
+         )
 
         if (decrypted_plaintext != plaintext or
                 decrypted_secret_num != secret_num):
