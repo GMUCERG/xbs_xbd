@@ -46,7 +46,7 @@
         GPIO_PIN_6| \
         GPIO_PIN_7) 
 
-extern uint32_t pui32Stack[1024];
+extern uint32_t _end;
 
 void XBD_switchToBootLoader(void);
 
@@ -258,7 +258,7 @@ void getSP(volatile uint8_t **var_SP)
 void XBD_paintStack(void) {
     //register void * __stackptr asm("sp");   ///<Access to the stack pointer
 /* initialise stack measurement */
-	p = (uint8_t *)pui32Stack; 
+	p = (uint8_t *)&_end; 
 	inv_sc=!inv_sc;
 	getSP(&p_stack);
     //p_stack = __stackptr;
@@ -273,7 +273,7 @@ void XBD_paintStack(void) {
 
 uint32_t XBD_countStack(void) {
 /* return stack measurement result */
-    p = (uint8_t *)pui32Stack;
+    p = (uint8_t *)&_end;
     register uint32_t c = 0;
 
     while(*p == STACK_CANARY && p <= p_stack)

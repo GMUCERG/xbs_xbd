@@ -64,7 +64,6 @@ SECTIONS
     } > FLASH
     /* Needed to align lma address of .data */
     .data : ALIGN(4) {
-        . = ALIGN(4);
         _data = .;
         *(vtable)
         *(.data*)
@@ -77,5 +76,10 @@ SECTIONS
         *(.bss*)
         *(COMMON)
         _ebss = .;
+        _end = .;
     } > SRAM
+    .stack (ORIGIN (SRAM) + LENGTH(SRAM)) : {
+        PROVIDE (__stack = .);
+        *(.stack)
+    }
 }

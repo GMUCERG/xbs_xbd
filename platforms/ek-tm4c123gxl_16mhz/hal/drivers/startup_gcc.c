@@ -67,12 +67,7 @@ extern uint32_t _bss;
 extern uint32_t _ebss;
 extern uint32_t _ldata;
 
-//*****************************************************************************
-//
-// Reserve 4kB space for the system stack.
-//
-//*****************************************************************************
-uint32_t pui32Stack[1024]  __attribute__((aligned(8)));
+extern uint64_t __stack; // Stack address must be 8-byte aligned
 
 //*****************************************************************************
 //
@@ -90,7 +85,7 @@ void ResetISR(void) {
     //
     // Set stack pointer
     //
-    asm("mov sp,%[addr] "::[addr] "r" (((uint8_t*)pui32Stack)+sizeof(pui32Stack)));
+    asm("mov sp,%[addr] "::[addr] "r" ((&__stack)-1));
 
 
     //
