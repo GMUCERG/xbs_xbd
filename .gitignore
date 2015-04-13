@@ -50,3 +50,6 @@ __pycache__
 # Backups
 *.old
 *.orig
+
+# Logs
+*.log
