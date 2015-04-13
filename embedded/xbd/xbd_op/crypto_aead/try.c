@@ -72,16 +72,16 @@ void test_allocate(unsigned char *buf) {
     a  = p   + MAX_NPUBBYTES       + CANARY_SZ  + CANARY_SZ;
     m  = a   + MAX_TEST_AD_BYTES   + CANARY_SZ  + CANARY_SZ;
     c  = m   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
-    t  = c   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + MAX_ABYTES + CANARY_SZ;
-    r  = t   + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
+    t  = c   + MAX_TEST_MSG_BYTES  + MAX_ABYTES + CANARY_SZ + CANARY_SZ;
+    r  = t   + MAX_TEST_MSG_BYTES  + MAX_ABYTES + CANARY_SZ + CANARY_SZ;
     k2 = r   + MAX_NSECBYTES       + CANARY_SZ  + CANARY_SZ;
     s2 = k2  + MAX_KEYBYTES        + CANARY_SZ  + CANARY_SZ;
     p2 = s2  + MAX_NSECBYTES       + CANARY_SZ  + CANARY_SZ;
     a2 = p2  + MAX_NPUBBYTES       + CANARY_SZ  + CANARY_SZ;
     m2 = a2  + MAX_TEST_AD_BYTES   + CANARY_SZ  + CANARY_SZ;
     c2 = m2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
-    t2 = c2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + MAX_ABYTES + CANARY_SZ;
-    r2 = t2  + MAX_TEST_MSG_BYTES  + CANARY_SZ  + CANARY_SZ;
+    t2 = c2  + MAX_TEST_MSG_BYTES  + MAX_ABYTES + CANARY_SZ + CANARY_SZ;
+    r2 = t2  + MAX_TEST_MSG_BYTES  + MAX_ABYTES + CANARY_SZ + CANARY_SZ;
          
     //Randomize contents
     for (size_t i = 0; i < MAX_TESTBUFFER_SIZE; i++){

@@ -22,7 +22,7 @@
 
 // Need to reserve 16 bytes before and after each paramter as a canary
 // (len(k+s+p+a+m+c+t+r)+(number of parameters*2*16))*2
-#define MAX_TESTBUFFER_SIZE (((MAX_KEYBYTES+MAX_NSECBYTES+MAX_NPUBBYTES+MAX_TEST_AD_BYTES+MAX_TEST_MSG_BYTES+(MAX_TEST_MSG_BYTES+MAX_ABYTES)+MAX_TEST_MSG_BYTES+MAX_NSECBYTES)+16*8*2)*2)
+#define MAX_TESTBUFFER_SIZE (((MAX_KEYBYTES+MAX_NSECBYTES+MAX_NPUBBYTES+MAX_TEST_AD_BYTES+MAX_TEST_MSG_BYTES+(MAX_TEST_MSG_BYTES+MAX_ABYTES)*2+MAX_NSECBYTES)+16*8*2)*2)
 
 // Maximum parameter size during runs
 // Length of parameters + integer for direction
