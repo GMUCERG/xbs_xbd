@@ -43,7 +43,7 @@ class CryptoHashRun(xbx.run.Run):
     @classmethod
     def run(cls, build_exec, params=None):
         """Factory method that generates run instances and attaches them to
-        buildexec. Call this instead of constructor"""
+        build_exec. Call this instead of constructor"""
         _logger.info("Running benchmark on {} with msg length {}".
                      format(build_exec.build, params[0]))
         run = cls(build_exec, msg_len=params[0])
@@ -84,7 +84,7 @@ class CryptoAeadRun(xbxr.Run):
         ForeignKeyConstraint(["id"], ["run.id"]))
 
     def _gen_enc_params(self):
-        macros = self.buildexec.build.implementation.macros
+        macros = self.build_exec.build.implementation.macros
 
         key_bytes = macros['_KEYBYTES']
         secret_number_bytes = macros['_NSECBYTES']
@@ -178,7 +178,7 @@ class CryptoAeadRun(xbxr.Run):
 
         # Unpack lengths
         # We put secret num first since it is fixed length
-        fmt = "II"
+        fmt = "!II"
         secnum_len, plaintext_len = struct.unpack_from(fmt, data)
 
         # Unpack data
@@ -193,7 +193,25 @@ class CryptoAeadRun(xbxr.Run):
             raise xbxr.XbdResultFailError(
                 "Decrypted plaintext does not match CipherText")
 
-        return enc_run, dec_run
+        forged_ciphertext = bytearray(ciphertext)
+
+        #Tamper with last byte of ciphertext
+        if len(ciphertext):
+            forged_ciphertext[-1] = (forged_ciphertext[-1] + 1) % 256
+
+        forged_data = CryptoAeadRun._assemble_dec_params(forged_ciphertext,
+                                                         assoc_data, public_num,
+                                                         key)
+
+        retval,_ = dec_forged_run._execute(forged_data)
+
+        if retval != -1:
+            raise xbxr.XbdResultFailError(
+                "Message forgery not detected")
+
+
+
+        return enc_run, dec_run, dec_forged_run
 
 
 OPERATIONS={
