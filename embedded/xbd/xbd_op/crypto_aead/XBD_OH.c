@@ -12,8 +12,8 @@ static volatile uint32_t afterburner;
 
 static inline void schedule_delay(void){
 
-    /*	If running on an embedded OS, sleep some time to try and get the CPU
-        uninterrupted for the measurement	*/
+    /*  If running on an embedded OS, sleep some time to try and get the CPU
+        uninterrupted for the measurement   */
     for(afterburner=65;afterburner<5000000;afterburner++)
     {
         for(burner=13;burner<TC_VALUE_SEC;burner++)
@@ -21,9 +21,9 @@ static inline void schedule_delay(void){
             burner=burner*1;
         }
     }
-    usleep(TC_VALUE_SEC*100000);		
+    usleep(TC_VALUE_SEC*100000);        
 }
-#endif	
+#endif  
 
 /** 
  * Executes an operation 
@@ -41,7 +41,7 @@ static inline void schedule_delay(void){
  * no size delimiters. Otherwise, [plaintext len (uint32_t)][secnum len(uint32_t)][plaintext][sec num]
  * @param p_stackUse pointer to a global variable to report the amount of stack used
  * @param result_len  Length of data in resultBuffer
- * @returns 0 if success, else errorcode from operation
+ * @returns 0 if success or forgery detected, else errorcode from operation
  */
 int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer, size_t parameterBufferLen, uint8_t* resultBuffer, uint32_t *p_stackUse, size_t *result_len) {
 
@@ -62,7 +62,7 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 #define DEC_PARAM_HEADER_LEN (NUMBSIZE+LENGSIZE*4)
 #define DEC_RESULT_HEADER_LEN (NUMBSIZE+LENGSIZE*2)
     uint32_t *param_header = (uint32_t *)parameterBuffer;
-    uint32_t retval;
+    int32_t retval;
 
     //Encrypt
     if(0 == param_header[0]){
@@ -94,7 +94,7 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 
 #ifdef I_AM_OS_BASED
         schedule_delay();
-#endif	
+#endif  
 
         /* Prepare Stack usage measurement */
         XBD_paintStack();
@@ -144,7 +144,7 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
 
 #ifdef I_AM_OS_BASED
         schedule_delay();
-#endif	
+#endif  
 
         /* Prepare Stack usage measurement */
         XBD_paintStack();
@@ -174,8 +174,13 @@ int32_t OH_handleExecuteRequest(uint32_t parameterType, uint8_t *parameterBuffer
     /* stop the watchdog */
     XBD_stopWatchDog();
 
-    //Return return code
-    return retval;
+    // Forgery detected, allow return though and inspect resultBuffer later
+    if (retval == -1){
+        return 0;
+    }else{
+        //Return return code
+        return retval;
+    }
 }
 
 
