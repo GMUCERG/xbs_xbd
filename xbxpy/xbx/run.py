@@ -267,16 +267,16 @@ class BuildExec(Base):
         # Make sure num_start_tests is the bigger half of config.checksum_tests//2
         num_end_tests = config.checksum_tests//2
         num_start_tests = config.checksum_tests-num_end_tests
-        _logger.info("Testing build {}".format(self.build))
         def test(num):
             for i in range(num):
-                _logger.info("Calculating Checksum...")
+                _logger.info("Testing build {}".format(self.build))
                 t = TestRun.run(self)
                 if not t.test_ok:
                     raise XbdResultFailError("Build " + str(self.build) +
                                                " fails checksum tests")
 
         try:
+            _logger.info("Running benchmarks for {}".format(self.build))
             # Test for half specified runs before running benchmarks
             test(num_start_tests)
 
