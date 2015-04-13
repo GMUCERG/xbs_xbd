@@ -15,7 +15,7 @@ import xbh
 
 # Maximum segment size, assuming IPv6 and all TCP options (for worst-case)
 # 1500 Ethernet payload - 40 IPv6 - 60 TCP (normally 20) = 1400
-# 
+#
 # XBH can handle up to 1500
 XBH_MAX_PAYLOAD = 1400
 
@@ -60,8 +60,8 @@ class HardwareError(xbh.Error):
 
 class attempt:
     """Decorator to attempt XBH operation for tries tries
-    
-    Parameters: 
+
+    Parameters:
         xbh         Either a string containing the name of an attribute to
                     Xbh, or an instance of Xbh. None if no reconnection is to be
                     attempted
@@ -126,7 +126,7 @@ class attempt:
 
 class Xbh:
 
-    
+
     def __init__(self, host="xbh", port=22595, page_size = 1024,
             xbd_hz=16000000, timeout=1000, src_host=''):
         self._connargs = ((host,port), timeout, (src_host, 0))
@@ -194,7 +194,7 @@ class Xbh:
         status = match.group(2)
 
         if version != PROTO_VERSION:
-            raise XbhValueError("XBH protocol version was " + version + 
+            raise XbhValueError("XBH protocol version was " + version +
                     ", this tool requires "+PROTO_VERSION+".")
 
         if status == 'a':
@@ -227,7 +227,7 @@ class Xbh:
 
 
 
-# Low-level interfaces 
+# Low-level interfaces
     def switch_to_app(self):
         _logger.debug("Switching to application mode");
         self._exec("sa")
@@ -245,14 +245,14 @@ class Xbh:
     def req_bl(self):
         if self.bl_mode:
             return
-        
+
         self.switch_to_bl()
 
     def req_app(self):
         if self.bl_mode != False:
             self.switch_to_app()
         return
-    
+
     def reset_xbd(self, reset_active):
         param = 'y' if reset_active else 'n'
         _logger.debug("Setting XBD reset to "+reset_active)
@@ -330,9 +330,9 @@ class Xbh:
         stack, = struct.unpack("!I", msg)
 
         _logger.debug("Used "+str(stack)+" bytes on stack")
-        
+
         return stack
-        
+
 
     def _get_results(self):
         """Gets operation output from exec_and_time()
@@ -388,7 +388,7 @@ class Xbh:
         return msg
 
 
-# High level interfaces 
+# High level interfaces
     @staticmethod
     def get_measured_time(timings):
         """Gets measured time in nanoseconds"""
@@ -408,7 +408,7 @@ class Xbh:
         stack = self._get_stack_usage()
         results = self._get_results()
         return results, timings, stack
-        
+
     def calc_checksum(self):
         try:
             self._calc_checksum()
@@ -452,8 +452,8 @@ class Xbh:
 
 
     def upload_param(self, data, typecode=TypeCode.HASH):
-        """Uploads buffer to xbh. 
-        
+        """Uploads buffer to xbh.
+
         """
         # Max payload - command length - 4 bytes for size - 4 bytes for type
         MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4 -4
@@ -461,7 +461,7 @@ class Xbh:
 
         length = len(data)
         offset = 0
-        
+
         _logger.debug("Uploading {} bytes {} at a time"
                     .format(length, MAX_DATA))
 
@@ -481,9 +481,9 @@ class Xbh:
         if measured_cycles == 0:
             raise xbh.ValueError("Measured cycle count 0!")
         abs_error = measured_cycles - cycles
-        # TODO: Divide by measured cycles or by nominal cycles? 
+        # TODO: Divide by measured cycles or by nominal cycles?
         rel_error = abs_error/cycles
-        
+
         return abs_error, rel_error, cycles, measured_cycles
 
 

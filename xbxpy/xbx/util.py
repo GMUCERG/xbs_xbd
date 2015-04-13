@@ -9,10 +9,7 @@ def sha256_file(filename):
         while len(block) != 0:
             h.update(block)
             block = f.read(BLOCKSIZE)
-        
         return h.hexdigest()
-
-
 
 def hash_obj(obj):
     h = hashlib.sha256()

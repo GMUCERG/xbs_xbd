@@ -73,9 +73,9 @@ def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
 
 def unique_constructor(scoped_session, hashfunc, queryfunc):
     """Prevents duplicate errors in DB
-    
+
     Decorator on data object constructors to ensure new objects aren't created
-    if already exists in DB 
+    if already exists in DB
 
     See https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/UniqueObject
 
