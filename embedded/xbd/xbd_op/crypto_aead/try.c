@@ -84,7 +84,7 @@ void test_allocate(unsigned char *buf) {
     r2 = t2  + MAX_TEST_MSG_BYTES  + MAX_ABYTES + CANARY_SZ + CANARY_SZ;
          
     //Randomize contents
-    for (size_t i = 0; i < MAX_TESTBUFFER_SIZE; i++){
+    for (size_t i = 0; i < MAX_TESTBUFFER_BYTES; i++){
         buf[i]=(unsigned char)(myrandom() & 0xFF);
     }
 }
