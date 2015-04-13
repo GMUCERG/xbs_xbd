@@ -263,40 +263,39 @@ class BuildExec(Base):
         _logger.info("Loading build {} into XBD".format(self.build))
         self.xbh.upload_prog(self.build.hex_path)
 
-
     @xbhlib.attempt("xbh")
     def execute(self):
-        # If not already run w/ a pass/fail
-        if self.test_ok == None:
-            del self.runs[:] # Delete existing runs for this build
-            config = self.run_session.config
-            num_start_tests = config.checksum_tests//2
-            num_end_tests = config.checksum_tests-num_start_tests
-            _logger.info("Testing build {}".format(self.build))
-            def test(num):
+        del self.runs[:] # Delete existing runs for this build
+        config = self.run_session.config
+
+        # Make sure num_start_tests is the bigger half of config.checksum_tests//2
+        num_end_tests = config.checksum_tests//2
+        num_start_tests = config.checksum_tests-num_end_tests
+        _logger.info("Testing build {}".format(self.build))
+        def test(num):
+            for i in range(num):
                 _logger.info("Calculating Checksum...")
-                for i in range(num):
-                    t = TestRun.run(self)
-                    if not t.test_ok:
-                        raise XbdChecksumFailError("Build " + str(self.build) +
-                                                   " fails checksum tests")
+                t = TestRun.run(self)
+                if not t.test_ok:
+                    raise XbdChecksumFailError("Build " + str(self.build) +
+                                               " fails checksum tests")
 
-            try:
-                # Test for half specified runs before running benchmarks
-                test(num_start_tests)
+        try:
+            # Test for half specified runs before running benchmarks
+            test(num_start_tests)
 
-                for i in range(config.exec_runs):
-                    for p in self.run_session.config.operation_params:
-                        self.RunType.run(self, p)
+            for i in range(config.exec_runs):
+                for p in self.run_session.config.operation_params:
+                    self.RunType.run(self, p)
 
-                # Test for remaining specified runs after running benchmarks to see
-                # if results still valid to check if not corrupted
-                test(num_end_tests)
-            except RunValueError as e:
-                self.test_ok = False
-                _logger.error(str(e))
-            else:
-                self.test_ok = True
+            # Test for remaining specified runs after running benchmarks to see
+            # if results still valid to check if not corrupted
+            test(num_end_tests)
+        except RunValueError as e:
+            self.test_ok = False
+            _logger.error(str(e))
+        else:
+            self.test_ok = True
 
 
 
@@ -414,13 +413,16 @@ class RunSession(Base, xbxs.SessionMixin):
 
     def runall(self):
         for b in self.build_session.builds:
-            be = BuildExec(self,b)
-            be.load_build()
-            be.execute()
-
             s = xbxdb.scoped_session()
-            s.add(be)
-            s.commit()
+            be = BuildExec(self,b)
+
+            # If not already run w/ a pass/fail, or if rerunning results is
+            # enabled, then do run
+            if be.test_ok == None or self.config.rerun:
+                be.load_build()
+                be.execute()
+                s.add(be)
+                s.commit()
 
 
 class DriftMeasurement(Base):# {{{
