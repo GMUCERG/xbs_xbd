@@ -302,8 +302,36 @@ class BuildExec(Base):
 
 
 
+# Gets build session, or latest if none is provided
+def _get_build_session(build_session_id=None):
+    try:
+        s = xbxdb.scoped_session()
+        if build_session_id == None:
+            q = s.query(xbxb.BuildSession).order_by(
+                xbxb.BuildSession.timestamp.desc())
+
+            return q.first()
+        else:
+            return s.query(xbxb.BuildSession).filter(BuildSession.id ==
+                                                     build_session_id).one()
+    except NoResultFound as e:
+        raise NoBuildSessionError("Build must be run first") from e
 
 
+
+# Decorator to pull RunSession out of database if instance already exists for
+# given config
+@unique_constructor(
+    scoped_session,
+    lambda config, build_session_id=None, *args, **kwargs:
+        (str(config.hash)+"_"+
+         str(_get_build_session(build_session_id).id)),
+    lambda query, config, build_session_id=None, *args, **kwargs:
+        query.filter(RunSession.config_hash==config.hash,
+                     RunSession.host==socket.gethostname(),
+                     RunSession.build_session_id==
+                     _get_build_session(build_session_id).id)
+)
 class RunSession(Base, xbxs.SessionMixin):
     """Manages runs specified in config that are defined in the last
     BuildSession
@@ -330,20 +358,13 @@ class RunSession(Base, xbxs.SessionMixin):
     def __init__(self, config, build_session_id=None, *args, **kwargs):
         super().__init__(config=config, *args, **kwargs)
         self._setup_session()
-
-        try:
-            if build_session_id == None:
-                s = xbxdb.scoped_session()
-                q = s.query(xbxb.BuildSession).order_by(
-                    xbxb.BuildSession.timestamp.desc()).limit(1)
-                self.build_session = q.one()
-            else:
-                # Setting this also sets self.build_session
-                self.build_session_id = build_session_id
-        except NoResultFound as e:
-            raise NoBuildSessionError("Build must be run first") from e
+        self.build_session = _get_build_session(build_session_id)
 
 
+
+    @reconstructor
+    def __load_init(self):
+        pass
 
 
     def init_xbh(self):
