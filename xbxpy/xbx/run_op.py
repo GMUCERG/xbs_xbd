@@ -8,6 +8,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, Date,
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
+import xbx.database as xbxdb
 import xbx.run as xbxr
 #from xbx.run import Run
 import xbx.session
@@ -15,7 +16,7 @@ import xbh
 
 _logger = logging.getLogger(__name__)
 
-class CryptoHashRun(xbx.run.Run):
+class CryptoHashRun(xbxr.Run):
     """Contains data specific to cryptographic hash runs
 
     Call run() to instantiate and run, do not use constructor
