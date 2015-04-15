@@ -22,3 +22,21 @@ Name]Run class using the others as a template, and add to the OPERATIONS
 constant at the top of that file. Add a directory in embedded/xbd/xbd_op named
 crypto_[operation] and add files to be linked in. See aead and hash for
 examples, and examine SUPERCOP
+
+
+Need to justify cutoff for maximum AEAD parameter sizes
+
+Explain stack usage is measured from only usage of crypto function, while .bss, .data, and .text is total including test harness
+
+Explain presence of checksumsmall
+
+
+-DNDEBUG has to be set to disable assertions
+
+supercop interface does not allow streaming
+
+does not allow separating out results for key scheduling vs encrypt
+
+TODO use cycle counters for platforms that support it
+
+watchdog timeout should always be shorter than tcp timeout
