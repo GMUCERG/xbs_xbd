@@ -4,6 +4,7 @@ import re
 import os
 import subprocess
 import configparser
+import sys
 
 BINFILE = "xbdprog.bin"
 HEX_FLASH_FLAGS="-R .eeprom -R .fuse -R .lock -R .signature"
@@ -43,7 +44,7 @@ if os.path.isfile(BINFILE):
                 "available SRAM for static allocations",
                 file=sys.stderr)
         exit(-2)
-        
+
     cmd = ("{} -O ihex {} xbdprog.bin xbdprog.hex").format(
             OBJCOPY,
             HEX_FLASH_FLAGS)
