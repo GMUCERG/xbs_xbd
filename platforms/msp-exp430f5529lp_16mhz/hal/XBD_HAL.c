@@ -160,7 +160,6 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
 void XBD_switchToApplication() {
     /* execute the code in the binary buffer */
     // pointer called reboot that points to the reset vector
-    // bootloader is located at 0xe000
     void (*reboot)( void ) = (void*)FLASH_ADDR_MIN; // defines the function reboot to location 0x3200
     reboot();	// calls function reboot function
 }
@@ -169,7 +168,6 @@ void XBD_switchToApplication() {
 void XBD_switchToBootLoader() {
     /* execute the code in the binary buffer */
     // pointer called reboot that points to the reset vector
-    // app is located at 0x3200
     void (*reboot)( void ) = (void*)(FLASH_ADDR_MAX+1); // defines the function reboot to location 0xe000
     reboot();	// calls function reboot function, did not need to change unless change location to 0x1000, at flash info memory
 }

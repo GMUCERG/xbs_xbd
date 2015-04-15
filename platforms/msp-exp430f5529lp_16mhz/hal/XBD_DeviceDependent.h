@@ -19,7 +19,8 @@
 #define PAGE_ALIGN_MASK 0xfffffe00
 
 #define FLASH_ADDR_MIN (0x4400)
-#define FLASH_ADDR_MAX (0xd7ff)
+#define FLASH_ADDR_MAX (0xf3ff)
+//#define FLASH_ADDR_MAX (0xdfff)
 
 
 #define DEVICE_SPECIFIC_SANE_TC_VALUE (16000000)

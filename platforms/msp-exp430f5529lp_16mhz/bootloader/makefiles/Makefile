@@ -7,6 +7,9 @@ PROJECT = XBD_BL_MSP430F5529_4MHz
 MCU = msp430f5529
 TARGET = bl.elf
 CC = msp430-elf-gcc
+BL_ADDR=0xf400
+#BL_ADDR=0xe000
+#BL_ADDR=0xf000
 
 MSP430GCC_INC := $(shell msp430-elf-gcc -xc -E -v - </dev/null 2>&1 | awk '/^\#include </ {getline; print $$0}')
 SUPPORT_DIR := $(realpath ${MSP430GCC_INC}/../../../../../include)
@@ -17,7 +20,8 @@ COMMON = -mmcu=$(MCU) -I${SUPPORT_DIR}
 ## Compile options common for all C compilation units.
 CFLAGS += $(COMMON)
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -Wall -ggdb3 -std=gnu99 -Os -DBOOTLOADER -ffunction-sections -fdata-sections
+CFLAGS += -Wall -ggdb3 -std=gnu99 -O0  -DBOOTLOADER -ffunction-sections -fdata-sections
+CFLAGS += -Os -flto
 #CFLAGS += -O0 #-DXBX_DEBUG_BL 
 
 ## Assembly specific flags
@@ -27,10 +31,10 @@ AFLAGS += -x assembler-with-cpp -Wa,-ggdb3
 
 ## Linker flags
 LDFLAGS = $(COMMON)
-LDFLAGS +=  -Wl,-Map=bl.map
+LDFLAGS += -Wl,-Map=bl.map
 #LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xd800
-LDFLAGS +=  -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=0xe000
-
+LDFLAGS += -L${SUPPORT_DIR} -Wl,--gc-sections,--section-start=.rodata=${BL_ADDR}
+LDFLAGS += -fuse-linker-plugin
 
 
 ## Intel Hex file production flags

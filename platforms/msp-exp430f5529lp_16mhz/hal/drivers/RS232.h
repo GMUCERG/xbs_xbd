@@ -21,7 +21,7 @@ void usart_init();
 void usart_putc(char a);
 
 /* Transmit string. Returns after whole string transmitted. */
-void usart_puts(char *data);
+void usart_puts(const char *data);
 
 /* Receive one character. Blocking operation, if no new data in buffer. */
 char usart_getc(void);
