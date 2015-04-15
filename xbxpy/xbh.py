@@ -428,11 +428,19 @@ class Xbh:
         """Uploads provided file to XBH to upload to XBD"""
         reader = prog_reader.ProgramReader(filename, program_type, self.page_size)
         for addr, data in reader.areas.items():
-            # Max payload - command length - 4 bytes for size
-            MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4
+
+            # Commented out block below is for when XBD supports more than one
+            # page at a time
+            ## Max payload - command length - 4 bytes for size
+            #MAX_DATA = XBH_MAX_PAYLOAD - _XBH_CMD_LEN - 4
+            #offset = 0
+            #length = len(data)
+            #block_size = (MAX_DATA//self.page_size)
+            #upload_bytes = block_size*self.page_size
+
             offset = 0
             length = len(data)
-            block_size = (MAX_DATA//self.page_size)
+            block_size = 1
             upload_bytes = block_size*self.page_size
 
             if length == 0:
