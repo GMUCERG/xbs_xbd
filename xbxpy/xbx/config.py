@@ -245,9 +245,9 @@ class Config(Base):
 
 
         # Platform
-        self.platform = Config.__enum_platform(
-                config.get('hardware','platform'),
-                self.platforms_path)
+        self.platform = Platform.from_path(
+            os.path.join(self.platforms_path,
+                         config.get('hardware','platform')))
 
         # Operation
         name                    = config.get('algorithm','operation')
@@ -301,106 +301,6 @@ class Config(Base):
 
 
 
-
-    @staticmethod
-    def __enum_platform(name, platforms_path):
-        """Enumerate platform settings, given path to platform directory"""
-        _logger.debug("Enumerating platforms")
-
-        ## Platform configuration
-        path = os.path.join(platforms_path, name)
-
-        config = configparser.ConfigParser()
-        config.read(os.path.join(path, "settings.ini"))
-        tmpl_path = None
-        if config.has_option('platform_settings', 'templatePlatform'):
-            tmpl_path = os.path.join(
-                    self.platforms_path,
-                    config.get('platform_settings','templatePlatform'))
-
-        clock_hz = config.getint('platform_settings','cyclespersecond')
-        pagesize = config.getint('platform_settings','pagesize')
-
-        compilers = Config.__enum_compilers(path, tmpl_path)
-
-
-        hash = dirchecksum(path)
-        if tmpl_path:
-            h = hashlib.sha256()
-            h.update(hash)
-            h.update(dirchecksum(tmpl_path))
-            hash = h.sha256()
-
-        return Platform(
-                hash=hash,
-                name=name,
-                path=path,
-                tmpl_path=tmpl_path,
-                clock_hz=clock_hz,
-                pagesize=pagesize,
-                compilers=compilers
-            )
-
-
-    @staticmethod
-    def __enum_compilers(platform_path, tmpl_path):
-        _logger.debug("Enumerating compilers")
-        cc_list = []
-        cxx_list = []
-        compilers = []
-        env = os.environ.copy()
-        env.update({'templatePlatformDir': tmpl_path if tmpl_path else ''})
-        c_compilers = os.path.join(platform_path,'c_compilers')
-        cxx_compilers = os.path.join(platform_path,'cxx_compilers')
-        if os.path.isfile(c_compilers):
-            stdout = subprocess.check_output([c_compilers], env=env)
-            cc_list += stdout.decode().splitlines()
-        if os.path.isfile(cxx_compilers):
-            stdout= subprocess.check_output([cxx_compilers], env=env)
-            cxx_list += stdout.decode().splitlines()
-
-        if (len(cc_list) != 0 and
-                len(cxx_list) != 0 and
-                len(cc_list) != len(cxx_list)):
-            raise ValueError("c_compilers and cxx_compilers "+
-                    "must have equal length output")
-        elif len(cc_list) == 0 and len(cxx_list) == 0:
-            raise ValueError("At least one of c_compilers or "+
-                    "cxx_compilers must have nonzero output")
-
-        elif len(cxx_list) == 0:
-            cxx_list = ['']*len(cc_list)
-        elif len(cc_list) == 0:
-            cc_list = ['']*len(cxx_list)
-
-        def get_version(compiler):
-            cmd = compiler.partition(" ")[0],
-            cmd += '-v',
-            version_full = subprocess.check_output(
-                    cmd, stderr=subprocess.STDOUT).decode().strip()
-            version = version_full.splitlines()[-1]
-            return version, version_full
-
-
-        for i in range(0, len(cc_list)):
-            cc_version, cc_version_full, cxx_version, cxx_version_full = ('','','','')
-            if cc_list[i]:
-                cc_version, cc_version_full = get_version(cc_list[i])
-            if cxx_list[i]:
-                cxx_version, cxx_version_full = get_version(cxx_list[i])
-
-            compilers += Compiler(
-                idx=i,
-                cc=cc_list[i],
-                cxx=cxx_list[i],
-                cc_version=cc_version,
-                cxx_version=cxx_version,
-                cc_version_full=cc_version_full,
-                cxx_version_full=cxx_version_full
-            ),
-
-
-        return compilers
 
 
     def __enum_prim_impls(self, operation, primitive_names, blacklist, whitelist, algopack_path):
