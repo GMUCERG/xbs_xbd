@@ -43,8 +43,8 @@ ${BUILDDIR}:
 	@echo ${OBJS}|xargs dirname|xargs mkdir -p
 
 ${BUILDDIR}/%.o: ${HAL_PATH}/%.c |${BUILDDIR}
-	@echo "CC  ${<}"; 
-	@${CC} -o ${@} -c ${<} 
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${<}
 
 clean:
 	@echo CLEAN
@@ -95,7 +95,7 @@ OBJS += $(shell find ${HAL_OBJS} -name "*.o")
 
 
 
-all: xbdprog.bin xbdprog.hex 
+all: xbdprog.bin xbdprog.hex
 
 ${OBJS}: Makefile env.make
 
@@ -103,33 +103,30 @@ ${BUILDDIR}:
 	@echo MKDIR
 	@echo ${OBJS}|xargs dirname|xargs mkdir -p
 
-${BUILDDIR}/xbd/%.o: ${XBD_PATH}/%.c |${BUILDDIR} 
-	@echo "CC  ${<}"; 
-	@${CC} -o ${@} -c ${<} 
+${BUILDDIR}/xbd/%.o: ${XBD_PATH}/%.c |${BUILDDIR}
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.c |${BUILDDIR} 
-	@echo "CC  ${<}"; 
-	@${CC} -o ${@} -c ${<} 
+${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.c |${BUILDDIR}
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.s |${BUILDDIR} 
-	@echo "CC  ${<}"; 
-	@${CC} -o ${@} -c ${<} 
+${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.s |${BUILDDIR}
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.cpp |${BUILDDIR} 
-	@echo "CXX  ${<}"; 
-	@${CXX} -o ${@} -c ${<} 
+${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.cpp |${BUILDDIR}
+	@echo "CXX  ${<}";
+	@${CXX} -o ${@} -c ${<}
 
 
 xbdprog.bin: ${OBJS}
-	@echo "LINK"; 
+	@echo "LINK";
 	@${CC} -o ${@} ${OBJS}
 
 xbdprog.hex: xbdprog.bin
-	@echo "POSTLINK"; 
+	@echo "POSTLINK";
 	@${POSTLINK}
-
-xbdprog.size: xbdprog.bin
-	${SIZE}
 
 clean:
 	@echo CLEAN
