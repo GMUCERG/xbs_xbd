@@ -46,13 +46,14 @@ class BuildJob:
         self.buildid = buildid
         self.platform_name = platform_name
         self.hex_path = hex_path
+        self.log = None
 
     def __call__(self):
         _buildjob_logger.debug("Building {} for platform {}".format(
             self.buildid,
             self.platform_name), extra=self.log_attr)
 
-        _make(self.work_path, _buildjob_logger.debug, _buildjob_logger.debug, "all",
+        self.log = _make(self.work_path, _buildjob_logger.debug, "all",
               self.parallel_make, extra=self.log_attr)
 
         if os.path.isfile(self.hex_path):
@@ -61,8 +62,6 @@ class BuildJob:
         else:
             _buildjob_logger.info("FAILURE building {}".format(self.buildid), extra=self.log_attr)
 
-
-
 class Build(Base):
     """Sets up a build
 
@@ -70,7 +69,7 @@ class Build(Base):
         config          xbx.Config object
         index           compiler index
         implementation  xbx.Config.Implementation instance
-        parallel_make   If true, issues -j flag to make 
+        parallel_make   If true, issues -j flag to make
 
     """
     __tablename__ = "build"
@@ -101,6 +100,8 @@ class Build(Base):
     rebuilt              = Column(Boolean)
 
     test_ok              = Column(Boolean)
+
+    log                  = Column(Text)
 
     platform             = relationship("Platform", uselist=False,
                                         foreign_keys=[platform_hash])
@@ -204,9 +205,11 @@ class Build(Base):
             self.bss  = int(match.group(3))
 
             self.hex_checksum = xbx.util.sha256_file(self.hex_path)
-            self.timestamp = job.timestamp
 
-    
+        self.timestamp = job.timestamp
+        self.log = job.log
+
+
     @property
     def buildid(self):
         buildid = "{}/{}/{}/{}".format(
@@ -272,20 +275,20 @@ class Build(Base):
             self._gen_o_h(o_h, primitive)
         if not os.path.isfile(op_h):
             self._gen_op_h(op_h, self.implementation)
-    
+
     @property
     def valid_hex_checksum(self):
         """Verifies if checksum still valid"""
         hash = dirchecksum(self.hex_path)
         return hash == self.hex_checksum
-        
+
     def _genmake(self, filename):
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating Makefile...", extra=self.log_attr)
         with open(filename, 'w') as f:
             f.write(buildfiles.MAKEFILE)
-    
-        
+
+
     def _gen_o_h(self, filename, primitive):
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
@@ -306,7 +309,7 @@ class Build(Base):
 
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.O_H).substitute(subst_dict))
-    
+
 
     def _gen_op_h(self, filename, implementation):
         import xbx.buildfiles as buildfiles
@@ -365,121 +368,12 @@ class Build(Base):
         else:
             return False
 
-    
+
     def __repr__(self):
         return self.buildid
 
     def __lt__(self, other):
         return self.buildid < other.buildid
-
-
-class BuildSession(Base, xbxs.SessionMixin):
-    """Manages builds for all instances specified in xbx config
-
-    Pass in database object into constructor to save session and populate id
-    Database will not be committed until buildall() is initated and
-    successfully completed
-    """
-
-    __tablename__ = "build_session"
-
-    parallel = Column(Boolean)
-
-    builds = relationship("Build", backref="build_session")
-
-
-    def __init__(self, config, *args, **kwargs):
-        super().__init__(config=config, *args, **kwargs)
-        self._setup_session()
-        self.parallel = config.parallel_build
-
-
-    def buildall(self):
-        """Builds all targets specified in xbx self.config
-
-        If database was specified in constructor, completion will commit
-        database entry. 
-        """
-        self.cpu_count = mp.cpu_count()
-
-        #logger = logging.getLogger(__name__)
-        num_compilers = len(self.config.platform.compilers)
-        build_map = {}
-
-        for i in range(num_compilers):
-            compiler = self.config.platform.compilers[i]
-            _logger.info("compiler[{}] = {}".format(i, str((compiler.cc, compiler.cxx))))
-            if self.config.one_compiler:
-                break
-
-        for i in range(num_compilers):
-            build_hal(self.config, i)
-            if self.config.one_compiler:
-                break
-
-        for j in self.config.implementations:
-            # Skip if hash is not current
-            if not j.valid_hash:
-                continue
-            for i in range(num_compilers):
-                # Don't have to add to self.builds as Build sets
-                # BuildSession as parent, which inserts into
-                # BuildSession.builds
-                b = Build(self, i, j)
-                build_map[b.buildid] = b
-                if self.config.one_compiler:
-                    break
-        
-        if self.config.parallel_build:
-            q_out = mp.Queue()
-            q_in = mp.Queue()
-
-            def worker(q_in, q_out, n):
-                _logger.info("Worker "+str(n)+" started")
-                for job in iter(q_in.get, None):
-                    # Re-add this, since it gets lost in multiprocessing for
-                    # some reason
-                    job()
-                    q_out.put(job)
-                _logger.info("Worker "+str(n)+" finished")
-
-            processes = [mp.Process(target=worker, args=(q_out,q_in, i)) 
-                    for i in range(self.cpu_count+1)]
-            for p in processes:
-                p.start()
-                # Terminate if ctrl-c
-                atexit.register(p.terminate)
-
-            for b in self.builds:
-                job = b.get_buildjob()
-                q_out.put(job)
-
-
-            # Clear out old build list, reobtain from queue with updated data
-            num_builds = len(self.builds)
-            for _ in range(num_builds):
-                job = q_in.get()
-                build = build_map[job.buildid]
-                build.do_postbuild(job)
-
-
-            # Terminate processes gracefully
-            for p in processes:
-                q_out.put(None)
-        else:
-            for b in self.builds:
-                job = b.get_buildjob()
-                job()
-                b.do_postbuild(job)
-
-
-        self.timestamp = datetime.now()
-
-
-    def __lt__(self, other):
-        return self.session_id < other.session_id
-
-
 
 # Support fxns
 def build_hal(config, index):
@@ -522,13 +416,12 @@ def build_hal(config, index):
             env[k] = os.path.abspath(v)
 
     env.update({'CC': config.platform.compilers[index].cc})
-    
+
     _gen_envfile(work_path, env)
 
-    _make(work_path, _logger.debug, _logger.debug, parallel = True)
+    _make(work_path, _logger.debug, parallel = True)
 
-
-def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
+def _make(path, log_fn, target="all", parallel=False, extra=[]):
     """Runs subprocess logging output
 
     Parameters:
@@ -537,7 +430,11 @@ def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
     env         Environment for command
     log_fn      Logging function for stdout
     err_logfn   Logging function for stderr
+    log_array   Array of strings to append output to
     extra       Extra to send to logger
+
+    Return:
+    Make output as string
 
     """
 
@@ -548,22 +445,15 @@ def _make(path, log_fn, err_log_fn, target="all", parallel=False, extra=[]):
 
     old_pwd = os.getcwd()
     os.chdir(path)
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     os.chdir(old_pwd)
 
-    def read_thread(fd, log_fn):
-        for l in iter(fd.readline, b''):
-            log_fn(l.decode().strip("\n"), extra=extra)
-        fd.close()
+    stdout,_ = process.communicate()
 
-    stdout_t = threading.Thread(target=read_thread, args=(process.stdout, log_fn))
-    stderr_t = threading.Thread(target=read_thread, args=(process.stderr, err_log_fn))
+    for i in stdout.decode().split("\n"):
+        log_fn(i, extra=extra)
 
-    stdout_t.daemon = True
-    stderr_t.daemon = True
-    stdout_t.start()
-    stderr_t.start()
-    process.wait()
+    return stdout
 
 def _gen_envfile(path, env):
     """Takes dirpath of env.make and dictionary of environment variables"""
@@ -586,4 +476,109 @@ def _parse_envfile(path):
             name, _, value = l.partition("=")
             env[name.strip()]=value.strip("\n")
     return env
+
+
+class BuildSession(Base, xbxs.SessionMixin):
+    """Manages builds for all instances specified in xbx config
+
+    Pass in database object into constructor to save session and populate id
+    Database will not be committed until buildall() is initated and
+    successfully completed
+    """
+
+    __tablename__ = "build_session"
+
+    parallel = Column(Boolean)
+
+    builds = relationship("Build", backref="build_session")
+
+
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config=config, *args, **kwargs)
+        self._setup_session()
+        self.parallel = config.parallel_build
+
+    def buildall(self):
+        """Builds all targets specified in xbx self.config
+
+        If database was specified in constructor, completion will commit
+        database entry. 
+        """
+        self.cpu_count = mp.cpu_count()
+
+        #logger = logging.getLogger(__name__)
+        num_compilers = len(self.config.platform.compilers)
+        build_map = {}
+
+        for i in range(num_compilers):
+            compiler = self.config.platform.compilers[i]
+            _logger.info("compiler[{}] = {}".format(i, str((compiler.cc, compiler.cxx))))
+            if self.config.one_compiler:
+                break
+
+        for i in range(num_compilers):
+            build_hal(self.config, i)
+            if self.config.one_compiler:
+                break
+
+        for j in self.config.implementations:
+            # Skip if hash is not current
+            if not j.valid_hash:
+                continue
+            for i in range(num_compilers):
+                # Don't have to add to self.builds as Build sets
+                # BuildSession as parent, which inserts into
+                # BuildSession.builds
+                b = Build(self, i, j)
+                build_map[b.buildid] = b
+                if self.config.one_compiler:
+                    break
+
+        if self.config.parallel_build:
+            q_out = mp.Queue()
+            q_in = mp.Queue()
+
+            def worker(q_in, q_out, n):
+                _logger.info("Worker "+str(n)+" started")
+                for job in iter(q_in.get, None):
+                    # Re-add this, since it gets lost in multiprocessing for
+                    # some reason
+                    job()
+                    q_out.put(job)
+                _logger.info("Worker "+str(n)+" finished")
+
+            processes = [mp.Process(target=worker, args=(q_out,q_in, i))
+                    for i in range(self.cpu_count+1)]
+            for p in processes:
+                p.start()
+                # Terminate if ctrl-c
+                atexit.register(p.terminate)
+
+            for b in self.builds:
+                job = b.get_buildjob()
+                q_out.put(job)
+
+
+            # Clear out old build list, reobtain from queue with updated data
+            num_builds = len(self.builds)
+            for _ in range(num_builds):
+                job = q_in.get()
+                build = build_map[job.buildid]
+                build.do_postbuild(job)
+
+
+            # Terminate processes gracefully
+            for p in processes:
+                q_out.put(None)
+        else:
+            for b in self.builds:
+                job = b.get_buildjob()
+                job()
+                b.do_postbuild(job)
+
+
+        self.timestamp = datetime.now()
+
+    def __lt__(self, other):
+        return self.session_id < other.session_id
 
