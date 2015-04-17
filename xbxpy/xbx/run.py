@@ -355,7 +355,6 @@ class RunSession(Base, xbxs.SessionMixin):
         self.build_session = _get_build_session(config, build_session_id)
 
 
-
     @reconstructor
     def __load_init(self):
         pass
@@ -376,6 +375,8 @@ class RunSession(Base, xbxs.SessionMixin):
             sys.exit(1)
 
         self.xbh_rev,self.xbh_mac = self.xbh.get_xbh_rev()
+
+        self.do_drift_measurement()
 
         # Initialize xbh attribute on all build_execs and build_exec.runs if items loaded
         # from db
