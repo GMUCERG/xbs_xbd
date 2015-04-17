@@ -40,3 +40,18 @@ does not allow separating out results for key scheduling vs encrypt
 TODO use cycle counters for platforms that support it
 
 watchdog timeout should always be shorter than tcp timeout
+
+
+size puts read-only sections and executable sections into .text, else if has
+contents into .data, else .bss 
+
+
+code cannot use malloc, as that is not deterministic and suitable for many
+realtime applications. In addition, determining utilized memory is difficult due
+to fragmentation
+
+TODO: blacklist/whitelist with full platform/operation/primitive/implementation
+tuple (optionally hash)
+
+
+Use global blacklist to block implementations using malloc
