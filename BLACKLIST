@@ -1,97 +1,94 @@
-#sample blacklist file, keep empty if not required
-#note: there's a general BLACKLIST file in directory xbs and one per
-# platform /template platform
-
-#entry format:
+#Section names should be platform names, or GLOBAL for all platforms
+#entry format for blacklist value:
 #implementationdir dirchecksum comment
+#Set dirchecksum to '0' if don't care
+[ALL]
 
+blacklist = 
+# crypto_hash# {{{
 # implementations someone should have a look into
-
-crypto_hash/blake32/ref 8afab0a40fc8b761b17309d74204ab9a5fce146795aab4729ce28346ebf4c6cb uses integers where longs are needed
-crypto_hash/blake64/ref 49b1f5f2d9e5ea90d1c259185ffe0f4024d3e064c1cbe1b54de96b0bd31f434c uses integers where longs are needed
-crypto_hash/keccakc512/opt32u2nit 022e97bf700ee4aa6502d8475d83b9aa1f255391b1b8c3d346c0ba5f03f0c390 uses integers where longs are needed
-crypto_hash/keccak/opt32u2nit 764182e9a7d3391d2095ac8b66b8c701b7ac278f1aa209abb812f9a4243353e0 uses integers where longs are needed
-crypto_hash/echo256/generic/opt32 2d78e4e0a67df55ae40e051c7fc23b7bcc6bebd20169f2748f4c5d8d9039da4d uses integers where longs are needed
-crypto_hash/echo256/powerpc/pp32cv1 4670b21c799c9da97e556db0eedb0a2cc6db1debe216aeeaeac6bcf51f4dee90 uses integers where longs are needed
-crypto_hash/echo256/powerpc/pp32cv2 6a35c4028c53ba35ee28c87bbd7a5e2a6ae131315ffeefe9a52dc6c4068c7955 uses integers where longs are needed
-crypto_hash/echo512/generic/opt32 cf51de844505eec053829cc64f62840d956cc1efa6d5b5f50c13b120976a2d64 uses integers where longs are needed
-crypto_hash/echo512/powerpc/pp32cv1 bd6459156524f3e7fb7949eecd5a86787efb1af1a181a5eb78c43c06dc262f66 uses integers where longs are needed
-crypto_hash/echo512/powerpc/pp32cv2 8b441d41efb77cb0b0ce6c4bcbc34bdbbcacbfa951b682b012e0aa024a6c17e3 uses integers where longs are needed
-crypto_hash/md5/ref a1f6ac8ec0fe72f5e5d30d3737dd596efa798a6bcce3ceb31dc3db541450953f missing files in inplementation 
-crypto_hash/sha256/ref 1813d9400c30d39050c5484d2fb20643da62adfa6d97d88b6c51258bfc8c4f66 missing files in inplementation
-crypto_hash/sha512/ref 1c80154b1aae4865a93055343565b4e27055b1675bfed12330251f5465906fab missing files in inplementation
-crypto_hash/md6d224/ref 7128105af1f51811b93ffb75122546cc671aa1db7f4e3e8dc0fc23886a60cf6d multiple definition of `compression_hook'
-crypto_hash/md6d256/ref bdbb0dd2ae96185e188c2771a6868dc04d9037078acc8483578b599a8df82adb multiple definition of `compression_hook'
-crypto_hash/md6d384/ref 28be6ed87a61003a50f004638bd1987bff11cbbaae80d05d24ab4b24fba43535 multiple definition of `compression_hook'
-crypto_hash/md6d512/ref 811a04587f73572287d86af4d558ee5f84e7c3cf316f1c418ede8c5c4f54bd63 multiple definition of `compression_hook'
-
+    crypto_hash/blake32/ref 8afab0a40fc8b761b17309d74204ab9a5fce146795aab4729ce28346ebf4c6cb uses integers where longs are needed
+    crypto_hash/blake64/ref 49b1f5f2d9e5ea90d1c259185ffe0f4024d3e064c1cbe1b54de96b0bd31f434c uses integers where longs are needed
+    crypto_hash/keccakc512/opt32u2nit 022e97bf700ee4aa6502d8475d83b9aa1f255391b1b8c3d346c0ba5f03f0c390 uses integers where longs are needed
+    crypto_hash/keccak/opt32u2nit 764182e9a7d3391d2095ac8b66b8c701b7ac278f1aa209abb812f9a4243353e0 uses integers where longs are needed
+    crypto_hash/echo256/generic/opt32 2d78e4e0a67df55ae40e051c7fc23b7bcc6bebd20169f2748f4c5d8d9039da4d uses integers where longs are needed
+    crypto_hash/echo256/powerpc/pp32cv1 4670b21c799c9da97e556db0eedb0a2cc6db1debe216aeeaeac6bcf51f4dee90 uses integers where longs are needed
+    crypto_hash/echo256/powerpc/pp32cv2 6a35c4028c53ba35ee28c87bbd7a5e2a6ae131315ffeefe9a52dc6c4068c7955 uses integers where longs are needed
+    crypto_hash/echo512/generic/opt32 cf51de844505eec053829cc64f62840d956cc1efa6d5b5f50c13b120976a2d64 uses integers where longs are needed
+    crypto_hash/echo512/powerpc/pp32cv1 bd6459156524f3e7fb7949eecd5a86787efb1af1a181a5eb78c43c06dc262f66 uses integers where longs are needed
+    crypto_hash/echo512/powerpc/pp32cv2 8b441d41efb77cb0b0ce6c4bcbc34bdbbcacbfa951b682b012e0aa024a6c17e3 uses integers where longs are needed
+    crypto_hash/md5/ref a1f6ac8ec0fe72f5e5d30d3737dd596efa798a6bcce3ceb31dc3db541450953f missing files in inplementation 
+    crypto_hash/sha256/ref 1813d9400c30d39050c5484d2fb20643da62adfa6d97d88b6c51258bfc8c4f66 missing files in inplementation
+    crypto_hash/sha512/ref 1c80154b1aae4865a93055343565b4e27055b1675bfed12330251f5465906fab missing files in inplementation
+    crypto_hash/md6d224/ref 7128105af1f51811b93ffb75122546cc671aa1db7f4e3e8dc0fc23886a60cf6d multiple definition of `compression_hook'
+    crypto_hash/md6d256/ref bdbb0dd2ae96185e188c2771a6868dc04d9037078acc8483578b599a8df82adb multiple definition of `compression_hook'
+    crypto_hash/md6d384/ref 28be6ed87a61003a50f004638bd1987bff11cbbaae80d05d24ab4b24fba43535 multiple definition of `compression_hook'
+    crypto_hash/md6d512/ref 811a04587f73572287d86af4d558ee5f84e7c3cf316f1c418ede8c5c4f54bd63 multiple definition of `compression_hook'
 
 # implementation we don't have an replacement for and never will have
 
-crypto_hash/cheetah256/asm e65668e76e269b409547594c3f36dfc7d3d278c6ae8b7beef01c4b746fe2863d contains pc assembly
-crypto_hash/cheetah512/asm ae1a829ab365137c923c5ed35a365093a96c41b76512400d5e43e20b0a6cc45d contains pc assembly
-crypto_hash/cheetah512/asm32 b23d8852c58f6e31c614bc5e826360c891869d2f36ddf60d2fef72a6dd1690bc contains pc assembly
+    crypto_hash/cheetah256/asm e65668e76e269b409547594c3f36dfc7d3d278c6ae8b7beef01c4b746fe2863d contains pc assembly
+    crypto_hash/cheetah512/asm ae1a829ab365137c923c5ed35a365093a96c41b76512400d5e43e20b0a6cc45d contains pc assembly
+    crypto_hash/cheetah512/asm32 b23d8852c58f6e31c614bc5e826360c891869d2f36ddf60d2fef72a6dd1690bc contains pc assembly
 
 
-crypto_hash/groestl256/asm 092d744fb5fb84e5eff225610c6b803854529d0fcfd9337f721093bd0385cf13 contains pc assembly
-crypto_hash/groestl512/asm 494041bb5fac3d14f4180244f1cd853182b431d95dd4e2260e01708cb72ebc49 contains pc assembly
+    crypto_hash/groestl256/asm 092d744fb5fb84e5eff225610c6b803854529d0fcfd9337f721093bd0385cf13 contains pc assembly
+    crypto_hash/groestl512/asm 494041bb5fac3d14f4180244f1cd853182b431d95dd4e2260e01708cb72ebc49 contains pc assembly
 
-crypto_hash/echo256/aes/aes32 472ca1b9078e33ac5c8bde32f536d47dd5fffb9862744e5d29a44fe42d87fb4f contains pc assembly
-crypto_hash/echo256/aes/aes64 0137e05ae25e0586bb6401937f5e99ab675d9801960cd4846ee9132603a15d3c contains pc assembly
-crypto_hash/echo256/core2/core2 cb8998e7d91c755c5b10c1f68389804c6a09c11cade2a7f44231686c31c91b6b contains pc assembly
-crypto_hash/echo256/core2/core2v64 5541dd22b0fccd86ff2f3b8af4e33e261f21b17317895e25d40c7d311e20a5e9 contains pc assembly
-crypto_hash/echo256/powerpc/altivec 4cbd52989359d84c0e5cfb6e285a7aab7f98a05c3c37e2539ce8c530d506f579 needs altivec hardware support
+    crypto_hash/echo256/aes/aes32 472ca1b9078e33ac5c8bde32f536d47dd5fffb9862744e5d29a44fe42d87fb4f contains pc assembly
+    crypto_hash/echo256/aes/aes64 0137e05ae25e0586bb6401937f5e99ab675d9801960cd4846ee9132603a15d3c contains pc assembly
+    crypto_hash/echo256/core2/core2 cb8998e7d91c755c5b10c1f68389804c6a09c11cade2a7f44231686c31c91b6b contains pc assembly
+    crypto_hash/echo256/core2/core2v64 5541dd22b0fccd86ff2f3b8af4e33e261f21b17317895e25d40c7d311e20a5e9 contains pc assembly
+    crypto_hash/echo256/powerpc/altivec 4cbd52989359d84c0e5cfb6e285a7aab7f98a05c3c37e2539ce8c530d506f579 needs altivec hardware support
 
-crypto_hash/echosp256/aes/aes32 df4f631ebdb6f585c7222cecfcb8a16ab647e254f2e544a0a8f153182f570605 contains pc assembly
-crypto_hash/echosp256/aes/aes64 2067eb6dff07e12b7328d742d0eff1eec74a3126a4879db9787df35aabccceff contains pc assembly
-crypto_hash/echosp256/core2/core2 aefa1935450ba59c902bfb054c114c6b64925b87c21708767a4e429d7108886a contains pc assembly
-crypto_hash/echosp256/core2/core2v64 770bbd3bfda2d9d555e3315a0ea15dd6b337576737a05db17415901f36644a0a contains pc assembly
-crypto_hash/echosp256/powerpc/altivec 9a34356ba9aa23295a97ee11561afb3d39e1e75e5be65a12edbefd5bbbd9a60d needs altivec hardware support
-crypto_hash/fsb256/clean 4a483eb3d96abefd87a7fd4d65be093704f107b436e256dde842e32df1b8e4f9 contains pc assembly
+    crypto_hash/echosp256/aes/aes32 df4f631ebdb6f585c7222cecfcb8a16ab647e254f2e544a0a8f153182f570605 contains pc assembly
+    crypto_hash/echosp256/aes/aes64 2067eb6dff07e12b7328d742d0eff1eec74a3126a4879db9787df35aabccceff contains pc assembly
+    crypto_hash/echosp256/core2/core2 aefa1935450ba59c902bfb054c114c6b64925b87c21708767a4e429d7108886a contains pc assembly
+    crypto_hash/echosp256/core2/core2v64 770bbd3bfda2d9d555e3315a0ea15dd6b337576737a05db17415901f36644a0a contains pc assembly
+    crypto_hash/echosp256/powerpc/altivec 9a34356ba9aa23295a97ee11561afb3d39e1e75e5be65a12edbefd5bbbd9a60d needs altivec hardware support
+    crypto_hash/fsb256/clean 4a483eb3d96abefd87a7fd4d65be093704f107b436e256dde842e32df1b8e4f9 contains pc assembly
 
+    crypto_hash/echo512/aes/aes32 f91f3d93909e27498d3a3086926a85ae59b60d9e15678c65c8c9c50f8b41b44f contains pc assembly
+    crypto_hash/echo512/aes/aes64 b1a0e7f9d0bce9d32d75dcc4cec10af362ed0e67396025622ad6d3ced88322f5 contains pc assembly
+    crypto_hash/echo512/core2/core2 84aa4544106520c8a38e206954c13b05906cb53f3c3a415b476bc560ab66c984 contains pc assembly
+    crypto_hash/echo512/core2/core2v64 2ca4fbd0cf77e7a24de6eb036715531c65e6fe661259928ea820a00f5747e3aa contains pc assembly 
+    crypto_hash/echo512/powerpc/altivec ce2f015569c2d3179211a87eefdc93abd4d8182d1de17c6e35dd3545fa7ec39c needs altivec hardware support
 
+    crypto_hash/echosp512/aes/aes32 6aabb43be62b9c28b76b4cb1b7e9698b5f7a0ce9f55dd85fb8f6c91d4d2a6a21 contains pc assembly
+    crypto_hash/echosp512/aes/aes64 62a612f6634b4e77f0ae5b92bff0393858a5bc731d17a4f570e2ff58551f5e71 contains pc assembly
+    crypto_hash/echosp512/core2/core2 df2b4f487bcacdefd73c0e2d64316f456bbb063d6eac693a5ace5a0945fa1965 contains pc assembly
+    crypto_hash/echosp512/core2/core2v64 8dfc8f711125a0c3e092eac3a7215008dc55b7f0f145f71ec32dd7b40a9014e3 contains pc assembly
+    crypto_hash/echosp512/powerpc/altivec b739396d9d973578fb1c1010375a876691bcb7b983b34a7d9c2f3da968b78936 needs altivec hardware support
 
-crypto_hash/echo512/aes/aes32 f91f3d93909e27498d3a3086926a85ae59b60d9e15678c65c8c9c50f8b41b44f contains pc assembly
-crypto_hash/echo512/aes/aes64 b1a0e7f9d0bce9d32d75dcc4cec10af362ed0e67396025622ad6d3ced88322f5 contains pc assembly
-crypto_hash/echo512/core2/core2 84aa4544106520c8a38e206954c13b05906cb53f3c3a415b476bc560ab66c984 contains pc assembly
-crypto_hash/echo512/core2/core2v64 2ca4fbd0cf77e7a24de6eb036715531c65e6fe661259928ea820a00f5747e3aa contains pc assembly 
-crypto_hash/echo512/powerpc/altivec ce2f015569c2d3179211a87eefdc93abd4d8182d1de17c6e35dd3545fa7ec39c needs altivec hardware support
+    crypto_hash/simd256/vect128 bb162c2e791371b2cb0a0b2d74b527c7d6bbbfffb0b998d3b49651dc1c6a76be needs sse2 or altivec hardware support
+    crypto_hash/simd512/vect128 69986ae6425b45a5a4efa33f225617b0c193312982bc7ef633788266fe414216 needs sse2 or altivec hardware support
 
-crypto_hash/echosp512/aes/aes32 6aabb43be62b9c28b76b4cb1b7e9698b5f7a0ce9f55dd85fb8f6c91d4d2a6a21 contains pc assembly
-crypto_hash/echosp512/aes/aes64 62a612f6634b4e77f0ae5b92bff0393858a5bc731d17a4f570e2ff58551f5e71 contains pc assembly
-crypto_hash/echosp512/core2/core2 df2b4f487bcacdefd73c0e2d64316f456bbb063d6eac693a5ace5a0945fa1965 contains pc assembly
-crypto_hash/echosp512/core2/core2v64 8dfc8f711125a0c3e092eac3a7215008dc55b7f0f145f71ec32dd7b40a9014e3 contains pc assembly
-crypto_hash/echosp512/powerpc/altivec b739396d9d973578fb1c1010375a876691bcb7b983b34a7d9c2f3da968b78936 needs altivec hardware support
+    crypto_hash/groestl256/asm 092d744fb5fb84e5eff225610c6b803854529d0fcfd9337f721093bd0385cf13 contains pc assembly
+    crypto_hash/groestl256/opteron 4af151244cb9c3c6253555f7a1068dcbc8b5689d8e667cb05d2b7e3b15539397 contains pc assembly
+    crypto_hash/groestl256/opteron-2 f7c0209250f6ba991ffd55a97c2304839339a4a7246e80142a781a6688df2fd7 contains pc assembly
+    crypto_hash/groestl512/asm 494041bb5fac3d14f4180244f1cd853182b431d95dd4e2260e01708cb72ebc49 contains pc assembly
+    crypto_hash/groestl512/opteron 6f4c9023cbd43eee4e173b8c6e155e01bb0695843fd87b2f166476b34d63a7ce contains pc assembly
 
-crypto_hash/simd256/vect128 bb162c2e791371b2cb0a0b2d74b527c7d6bbbfffb0b998d3b49651dc1c6a76be needs sse2 or altivec hardware support
-crypto_hash/simd512/vect128 69986ae6425b45a5a4efa33f225617b0c193312982bc7ef633788266fe414216 needs sse2 or altivec hardware support
+    crypto_hash/hamsi/simd-1 cc74f367be89e671fe182c60290156b66b449e13aead288969160fb631696a39 needs mmx support
+    crypto_hash/hamsi/simd-2 b0c989e82cbba7b72d41eff725aa39d868cfaa923006847493f135bd7cd242ba needs mmx support
 
-crypto_hash/groestl256/asm 092d744fb5fb84e5eff225610c6b803854529d0fcfd9337f721093bd0385cf13 contains pc assembly
-crypto_hash/groestl256/opteron 4af151244cb9c3c6253555f7a1068dcbc8b5689d8e667cb05d2b7e3b15539397 contains pc assembly
-crypto_hash/groestl256/opteron-2 f7c0209250f6ba991ffd55a97c2304839339a4a7246e80142a781a6688df2fd7 contains pc assembly
-crypto_hash/groestl512/asm 494041bb5fac3d14f4180244f1cd853182b431d95dd4e2260e01708cb72ebc49 contains pc assembly
-crypto_hash/groestl512/opteron 6f4c9023cbd43eee4e173b8c6e155e01bb0695843fd87b2f166476b34d63a7ce contains pc assembly
+    crypto_hash/lux256/asm e9f8c38aabdee7b156f9d42c138a4c021fe11968b29a84f98d44abc4d6b78b3f contains pc assembly
+    crypto_hash/lux512/asm 1d04a7e2ae3299878621f1a52e054e1c98f01253021f1a3f339b672e99d034b2 contains pc assembly
 
-crypto_hash/hamsi/simd-1 cc74f367be89e671fe182c60290156b66b449e13aead288969160fb631696a39 needs mmx support
-crypto_hash/hamsi/simd-2 b0c989e82cbba7b72d41eff725aa39d868cfaa923006847493f135bd7cd242ba needs mmx support
-
-crypto_hash/lux256/asm e9f8c38aabdee7b156f9d42c138a4c021fe11968b29a84f98d44abc4d6b78b3f contains pc assembly
-crypto_hash/lux512/asm 1d04a7e2ae3299878621f1a52e054e1c98f01253021f1a3f339b672e99d034b2 contains pc assembly
-
-crypto_hash/lane256/bitslice 6e57592252a0dfc52c099948a55319447d69977aebce30f2efd0a12eab2063fe contains pc assembly
+    crypto_hash/lane256/bitslice 6e57592252a0dfc52c099948a55319447d69977aebce30f2efd0a12eab2063fe contains pc assembly
 
 
-crypto_hash/skein256/x64 8f7ceefff3208da424c72ca592bd2ae01ef4b331831724f1ba3c92b2e5f5d2cd 64 bit pc assembly
-crypto_hash/skein256/xmm 3438e17280c2d97288d5ffd4f91f00fcbae95ca883390170b9aef351f910a193 sse pc assembly
-
+    crypto_hash/skein256/x64 8f7ceefff3208da424c72ca592bd2ae01ef4b331831724f1ba3c92b2e5f5d2cd 64 bit pc assembly
+    crypto_hash/skein256/xmm 3438e17280c2d97288d5ffd4f91f00fcbae95ca883390170b9aef351f910a193 sse pc assembly
 
 # implementations which we replaced
 
-crypto_hash/shavite3256/no-salt 2687f14d72994ce288f469a8e772ee772b43081006cd2bd5216c80d5ac922a7c removed support for other sizes than 256 in no-salt-xbx-pruned
-crypto_hash/shavite3256/with-salt 8b8981a33f16a449bcd491ff1f0caaa3b8c564cd8aacd5535104220473fbcbca removed support for other sizes than 256 in with-salt-xbx-pruned
-
-
-
+    crypto_hash/shavite3256/no-salt 2687f14d72994ce288f469a8e772ee772b43081006cd2bd5216c80d5ac922a7c removed support for other sizes than 256 in no-salt-xbx-pruned
+    crypto_hash/shavite3256/with-salt 8b8981a33f16a449bcd491ff1f0caaa3b8c564cd8aacd5535104220473fbcbca removed support for other sizes than 256 in with-salt-xbx-pruned
 
 # implementation to check and replace
 
+# }}}
+# crypto_aead# {{{
+
+# }}}

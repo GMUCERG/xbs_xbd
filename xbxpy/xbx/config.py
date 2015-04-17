@@ -14,6 +14,7 @@ import hashlib
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship, reconstructor
+from sqlalchemy.orm.exc import NoResultFound
 
 from xbx.dirchecksum import dirchecksum
 import xbx.database as xbxdb
@@ -273,39 +274,41 @@ class Config(Base):
 
     __tablename__    = "config"
 
-    hash             = Column(String)
+    hash                  = Column(String)
 
-    config_path      = Column(String)
+    config_path           = Column(String)
 
-    platforms_path   = Column(String)
-    algopack_path    = Column(String)
-    embedded_path    = Column(String)
-    work_path        = Column(String)
-    data_path        = Column(String)
+    platforms_path        = Column(String)
+    algopack_path         = Column(String)
+    embedded_path         = Column(String)
+    work_path             = Column(String)
+    data_path             = Column(String)
+    global_blacklist_path = Column(String)
 
-    xbh_addr         = Column(String)
-    xbh_port         = Column(Integer)
+    xbh_addr              = Column(String)
+    xbh_port              = Column(Integer)
 
-    platform_hash    = Column(String)
-    operation_name   = Column(String)
+    platform_hash         = Column(String)
+    operation_name        = Column(String)
 
-    rerun            = Column(Boolean)
-    drift_measurements = Column(Integer)
-    checksum_tests   = Column(Integer)
-    operation_params = Column(xbxdb.JSONEncodedDict)
-    xbh_timeout      = Column(Integer)
-    exec_runs        = Column(Integer)
+    rerun                 = Column(Boolean)
+    drift_measurements    = Column(Integer)
+    checksum_tests        = Column(Integer)
+    operation_params      = Column(xbxdb.JSONEncodedDict)
+    xbh_timeout           = Column(Integer)
+    exec_runs             = Column(Integer)
 
-    blacklist        = Column(xbxdb.JSONEncodedDict)
-    whitelist        = Column(xbxdb.JSONEncodedDict)
+    blacklist             = Column(xbxdb.JSONEncodedDict)
+    blacklist_regex       = Column(String)
+    whitelist             = Column(xbxdb.JSONEncodedDict)
 
-    one_compiler     = Column(Boolean)
-    parallel_build   = Column(Boolean)
+    one_compiler          = Column(Boolean)
+    parallel_build        = Column(Boolean)
 
-    platform         = relationship("Platform", uselist=False)
-    operation        = relationship("Operation", uselist=False)
-    implementations  = relationship("Implementation",
-                                    secondary=_config_impl_join_table) 
+    platform              = relationship("Platform", uselist=False)
+    operation             = relationship("Operation", uselist=False)
+    implementations       = relationship("Implementation", backref="configs",
+                                         secondary=_config_impl_join_table)
 
     __table_args__   = (
         PrimaryKeyConstraint("hash" ),
@@ -325,11 +328,12 @@ class Config(Base):
         self.hash = hash_config(config_path)
 
         ## Basic path configuration
-        self.platforms_path = config.get('paths','platforms')
-        self.algopack_path  = config.get('paths','algopacks')
-        self.embedded_path  = config.get('paths','embedded')
-        self.work_path      = config.get('paths','work')
-        self.data_path      = config.get('paths','data')
+        self.platforms_path        = config.get('paths','platforms')
+        self.algopack_path         = config.get('paths','algopacks')
+        self.embedded_path         = config.get('paths','embedded')
+        self.work_path             = config.get('paths','work')
+        self.data_path             = config.get('paths','data')
+        self.global_blacklist_path = config.get('paths', 'global_blacklist')
 
         self.one_compiler = config.getboolean('build', 'one_compiler')
         self.parallel_build = config.getboolean('build', 'parallel_build')
@@ -347,7 +351,7 @@ class Config(Base):
         # Operation
         name                    = config.get('algorithm','operation')
         op_filename             = config.get('paths','operations')
-        self.operation          = Config.__enum_operation(name, op_filename)
+        self.operation          = _enum_operation(name, op_filename)
 
         # Runtime parameters
         self.rerun              = config.getboolean('run', 'rerun')
@@ -358,7 +362,8 @@ class Config(Base):
 
         # Parameters
         self.operation_params   = []
-        op_params               = config.get('run',self.operation.name+"_parameters").split("\n")
+        op_params               = config.get('run',self.operation.name+
+                                             "_parameters").split("\n")
         for line in op_params:
             if line:
                 row = line.split(',')
@@ -366,50 +371,157 @@ class Config(Base):
                 self.operation_params += [row]
 
 
-        # TODO Read platform blacklists
-        # Update platform blacklist sha256sums
+        primitives = config.get('algorithm','primitives').strip().split("\n")
 
-        self.blacklist = []
-        self.whitelist = []
-
-        if config.has_option('implementation', 'blacklist') and config.get('implementation','blacklist'):
-            self.blacklist = config.get('implementation','blacklist').split("\n")
-
-        if config.has_option('implementation', 'whitelist') and config.get('implementation','whitelist'):
-            self.whitelist = config.get('implementation','whitelist').split("\n")
-
-        primitives = config.get('algorithm','primitives').split("\n")
-        #self.operation.primitives = Config.__enum_prim_impls(
-        #    self.operation,
-        #    primitives,
-        #    self.blacklist,
-        #    self.whitelist,
-        #    self.algopack_path
-        #)
         self.__enum_prim_impls(
             self.operation,
             primitives,
-            self.blacklist,
-            self.whitelist,
             self.algopack_path
         )
 
+        self.process_black_white_lists(config)
+
+    def process_black_white_lists(self, conf_parser):
+
+        # If whitelist exists, use that, else use blacklist
+
+        whitelist = []
+        impl_list = []
+        # Get config whitelist 
+        config_whitelist = filter(
+            bool,
+            conf_parser.get("implementation", "whitelist").strip().split("\n")
+        )
+        for i in config_whitelist:
+            path,_,i = i.partition(" ")
+            path = os.path.join(self.algopack_path, self.operation.name, path)
+            hash,_,i = i.partition(" ")
+            hash = hash if (hash != '0' and hash != '') else None
+            comment = i
+            whitelist += (path, hash, comment),
+
+        if len(whitelist) > 0:
+            for i in whitelist:
+                s = xbxdb.scoped_session()
+                impl = None
+                path, hash, comment = i
+
+                s.flush()
+                if hash:
+                    impl = (s.query(Implementation).join(Implementation.configs).
+                         filter(Config.hash == self.hash).
+                         filter(Implementation.path == path).
+                         filter(Implementation.hash == hash)).one()
+                else:
+                    impl = (s.query(Implementation).join(Implementation.configs).
+                         filter(Config.hash == self.hash).
+                         filter(Implementation.path == path)).one()
+
+                impl_list += impl,
+
+
+            self.implementations = impl_list
+            self.whitelist = whitelist
+            s.flush()
+            return
+
+        blacklist = []
+
+        global_blacklist_conf = configparser.ConfigParser()
+        global_blacklist_conf.read(self.global_blacklist_path)
+
+        blacklist_strings = []
+
+        # Get global blacklists for all platforms
+        if global_blacklist_conf.has_option('ALL', 'blacklist'):
+            blacklist_strings += filter(
+                bool,
+                global_blacklist_conf.get("ALL", "blacklist").strip().split("\n")
+            )
+
+        # Get global blacklists for current platform
+        if global_blacklist_conf.has_option(self.platform.name, 'blacklist'):
+            blacklist_strings += list(
+                bool,
+                global_blacklist_conf.get(self.platform.name,
+                                          "blacklist").strip().split("\n")
+            )
+
+        # Parse blacklist strings
+        for i in blacklist_strings:
+            path,_,i = i.partition(" ")
+            path = os.path.join(self.algopack_path, path)
+            hash,_,i = i.partition(" ")
+            hash = hash if (hash != '0' and hash != '') else None
+            comment = i
+            blacklist += (path, hash, comment),
+
+        # Get config blacklist 
+        config_blacklist = filter(
+            bool,
+            conf_parser.get("implementation", "blacklist").strip().split("\n")
+        )
+        for i in config_blacklist:
+            path,_,i = i.partition(" ")
+            path = os.path.join(self.algopack_path, self.operation.name, m.group(1))
+            hash,_,i = i.partition(" ")
+            hash = hash if (hash != '0' and hash != '') else None
+            comment = i
+            blacklist += (path, hash, comment),
+
+
+        for i in blacklist:
+            s = xbxdb.scoped_session()
+            impl = None
+            path, hash, comment = i
+
+            s.flush()
+            try:
+                if hash:
+                    impl = (s.query(Implementation).join(Implementation.configs).
+                            filter(Config.hash == self.hash,
+                                   Implementation.path == path,
+                                   Implementation.hash == hash)).one()
+                else:
+                    impl = (s.query(Implementation).join(Implementation.configs).
+                            filter(Config.hash == self.hash,
+                                   Implementation.path == path)).one()
+            except NoResultFound:
+                pass
+
+            try:
+                self.implementations.remove(impl)
+            except ValueError:
+                pass
+
+        # Filter out regex matches
+        blacklist_regex = conf_parser.get("implementation", "blacklist_regex")
+        if blacklist_regex:
+            r = re.compile(blacklist_regex)
+            self.implementations = list(filter(lambda x: not bool(r.match(x.name)),
+                                               self.implementations))
+
+
+        self.blacklist_regex=blacklist_regex
+        self.blacklist = blacklist
+        s.flush()
 
 
 
 
-    def __enum_prim_impls(self, operation, primitive_names, blacklist, whitelist, algopack_path):
+
+
+
+
+
+    def __enum_prim_impls(self, operation, primitive_names, algopack_path):
         """Enumerations primitives and implementation, and sets lists of
         implementations in config
-
-        Blacklist has priority: impls = whitelist & ~blacklist
 
         Parameters:
             operation       Instance of Operation
             primitive_names List of primitive names
-            blacklist       List of regexes to match of implementations to
-                            remove
-            whitelist       List of implementations to consider. """
+        """
 
 
         _logger.debug("Enumerating primitives and implementations")
@@ -457,7 +569,6 @@ class Config(Base):
 
             primitives += p,
 
-        # Get whitelist  ^blacklist
         for p in primitives:
             all_impls = {}
 
@@ -469,18 +580,8 @@ class Config(Base):
                     name = path.translate(str.maketrans("./-","___"))
                     all_impls[name] = path
 
-            impl_set = set(all_impls.keys())
-
-            for i in all_impls.keys():
-                for j in blacklist:
-                    if re.match(j,i):
-                        impl_set.remove(i)
-
-            if whitelist:
-                impl_set &= set(whitelist);
-
-            # Assemble implementations that pass black/white list
-            for name in impl_set:
+            for name in all_impls.keys():
+                # Parse api.h and get macro values
                 path = os.path.join(p.path,all_impls[name])
                 checksum = dirchecksum(path)
 
@@ -519,16 +620,15 @@ class Config(Base):
         return primitives
 
 
-    @staticmethod
-    def __enum_operation(name, filename):
-        """Generate operation"""
-        _logger.debug("Enumerating operations")
+def _enum_operation(name, filename):
+    """Generate operation"""
+    _logger.debug("Enumerating operations")
 
-        with open(filename) as f:
-            for l in f:
-                match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
-                if match.group(1) == name:
-                    return Operation(name=name, operation_str=l.strip())
+    with open(filename) as f:
+        for l in f:
+            match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
+            if match.group(1) == name:
+                return Operation(name=name, operation_str=l.strip())
 
 
 
@@ -546,14 +646,15 @@ def hash_config(config_path):
 
     file_paths = (
         DEFAULT_CONF,
-        config.get('paths','operations')
+        config_path,
+        config.get('paths','operations'),
+        config.get('paths','global_blacklist'),
     )
 
     dir_paths = (
         config.get('paths','platforms'),
         config.get('paths','algopacks'),
         config.get('paths','embedded'),
-        #config.get('paths','work')
     )
 
     dir_hashes = list(map(lambda x: dirchecksum(x), dir_paths))
