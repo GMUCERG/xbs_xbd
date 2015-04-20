@@ -78,7 +78,7 @@ class Platform(Base):
 
         return cls(
             hash=hash,
-            name=os.path.dirname(path),
+            name=os.path.basename(os.path.normpath(path)),
             path=path,
             tmpl_path=tmpl_path,
             clock_hz=clock_hz,
@@ -118,7 +118,7 @@ class Platform(Base):
             cc_list = ['']*len(cxx_list)
 
         def get_version(compiler):
-            cmd = compiler.partition(" ")[0],
+            cmd = compiler.partition(" ")[0].strip(),
             cmd += '-v',
             version_full = subprocess.check_output(
                     cmd, stderr=subprocess.STDOUT).decode().strip()
@@ -225,6 +225,13 @@ class Primitive(Base):
     )
 
 
+# Join table for libsupercop dependencies
+_impl_dep_join_table = Table('config_impl_dep_join', Base.metadata,
+    Column('dependent_impl_hash', Integer,
+           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+    Column('dependency_impl_hash', Integer,
+           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False)
+)
 
 @unique_constructor(scoped_session,
         lambda **kwargs: kwargs['hash'],
@@ -238,6 +245,12 @@ class Implementation(Base):
     path           = Column(String)
     macros         = Column(JSONEncodedDict)
 
+    dependencies   = relationship(
+        "Implementation", backref="dependents",
+        secondary=_impl_dep_join_table,
+        primaryjoin=(_impl_dep_join_table.c.dependent_impl_hash == hash),
+        secondaryjoin=(_impl_dep_join_table.c.dependency_impl_hash == hash)
+    )
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
         ForeignKeyConstraint(
@@ -255,11 +268,21 @@ class Implementation(Base):
 
 
 # Join table for primitves connected to config
-_config_impl_join_table = Table('config_implementation_join', Base.metadata,
-    Column('implementation_hash', Integer, ForeignKey('implementation.hash')),
-    Column('config_hash', Integer, ForeignKey('config.hash'))
+_config_impl_join_table = Table(
+    'config_implementation_join', Base.metadata,
+    Column('implementation_hash', Integer,
+           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+    Column('config_hash', Integer,
+           ForeignKey('config.hash', ondelete="CASCADE"))
 )
 
+_config_libsupercop_impl_join_table = Table(
+    'config_libsupercop_impl_join', Base.metadata,
+    Column('implementation_hash', Integer,
+           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+    Column('config_hash', Integer,
+           ForeignKey('config.hash', ondelete="CASCADE"))
+)
 
 
 @unique_constructor(
@@ -305,10 +328,15 @@ class Config(Base):
     one_compiler          = Column(Boolean)
     parallel_build        = Column(Boolean)
 
+
     platform              = relationship("Platform", uselist=False)
     operation             = relationship("Operation", uselist=False)
-    implementations       = relationship("Implementation", backref="configs",
+    implementations       = relationship("Implementation",
                                          secondary=_config_impl_join_table)
+
+    libsupercop_impls     = relationship("Implementation",
+                                         secondary=_config_libsupercop_impl_join_table)
+
 
     __table_args__   = (
         PrimaryKeyConstraint("hash" ),
@@ -333,7 +361,7 @@ class Config(Base):
         self.embedded_path         = config.get('paths','embedded')
         self.work_path             = config.get('paths','work')
         self.data_path             = config.get('paths','data')
-        self.global_blacklist_path = config.get('paths', 'global_blacklist')
+        self.impl_conf_path = config.get('paths', 'impl_conf')
 
         self.one_compiler = config.getboolean('build', 'one_compiler')
         self.parallel_build = config.getboolean('build', 'parallel_build')
@@ -373,13 +401,20 @@ class Config(Base):
 
         primitives = config.get('algorithm','primitives').strip().split("\n")
 
-        self.__enum_prim_impls(
+
+        impl_conf = configparser.ConfigParser()
+        impl_conf.read(self.impl_conf_path)
+
+        self._process_black_white_lists(config, impl_conf)
+
+        self._enum_supercop_impls(config, impl_conf)
+
+        self.implementations = _enum_prim_impls(
             self.operation,
             primitives,
             self.algopack_path
         )
 
-        self.process_black_white_lists(config)
 
     def _process_black_white_lists(self, conf_parser, impl_conf_parser):
 
@@ -502,127 +537,184 @@ class Config(Base):
         blacklist_regex = conf_parser.get("implementation", "blacklist_regex")
         if blacklist_regex:
             r = re.compile(blacklist_regex)
-            self.implementations = list(filter(lambda x: not bool(r.match(x.name)),
-                                               self.implementations))
+            # self.implementations = list(filter(lambda x: not bool(r.match(x.name)),
+            #                                    self.implementations))
+            self.implementations = [x for x in self.implementations if not r.match(x.name)]
 
 
         self.blacklist_regex=blacklist_regex
         self.blacklist = blacklist
         s.flush()
 
+    def _enum_dependencies(self, conf_parser, impl_conf_parser):
+        # Index dependencies
+        dependencies = {}
+        for i in self.libsupercop_impls:
+            dependencies[(i.operation_name, i.primitive_name)] = i
+
+        dependents = {}
+        # Index possible dependents
+        for i in self.implementations:
+            dependents[i.path] = i
+
+        lsd = []
+        try:
+            lsd = (impl_conf_parser.
+                   get('ALL', 'libsupercop_dependents').strip().split("\n"))
+            # Ignore empty entries
+            lsd = [i for i in lsd if i]
+
+        except configparser.NoOptionError:
+            pass
+
+        for i in lsd:
+            path,_,i = i.partition(" ")
+            deps = i.strip("[]").split(",")
+            for j in deps:
+                key = j.strip().split(),
+                dependents[i].dependencies += dependencies[key]
+
+
+
+
+
+    def _enum_supercop_impls(self, conf_parser, impl_conf_parser):
+
+        libsupercop_impls = conf_parser.get("libsupercop", "implementations").strip().split("\n")
+        operation_file    = conf_parser.get('paths','operations')
+
+        operations = set()
+        primitives = set()
+        implementations = set()
+
+
+        for i in libsupercop_impls:
+            o, p, i = i.split(' ')
+            operations.add(o)
+            primitives.add((o,p))
+            implementations.add((o,p,i))
+
+        # convert operation names to operation objects
+        operations = [_enum_operation(x, conf_parser.get("paths","operations")) for x in operations]
+
+        all_impls = []
+
+        for o in operations:
+            all_impls += _enum_prim_impls(o, [p[1] for p in primitives if p[0] == o.name],
+                                      self.algopack_path)
+        self.libsupercop_impls = [i for i in all_impls if
+                                  (i.operation_name, i.primitive_name, i.name) in implementations]
 
 
 
 
 
 
+def _enum_prim_impls(operation, primitive_names, algopack_path):
+    """Enumerations primitives and implementation, and sets lists of
+    implementations in config
+
+    Parameters:
+        operation       Instance of Operation
+        primitive_names List of primitive names
+    """
 
 
-    def __enum_prim_impls(self, operation, primitive_names, algopack_path):
-        """Enumerations primitives and implementation, and sets lists of
-        implementations in config
+    _logger.debug("Enumerating primitives and implementations")
+    primitives = []
+    implementations = []
 
-        Parameters:
-            operation       Instance of Operation
-            primitive_names List of primitive names
-        """
+    # Get operation path
+    op_path = os.path.join(algopack_path, operation.name)
 
+    if not os.path.isdir(op_path):
+        raise ValueError(
+            "Operation {} directory does not exist!".format(operation.name))
 
-        _logger.debug("Enumerating primitives and implementations")
-        primitives = []
+    # Get list of primitive directories
+    primdirs = [d for d in os.listdir(op_path) if os.path.isdir(os.path.join(op_path, d))]
 
-        # Get operation path
-        op_path = os.path.join(algopack_path, operation.name)
+    # Get prim directories intersecting w/ primitive list
+    for name in primitive_names :
+        if name not in primdirs:
+            raise ValueError("Primitive {} directory does not exist!".
+                             format(name))
 
-        if not os.path.isdir(op_path):
-            raise ValueError(
-                "Operation {} directory does not exist!".format(operation.name))
+        path = os.path.join(op_path,name)
+        try:
+            checksumfile = os.path.join(path, "checksumsmall")
+            checksumsmall = ""
+            with open(checksumfile) as f:
+                checksumsmall = f.readline().strip()
 
-        # Get list of primitive directories
-        primdirs = [d for d in os.listdir(op_path) if os.path.isdir(os.path.join(op_path, d))]
+            checksumfile = os.path.join(path, "checksumbig")
+            checksumbig= ""
+            with open(checksumfile) as f:
+                checksumbig = f.readline().strip()
+        except FileNotFoundError:
+            _logger.error(("Checksum(big|small) files not found for "
+                           "{}/{}").format(operation.name,name))
+            continue
 
-        # Get prim directories intersecting w/ primitive list
-        for name in primitive_names :
-            if name not in primdirs:
-                raise ValueError("Primitive {} directory does not exist!".
-                                 format(name))
+        p = Primitive(
+                operation=operation,
+                name=name,
+                path=path,
+                checksumsmall=checksumsmall,
+                checksumbig=checksumbig
+            )
 
-            path = os.path.join(op_path,name)
-            try:
-                checksumfile = os.path.join(path, "checksumsmall")
-                checksumsmall = ""
-                with open(checksumfile) as f:
-                    checksumsmall = f.readline().strip()
+        primitives += p,
 
-                checksumfile = os.path.join(path, "checksumbig")
-                checksumbig= ""
-                with open(checksumfile) as f:
-                    checksumbig = f.readline().strip()
-            except FileNotFoundError:
-                _logger.error(("Checksum(big|small) files not found for "
-                               "{}/{}").format(operation.name,name))
-                continue
+    for p in primitives:
+        all_impls = {}
 
-            p = Primitive(
-                    operation=operation,
-                    name=name,
-                    path=path,
-                    checksumsmall=checksumsmall,
-                    checksumbig=checksumbig
-                )
+        # Find all directories w/ api.h
+        walk =  os.walk(p.path)
+        for i in walk:
+            if "api.h" in i[2]:
+                path = os.path.relpath(i[0], p.path)
+                name = path.translate(str.maketrans("./-","___"))
+                all_impls[name] = path
 
-            primitives += p,
+        for name in all_impls.keys():
+            # Parse api.h and get macro values
+            path = os.path.join(p.path,all_impls[name])
+            checksum = dirchecksum(path)
 
-        for p in primitives:
-            all_impls = {}
+            api_h = None
+            with open(os.path.join(path, "api.h")) as f:
+                api_h = f.read()
 
-            # Find all directories w/ api.h
-            walk =  os.walk(p.path)
-            for i in walk:
-                if "api.h" in i[2]:
-                    path = os.path.relpath(i[0], p.path)
-                    name = path.translate(str.maketrans("./-","___"))
-                    all_impls[name] = path
+            macros = {}
+            macro_names = operation.macro_names+['_VERSION']
 
-            for name in all_impls.keys():
-                # Parse api.h and get macro values
-                path = os.path.join(p.path,all_impls[name])
-                checksum = dirchecksum(path)
+            for m in macro_names:
+                value = None
+                match = re.search(m+r'\s+"(.*)"\s*$', api_h, re.MULTILINE)
+                if(match):
+                    value = match.group(1).strip('"')
+                else:
+                    match = re.search(m+r'\s+(.*)\s*$', api_h, re.MULTILINE)
+                    try:
+                        value = int(match.group(1))
+                    except ValueError:
+                        value = match.group(1)
+                    except AttributeError:
+                        value = None
+                macros[m] = value
 
-                api_h = None
-                with open(os.path.join(path, "api.h")) as f:
-                    api_h = f.read()
+            # Don't have to add to p.implementations, as Implementation sets
+            # Primitive as parent, which inserts into list
+            implementations += Implementation(
+                hash=checksum,
+                name=name,
+                path=path,
+                primitive=p,
+                macros=macros
+            ),
 
-                macros = {}
-                macro_names = operation.macro_names+['_VERSION']
-
-                for m in macro_names:
-                    value = None
-                    match = re.search(m+r'\s+"(.*)"\s*$', api_h, re.MULTILINE)
-                    if(match):
-                        value = match.group(1).strip('"')
-                    else:
-                        match = re.search(m+r'\s+(.*)\s*$', api_h, re.MULTILINE)
-                        try:
-                            value = int(match.group(1))
-                        except ValueError:
-                            value = match.group(1)
-                        except AttributeError:
-                            value = None
-                    macros[m] = value
-
-                # Don't have to add to p.implementations, as Implementation sets
-                # Primitive as parent, which inserts into list
-                self.implementations += Implementation(
-                    hash=checksum,
-                    name=name,
-                    path=path,
-                    primitive=p,
-                    macros=macros
-                ),
-
-        return primitives
-
+    return implementations
 
 def _enum_operation(name, filename):
     """Generate operation"""
@@ -652,7 +744,7 @@ def hash_config(config_path):
         DEFAULT_CONF,
         config_path,
         config.get('paths','operations'),
-        config.get('paths','global_blacklist'),
+        config.get('paths','impl_conf'),
     )
 
     dir_paths = (

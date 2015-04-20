@@ -29,6 +29,8 @@ else
 fi
 }
 
+import_op verify 
+import_op core 
 import_op hash
 import_op aead
 
