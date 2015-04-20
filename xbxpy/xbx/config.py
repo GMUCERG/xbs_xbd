@@ -381,7 +381,7 @@ class Config(Base):
 
         self.process_black_white_lists(config)
 
-    def process_black_white_lists(self, conf_parser):
+    def _process_black_white_lists(self, conf_parser, impl_conf_parser):
 
         # If whitelist exists, use that, else use blacklist
 
@@ -392,19 +392,32 @@ class Config(Base):
                                                        "whitelist").strip().split("\n")
                             if x]
 
-        for i in config_whitelist:
-            path,_,i = i.partition(" ")
-            path = os.path.join(self.algopack_path, self.operation.name, path)
-            hash,_,i = i.partition(" ")
-            hash = hash if (hash != '0' and hash != '') else None
-            comment = i
-            whitelist += (path, hash, comment),
+        def parse_list(l, path_mangle):
+            r = []
+            for i in l:
+                path,_,i = i.partition(" ")
+                path = path_mangle(path.strip())
+                hash,_,i = i.strip().partition(" ")
+                hash = hash.strip()
+                hash = hash if (hash != '0' and hash != '') else None
+                comment = i.strip()
+                r += (path, hash, comment),
+            return r
+
+        whitelist = parse_list(config_whitelist,
+                               lambda path: os.path.join(self.algopack_path,
+                                                         self.operation.name,
+                                                         path))
 
         if len(whitelist) > 0:
             for i in whitelist:
                 s = xbxdb.scoped_session()
                 impl = None
                 path, hash, comment = i
+
+                # This is retarded, using sql to query for objects matching
+                # criteria. Probably worse than just dealing w/ a nested loop.
+                # Rewrite the thing to cache keys w/ a dict or something
 
                 s.flush()
                 if hash:
@@ -426,49 +439,40 @@ class Config(Base):
             return
 
         blacklist = []
-
-        global_blacklist_conf = configparser.ConfigParser()
-        global_blacklist_conf.read(self.global_blacklist_path)
-
         blacklist_strings = []
 
         # Get global blacklists for all platforms
-        if global_blacklist_conf.has_option('ALL', 'blacklist'):
+        try:
             blacklist_strings += [ i for i in
                                   impl_conf_parser.get("ALL", "blacklist").strip().split("\n")
                                   if i]
-            )
+        except configparser.NoOptionError:
+            pass
 
         # Get global blacklists for current platform
-        if global_blacklist_conf.has_option(self.platform.name, 'blacklist'):
+        print(self.platform.__dict__)
+        try:
             blacklist_strings += list(
                 bool,
-                global_blacklist_conf.get(self.platform.name,
-                                          "blacklist").strip().split("\n")
+                impl_conf_parser.get(self.platform.name,
+                                     "blacklist").strip().split("\n")
             )
+        except configparser.NoSectionError:
+            pass
 
         # Parse blacklist strings
-        for i in blacklist_strings:
-            path,_,i = i.partition(" ")
-            path = os.path.join(self.algopack_path, path)
-            hash,_,i = i.partition(" ")
-            hash = hash if (hash != '0' and hash != '') else None
-            comment = i
-            blacklist += (path, hash, comment),
-
+        blacklist += parse_list(blacklist_strings,
+                               lambda path: os.path.join(self.algopack_path,
+                                                         path.strip()))
         # Get config blacklist 
         config_blacklist = filter(
             bool,
             conf_parser.get("implementation", "blacklist").strip().split("\n")
         )
-        for i in config_blacklist:
-            path,_,i = i.partition(" ")
-            path = os.path.join(self.algopack_path, self.operation.name, m.group(1))
-            hash,_,i = i.partition(" ")
-            hash = hash if (hash != '0' and hash != '') else None
-            comment = i
-            blacklist += (path, hash, comment),
-
+        blacklist += parse_list(config_blacklist,
+                               lambda path: os.path.join(self.algopack_path,
+                                                         self.operation.name,
+                                                         path.strip()))
 
         for i in blacklist:
             s = xbxdb.scoped_session()
@@ -478,12 +482,12 @@ class Config(Base):
             s.flush()
             try:
                 if hash:
-                    impl = (s.query(Implementation).join(Implementation.configs).
+                    impl = (s.query(Implementation).join(Config.implementations).
                             filter(Config.hash == self.hash,
                                    Implementation.path == path,
                                    Implementation.hash == hash)).one()
                 else:
-                    impl = (s.query(Implementation).join(Implementation.configs).
+                    impl = (s.query(Implementation).join(Config.implementations).
                             filter(Config.hash == self.hash,
                                    Implementation.path == path)).one()
             except NoResultFound:
