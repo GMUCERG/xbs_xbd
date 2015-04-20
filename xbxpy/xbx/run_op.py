@@ -26,7 +26,7 @@ class CryptoHashRun(xbxr.Run):
     """
     __tablename__ = "crypto_hash_run"
 
-    id = Column(Integer)
+    id = Column(Integer, nullable=False)
     msg_len = Column(Integer)
 
     __mapper_args__ = {
@@ -75,7 +75,7 @@ class CryptoAeadRun(xbxr.Run):
     FORGED_DEC ="frg"
     __tablename__ = "crypto_aead_run"
 
-    id = Column(Integer)
+    id = Column(Integer, nullable=False)
     data_id = Column(Integer)
     plaintext_len = Column(Integer)
     assoc_data_len = Column(Integer)

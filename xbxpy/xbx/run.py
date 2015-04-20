@@ -36,14 +36,15 @@ class XbdResultFailError(RunValueError):
 
 class PowerSample(Base):
     __tablename__ = "power_sample"
-    run_id  = Column(Integer)
+    id      = Column(Integer, nullable=False)
+    run_id  = Column(Integer, nullable=False)
     power   = Column(Float)
     current = Column(Float)
     voltage = Column(Float)
     timestamp = Column(Integer)
 
     __table_args__ = (
-        PrimaryKeyConstraint("timestamp", "run_id"),
+        PrimaryKeyConstraint("id"),
         ForeignKeyConstraint( ["run_id"], ["run.id"]),
     )
 
@@ -86,7 +87,7 @@ class Run(Base):
     """
     __tablename__   = "run"
 
-    id              = Column(Integer)
+    id              = Column(Integer, nullable=False)
 
     measured_cycles = Column(Integer)
     reported_cycles = Column(Integer)
@@ -103,7 +104,7 @@ class Run(Base):
     timestamp       = Column(DateTime)
     build_exec_id   = Column(Integer)
 
-    run_type        = Column(String)
+    run_type        = Column(String, nullable=False)
 
     __table_args__ = (
         PrimaryKeyConstraint("id"),
@@ -159,7 +160,7 @@ class Run(Base):
 class TestRun(Run):
     __tablename__ = "test_run"
 
-    id = Column(Integer)
+    id = Column(Integer, nullable=False)
     checksumsmall_result = Column(String)
     checksumlarge_result = Column(String)
     checksumfail_cause   = Column(String)
@@ -223,10 +224,10 @@ class TestRun(Run):
 )
 class BuildExec(Base):
     __tablename__  = "build_exec"
-    id             = Column(Integer)
+    id             = Column(Integer, nullable=False)
 
-    build_id       = Column(Integer)
-    run_session_id = Column(Integer)
+    build_id       = Column(Integer, nullable=False)
+    run_session_id = Column(Integer, nullable=False)
 
     build          = relationship("Build")
     runs           = relationship("Run", backref="build_exec",
@@ -338,7 +339,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
     xbh_rev            = Column(String)
     xbh_mac            = Column(String)
-    build_session_id   = Column(Integer)
+    build_session_id   = Column(Integer, nullable=False)
 
     drift_measurements = relationship("DriftMeasurement", backref="run_session")
     build_execs        = relationship("BuildExec", backref="run_session")

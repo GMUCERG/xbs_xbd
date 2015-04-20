@@ -12,14 +12,14 @@ from xbx.database import Base
 
 logger = logging.getLogger(__name__)
 class SessionMixin:
-    id          = Column(Integer, primary_key=True)
+    id          = Column(Integer, primary_key=True, nullable=False)
     host        = Column(String)
     timestamp   = Column(DateTime)
     xbx_version = Column(String)
 
     @declared_attr
     def config_hash(cls):
-        return Column(String, ForeignKey("config.hash"))
+        return Column(String, ForeignKey("config.hash"), nullable=False)
 
     @declared_attr
     def config(cls):

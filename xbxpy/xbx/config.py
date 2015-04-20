@@ -32,8 +32,8 @@ DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "config.ini")
 class Platform(Base):
     __tablename__  = "platform"
 
-    hash           = Column(String)
-    name           = Column(String)
+    hash           = Column(String, nullable=False)
+    name           = Column(String, nullable=False)
     clock_hz       = Column(Integer)
     pagesize       = Column(Integer)
     path           = Column(String)
@@ -204,8 +204,8 @@ class Operation(Base):
 class Primitive(Base):
     __tablename__  = "primitive"
 
-    name           = Column(String)
-    operation_name = Column(String)
+    name           = Column(String, nullable=False)
+    operation_name = Column(String, nullable=False)
     checksumsmall  = Column(String)
     checksumbig    = Column(String)
     path           = Column(String)
@@ -231,10 +231,10 @@ class Primitive(Base):
         lambda query, **kwargs: query.filter(Implementation.hash == kwargs['hash']))
 class Implementation(Base):
     __tablename__  = "implementation"
-    hash           = Column(String)
-    name           = Column(String)
-    operation_name = Column(String)
-    primitive_name = Column(String)
+    hash           = Column(String, nullable=False)
+    name           = Column(String, nullable=False)
+    operation_name = Column(String, nullable=False)
+    primitive_name = Column(String, nullable=False)
     path           = Column(String)
     macros         = Column(JSONEncodedDict)
 
@@ -274,16 +274,16 @@ class Config(Base):
 
     __tablename__    = "config"
 
-    hash                  = Column(String)
+    hash                  = Column(String, nullable=False)
 
-    config_path           = Column(String)
+    config_path           = Column(String, nullable=False)
 
-    platforms_path        = Column(String)
-    algopack_path         = Column(String)
-    embedded_path         = Column(String)
-    work_path             = Column(String)
-    data_path             = Column(String)
-    global_blacklist_path = Column(String)
+    platforms_path        = Column(String, nullable=False)
+    algopack_path         = Column(String, nullable=False)
+    embedded_path         = Column(String, nullable=False)
+    work_path             = Column(String, nullable=False)
+    data_path             = Column(String, nullable=False)
+    impl_conf_path        = Column(String, nullable=False)
 
     xbh_addr              = Column(String)
     xbh_port              = Column(Integer)

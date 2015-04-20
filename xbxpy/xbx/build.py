@@ -74,15 +74,15 @@ class Build(Base):
     """
     __tablename__ = "build"
 
-    id                   = Column(Integer)
-    build_session_id     = Column(Integer)
+    id                   = Column(Integer, nullable=False)
+    build_session_id     = Column(Integer, nullable=False)
 
-    platform_hash        = Column(String)
-    compiler_idx         = Column(Integer)
+    platform_hash        = Column(String, nullable=False)
+    compiler_idx         = Column(Integer, nullable=False)
 
-    operation_name       = Column(String)
-    primitive_name       = Column(String)
-    implementation_hash  = Column(String)
+    operation_name       = Column(String, nullable=False)
+    primitive_name       = Column(String, nullable=False)
+    implementation_hash  = Column(String, nullable=False)
 
     work_path            = Column(String)
     exe_path             = Column(String)
