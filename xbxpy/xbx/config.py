@@ -192,8 +192,8 @@ class Operation(Base):
         match             = re.match(r'(\w+) ([:_\w]+) (.*)$', self.operation_str)
 
         # Use filter to ignore ''
-        self.macro_names  = list(filter(bool, match.group(2).split(':')))
-        self.prototypes   = list(filter(bool, match.group(3).split(':')))
+        self.macro_names  = [x for x in match.group(2).split(':') if x]
+        self.prototypes   = [x for x in match.group(3).split(':') if x]
 
 
 
@@ -388,10 +388,10 @@ class Config(Base):
         whitelist = []
         impl_list = []
         # Get config whitelist 
-        config_whitelist = filter(
-            bool,
-            conf_parser.get("implementation", "whitelist").strip().split("\n")
-        )
+        config_whitelist = [x for x in conf_parser.get("implementation",
+                                                       "whitelist").strip().split("\n")
+                            if x]
+
         for i in config_whitelist:
             path,_,i = i.partition(" ")
             path = os.path.join(self.algopack_path, self.operation.name, path)
@@ -434,9 +434,9 @@ class Config(Base):
 
         # Get global blacklists for all platforms
         if global_blacklist_conf.has_option('ALL', 'blacklist'):
-            blacklist_strings += filter(
-                bool,
-                global_blacklist_conf.get("ALL", "blacklist").strip().split("\n")
+            blacklist_strings += [ i for i in
+                                  impl_conf_parser.get("ALL", "blacklist").strip().split("\n")
+                                  if i]
             )
 
         # Get global blacklists for current platform
