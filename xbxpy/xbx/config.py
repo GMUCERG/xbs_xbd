@@ -140,12 +140,12 @@ class Platform(Base):
 
             compilers += Compiler(
                 idx=i,
-                cc=cc_list[i],
-                cxx=cxx_list[i],
-                cc_version=cc_version,
-                cxx_version=cxx_version,
-                cc_version_full=cc_version_full,
-                cxx_version_full=cxx_version_full
+                cc=cc_list[i].strip(),
+                cxx=cxx_list[i].strip(),
+                cc_version=cc_version.strip(),
+                cxx_version=cxx_version.strip(),
+                cc_version_full=cc_version_full.strip(),
+                cxx_version_full=cxx_version_full.strip()
             ),
 
         return compilers
