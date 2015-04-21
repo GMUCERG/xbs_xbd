@@ -328,6 +328,7 @@ class Config(Base):
     blacklist             = Column(xbxdb.JSONEncodedDict)
     blacklist_regex       = Column(String)
     whitelist             = Column(xbxdb.JSONEncodedDict)
+    enforce_bwlist_checksums = Column(Boolean)
 
     one_compiler          = Column(Boolean)
     parallel_build        = Column(Boolean)
@@ -408,7 +409,8 @@ class Config(Base):
         impl_conf = configparser.ConfigParser()
         impl_conf.read(self.impl_conf_path)
 
-
+        self.enforce_bwlist_checksums = config.getboolean(
+            'implementation', 'enforce_bwlist_checksums')
 
         self.implementations = _enum_prim_impls(
             self.operation,
@@ -421,16 +423,9 @@ class Config(Base):
         self._enum_dependencies(config, impl_conf)
 
     def _process_black_white_lists(self, conf_parser, impl_conf_parser):
-
-        s = xbxdb.scoped_session()
-        # If whitelist exists, use that, else use blacklist
-
-        whitelist = []
-        impl_list = []
-        # Get config whitelist 
-        config_whitelist = [i.strip() for i in conf_parser.get("implementation",
-                                                       "whitelist").strip().split("\n")
-                            if i]
+        impl_index = {}
+        for i in self.implementations:
+            impl_index[i.path] = i
 
         def parse_list(l, path_mangle):
             r = []
@@ -444,32 +439,33 @@ class Config(Base):
                 r += (path, hash, comment),
             return r
 
+        whitelist = []
+        # Get config whitelist 
+        config_whitelist = [i.strip() for i in conf_parser.get("implementation",
+                                                       "whitelist").strip().split("\n")
+                            if i]
+
+
         whitelist = parse_list(config_whitelist,
                                lambda path: os.path.join(self.operation.name,
                                                          os.path.normpath(path.strip())))
 
         if len(whitelist) > 0:
-            for i in whitelist:
-                impl = None
-                path, hash, comment = i
+            impl_list = []
 
-                # This is retarded, using sql to query for objects matching
-                # criteria. Probably worse than just dealing w/ a nested loop.
-                # Rewrite the thing to cache keys w/ a dict or something
-
-                s.flush()
-                if hash:
-                    impl = (s.query(Implementation).join(Implementation.configs).
-                         filter(Config.hash == self.hash).
-                         filter(Implementation.path == path).
-                         filter(Implementation.hash == hash)).one()
-                else:
-                    impl = (s.query(Implementation).join(Implementation.configs).
-                         filter(Config.hash == self.hash).
-                         filter(Implementation.path == path)).one()
-
-                impl_list += impl,
-
+            for path, hash, comment in whitelist:
+                try:
+                    impl = impl_index[path]
+                    if hash and hash != impl.hash:
+                        errmsg = ("Checksum in whitelist entry for {} does not "+
+                                  "match. Please update config.ini").format(path)
+                        if self.enforce_bwlist_checksums:
+                            raise ValueError(errmsg)
+                        else:
+                            _logger.warn(errmsg)
+                    impl_list += impl,
+                except KeyError:
+                    pass
 
             self.implementations = impl_list
             self.whitelist = whitelist
@@ -481,9 +477,8 @@ class Config(Base):
 
         # Get global blacklists for all platforms
         try:
-            blacklist_strings += ( i.strip() for i in
-                                  impl_conf_parser.get("ALL", "blacklist").strip().split("\n")
-                                  if i)
+            blacklist_strings += ( i.strip() for i in impl_conf_parser.get(
+                "ALL", "blacklist").strip().split("\n") if i)
         except configparser.NoOptionError:
             pass
 
@@ -498,36 +493,32 @@ class Config(Base):
         blacklist += parse_list(blacklist_strings,
                                lambda path: os.path.normpath(path))
         # Get config blacklist 
-        config_blacklist = filter(
-            bool,
-            conf_parser.get("implementation", "blacklist").strip().split("\n")
-        )
-        blacklist = parse_list(config_whitelist,
+        config_blacklist = [i.strip() for i in conf_parser.get(
+            "implementation", "blacklist").strip().split("\n") if i]
+        blacklist += parse_list(config_blacklist,
                                lambda path: os.path.join(self.operation.name,
                                                          os.path.normpath(path)))
 
-        for i in blacklist:
-            impl = None
-            path, hash, comment = i
-
-            s.flush()
+        for path, hash, comment in blacklist:
             try:
-                if hash:
-                    impl = (s.query(Implementation).join(Config.implementations).
-                            filter(Config.hash == self.hash,
-                                   Implementation.path == path,
-                                   Implementation.hash == hash)).one()
-                else:
-                    impl = (s.query(Implementation).join(Config.implementations).
-                            filter(Config.hash == self.hash,
-                                   Implementation.path == path)).one()
-            except NoResultFound:
+                impl = impl_index[path]
+
+                if hash and hash != impl.hash:
+                    errmsg = ("Checksum in blacklist entry for {} does not "
+                              "match. Please update impl_conf.ini or "
+                              "config.ini").format(path)
+                    if self.enforce_bwlist_checksums:
+                        raise ValueError(errmsg)
+                    else:
+                        _logger.warn(errmsg)
+                try:
+                    self.implementations.remove(impl)
+                except ValueError:
+                    pass
+
+            except KeyError:
                 pass
 
-            try:
-                self.implementations.remove(impl)
-            except ValueError:
-                pass
 
         # Filter out regex matches
         blacklist_regex = conf_parser.get("implementation", "blacklist_regex")
@@ -540,7 +531,6 @@ class Config(Base):
 
         self.blacklist_regex=blacklist_regex
         self.blacklist = blacklist
-        s.flush()
 
     def _enum_dependencies(self, conf_parser, impl_conf_parser):
         # Index dependencies
@@ -565,15 +555,26 @@ class Config(Base):
 
         for i in lsd:
             path,_,i = i.partition(" ")
+            hash,_,i = i.strip().partition(" ")
+            hash = hash.strip()
             deps = i.strip("[]").split(",")
-            for j in deps:
-                key = tuple(j.strip().split())
-                dependent = None
-                dependency = dependencies[key]
-                try:
-                    dependents[os.path.normpath(path.strip())].dependencies += dependency,
-                except KeyError:
-                    pass
+
+            try:
+                dependent = dependents[os.path.normpath(path.strip())]
+            except KeyError:
+                pass
+            else:
+                if dependent.hash != hash and hash != '0':
+                    errmsg = ("Checksum for dependency entry for {} does not "
+                              "match. Please update impl_conf.ini").format(path)
+                    if self.enforce_bwlist_checksums:
+                        raise ValueError(errmsg)
+                    else:
+                        _logger.warn(errmsg)
+
+                for j in deps:
+                    key = tuple(j.strip().split())
+                    dependent.dependencies += dependencies[key],
 
     def _enum_supercop_impls(self, conf_parser, impl_conf_parser):
 
