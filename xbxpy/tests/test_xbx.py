@@ -82,6 +82,10 @@ class XbxConfigTest(unittest.TestCase):# {{{
 
 
 # TODO: Test template platforms
+# TODO: Add test to verify if config loads from db
+# TODO: Add test to verify if config reloads if config.ini changes
+# TODO: Add test to verify if new platform or impl is added if current checksum
+# is obsolete
 # TODO: Add test to check if proper number of builds run
 # }}}
 
