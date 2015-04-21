@@ -236,7 +236,8 @@ class Build(Base):
     @property
     def env(self):
         config = self.build_session.config
-
+        dep_paths = [os.path.abspath(os.path.join(config.algopack_path, i.path))
+                     for i in self.implementation.dependencies]
         # Set build environment variables
         tmpl_path = ''
         if self.platform.tmpl_path:
@@ -247,12 +248,12 @@ class Build(Base):
                                                 self.platform.path,'hal'),
             'HAL_T_PATH':          os.path.join(tmpl_path,
                                                 'hal') if tmpl_path else '',
-            'templatePlatformDir': tmpl_path if tmpl_path else '',
-            'HAL_PATH':            os.path.join(self.platform.path,'hal'),
-            'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
-            'XBD_PATH':            os.path.join(self.build_session.config.embedded_path,'xbd'),
-            'IMPL_PATH':           self.implementation.path,
-            'POSTLINK':            os.path.join(self.platform.path, 'postlink'),
+            'XBD_PATH':            os.path.join(config.embedded_path,'xbd'),
+            'IMPL_PATH':           os.path.join(config.algopack_path,
+                                                self.implementation.path),
+            'ALGOPACK_PATH':       config.algopack_path,
+            'POSTLINK':            os.path.join(config.platforms_path,
+                                                self.platform.path, 'postlink'),
             'HAL_OBJS':            os.path.join(
                 self.build_session.config.work_path,
                 self.build_session.config.platform.name,
@@ -270,7 +271,8 @@ class Build(Base):
         # Add compilers and non path env variables
         env.update({
             'OP': self.operation.name,
-            'CC': self.compiler.cc, 'CXX': self.compiler.cxx})
+            'CC': self.compiler.cc, 'CXX': self.compiler.cxx,
+            'DEP_PATHS': ' '.join(dep_paths)})
         return env
 
 
@@ -299,6 +301,17 @@ class Build(Base):
             self._gen_o_h(o_h, primitive)
         if not os.path.isfile(op_h):
             self._gen_op_h(op_h, self.implementation)
+
+        # Generate dependency header files
+        for i in self.implementation.dependencies:
+            o_h = os.path.join(full_work_path, i.primitive.operation.name + ".h")
+            op_h = os.path.join(full_work_path, i.primitive.operation.name +
+                                '_' + i.primitive.name+ ".h")
+            if not os.path.isfile(o_h):
+                self._gen_o_h(o_h, i.primitive)
+            if not os.path.isfile(op_h):
+                self._gen_op_h(op_h, i)
+
 
     def validate_hex_checksum(self):
         """Verifies if checksum still valid"""

@@ -82,6 +82,9 @@ BUILDDIR=build
 SRCS += $(wildcard ${XBD_PATH}/xbd_af/*.c ${XBD_PATH}/xbd_app/*.c)
 SRCS += $(wildcard ${XBD_PATH}/xbd_op/${OP}/*.c )
 SRCS += $(shell find ${IMPL_PATH} -name "*.c" -or -name "*.cpp" -or -name "*.[Ss]")
+SRCS += $(foreach dep,${DEP_PATHS}, \
+    $(shell find ${dep} -name "*.c" -or -name "*.cpp" -or -name "*.[Ss]"))
+
 
 OBJS := $(SRCS:%.c=%.o)
 OBJS := $(OBJS:%.cpp=%.o)
@@ -89,7 +92,7 @@ OBJS := $(OBJS:%.s=%.o)
 OBJS := $(OBJS:%.S=%.o)
 OBJS := $(patsubst ${HAL_PATH}%,${HAL_OBJS}%,${OBJS})
 OBJS := $(patsubst ${XBD_PATH}%,${BUILDDIR}/xbd%,${OBJS})
-OBJS := $(patsubst ${IMPL_PATH}%,${BUILDDIR}/impl%,${OBJS})
+OBJS := $(patsubst ${ALGOPACK_PATH}%,${BUILDDIR}/impl%,${OBJS})
 
 OBJS += $(shell find ${HAL_OBJS} -name "*.o")
 
@@ -107,15 +110,15 @@ ${BUILDDIR}/xbd/%.o: ${XBD_PATH}/%.c |${BUILDDIR}
 	@echo "CC  ${<}";
 	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.c |${BUILDDIR}
+${BUILDDIR}/impl/%.o: ${ALGOPACK_PATH}/%.c |${BUILDDIR}
 	@echo "CC  ${<}";
 	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.s |${BUILDDIR}
+${BUILDDIR}/impl/%.o: ${ALGOPACK_PATH}/%.s |${BUILDDIR}
 	@echo "CC  ${<}";
 	@${CC} -o ${@} -c ${<}
 
-${BUILDDIR}/impl/%.o: ${IMPL_PATH}/%.cpp |${BUILDDIR}
+${BUILDDIR}/impl/%.o: ${ALGOPACK_PATH}/%.cpp |${BUILDDIR}
 	@echo "CXX  ${<}";
 	@${CXX} -o ${@} -c ${<}
 
