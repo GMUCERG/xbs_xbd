@@ -408,16 +408,17 @@ class Config(Base):
         impl_conf = configparser.ConfigParser()
         impl_conf.read(self.impl_conf_path)
 
-        self._process_black_white_lists(config, impl_conf)
 
-        self._enum_supercop_impls(config, impl_conf)
 
         self.implementations = _enum_prim_impls(
             self.operation,
             primitives,
             self.algopack_path
         )
+        self._process_black_white_lists(config, impl_conf)
 
+        self._enum_supercop_impls(config, impl_conf)
+        self._enum_dependencies(config, impl_conf)
 
     def _process_black_white_lists(self, conf_parser, impl_conf_parser):
 
@@ -598,10 +599,9 @@ class Config(Base):
         for o in operations:
             all_impls += _enum_prim_impls(o, [p[1] for p in primitives if p[0] == o.name],
                                       self.algopack_path)
+
         self.libsupercop_impls = [i for i in all_impls if
-                                  (i.operation_name, i.primitive_name, i.name) in implementations]
-
-
+                                  (i.primitive.operation.name, i.primitive.name, i.name) in implementations]
 
 
 
