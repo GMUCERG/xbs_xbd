@@ -203,7 +203,7 @@ class Build(Base):
         full_hex_path = os.path.join(config.work_path, self.hex_path)
         full_exe_path = os.path.join(config.work_path, self.exe_path)
 
-        if os.path.isfile(full_hex_path):
+        if os.path.isfile(full_exe_path):
             size = os.path.join(config.platforms_path,
                                 self.platform.path, 'size')
             total_env = self.env.copy()
