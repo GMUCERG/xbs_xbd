@@ -421,14 +421,15 @@ class Config(Base):
 
     def _process_black_white_lists(self, conf_parser, impl_conf_parser):
 
+        s = xbxdb.scoped_session()
         # If whitelist exists, use that, else use blacklist
 
         whitelist = []
         impl_list = []
         # Get config whitelist 
-        config_whitelist = [x for x in conf_parser.get("implementation",
+        config_whitelist = [i.strip() for i in conf_parser.get("implementation",
                                                        "whitelist").strip().split("\n")
-                            if x]
+                            if i]
 
         def parse_list(l, path_mangle):
             r = []
@@ -443,13 +444,11 @@ class Config(Base):
             return r
 
         whitelist = parse_list(config_whitelist,
-                               lambda path: os.path.join(self.algopack_path,
-                                                         self.operation.name,
-                                                         path))
+                               lambda path: os.path.join(self.operation.name,
+                                                         os.path.normpath(path.strip())))
 
         if len(whitelist) > 0:
             for i in whitelist:
-                s = xbxdb.scoped_session()
                 impl = None
                 path, hash, comment = i
 
@@ -481,39 +480,32 @@ class Config(Base):
 
         # Get global blacklists for all platforms
         try:
-            blacklist_strings += [ i for i in
+            blacklist_strings += ( i.strip() for i in
                                   impl_conf_parser.get("ALL", "blacklist").strip().split("\n")
-                                  if i]
+                                  if i)
         except configparser.NoOptionError:
             pass
 
         # Get global blacklists for current platform
-        print(self.platform.__dict__)
         try:
-            blacklist_strings += list(
-                bool,
-                impl_conf_parser.get(self.platform.name,
-                                     "blacklist").strip().split("\n")
-            )
+            blacklist_strings += (i.strip() for i in impl_conf_parser.get(
+                self.platform.name, "blacklist").strip().split("\n") if i)
         except configparser.NoSectionError:
             pass
 
         # Parse blacklist strings
         blacklist += parse_list(blacklist_strings,
-                               lambda path: os.path.join(self.algopack_path,
-                                                         path.strip()))
+                               lambda path: os.path.normpath(path))
         # Get config blacklist 
         config_blacklist = filter(
             bool,
             conf_parser.get("implementation", "blacklist").strip().split("\n")
         )
-        blacklist += parse_list(config_blacklist,
-                               lambda path: os.path.join(self.algopack_path,
-                                                         self.operation.name,
-                                                         path.strip()))
+        blacklist = parse_list(config_whitelist,
+                               lambda path: os.path.join(self.operation.name,
+                                                         os.path.normpath(path)))
 
         for i in blacklist:
-            s = xbxdb.scoped_session()
             impl = None
             path, hash, comment = i
 
@@ -553,7 +545,7 @@ class Config(Base):
         # Index dependencies
         dependencies = {}
         for i in self.libsupercop_impls:
-            dependencies[(i.operation_name, i.primitive_name)] = i
+            dependencies[(i.primitive.operation.name, i.primitive.name)] = i
 
         dependents = {}
         # Index possible dependents
@@ -565,7 +557,7 @@ class Config(Base):
             lsd = (impl_conf_parser.
                    get('ALL', 'libsupercop_dependents').strip().split("\n"))
             # Ignore empty entries
-            lsd = [i for i in lsd if i]
+            lsd = (i for i in lsd if i)
 
         except configparser.NoOptionError:
             pass
@@ -574,12 +566,13 @@ class Config(Base):
             path,_,i = i.partition(" ")
             deps = i.strip("[]").split(",")
             for j in deps:
-                key = j.strip().split(),
-                dependents[i].dependencies += dependencies[key]
-
-
-
-
+                key = tuple(j.strip().split())
+                dependent = None
+                dependency = dependencies[key]
+                try:
+                    dependents[os.path.normpath(path.strip())].dependencies += dependency,
+                except KeyError:
+                    pass
 
     def _enum_supercop_impls(self, conf_parser, impl_conf_parser):
 
