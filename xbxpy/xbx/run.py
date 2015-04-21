@@ -422,7 +422,7 @@ class RunSession(Base, xbxs.SessionMixin):
             # If not already run w/ a pass/fail, or if rerunning results is
             # enabled, then do run
             if be.test_ok == None or self.config.rerun:
-#                be.load_build()
+                be.load_build()
                 be.execute()
                 s.add(be)
                 s.commit()
