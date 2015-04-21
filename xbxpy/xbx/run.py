@@ -259,7 +259,13 @@ class BuildExec(Base):
     @xbhlib.attempt("xbh", tries=2, raise_err=True)
     def load_build(self):
         _logger.info("Loading build {} into XBD".format(self.build))
-        self.xbh.upload_prog(self.build.hex_path)
+
+        if not self.build.validate_hex_checksum():
+            raise RunValueError("Hex checksum for build invalid. Rerun build")
+
+        full_hex_path = os.path.join(self.run_session.config.work_path,
+                                     self.build.hex_path)
+        self.xbh.upload_prog(full_hex_path)
 
     @xbhlib.attempt("xbh")
     def execute(self):

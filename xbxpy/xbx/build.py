@@ -145,7 +145,6 @@ class Build(Base):
         self.operation      = self.primitive.operation
 
         self.work_path      = os.path.join(
-            config.work_path,
             config.platform.name,
             self.implementation.primitive.operation.name,
             self.implementation.primitive.name,
@@ -166,10 +165,18 @@ class Build(Base):
 
         self.rebuilt = False
 
+        if not self.platform.validate_hash(config.platforms_path):
+            raise ValueError("Platform hash failed to verify")
+        if not self.implementation.validate_hash(config.algopack_path):
+            raise ValueError("Implementation hash failed to verify")
+
     def get_buildjob(self):
         """Returns instance of BuildJob"""
+        config = self.build_session.config
+        full_work_path = os.path.join(config.work_path, self.work_path)
 
-        if os.path.isdir(self.work_path):
+
+        if os.path.isdir(full_work_path):
             self.rebuilt = True
             try:
                 os.remove(self.hex_path)
@@ -181,21 +188,27 @@ class Build(Base):
         self._gen_files()
 
         return BuildJob(
-                self.work_path, self.parallel_make,
-                {'buildid': self.buildid},
-                self.buildid, self.platform.name, self.hex_path
-                )
+            full_work_path, self.parallel_make,
+            {'buildid': self.buildid},
+            self.buildid, self.platform.name,
+            os.path.join(config.work_path, self.hex_path)
+        )
 
     def do_postbuild(self, job):
         """Extracts data from completed buildjob
 
         Also inspects post build environment for stats
         """
-        if os.path.isfile(self.hex_path):
-            size = os.path.join(self.platform.path, 'size')
+        config = self.build_session.config
+        full_hex_path = os.path.join(config.work_path, self.hex_path)
+        full_exe_path = os.path.join(config.work_path, self.exe_path)
+
+        if os.path.isfile(full_hex_path):
+            size = os.path.join(config.platforms_path,
+                                self.platform.path, 'size')
             total_env = self.env.copy()
             total_env.update(os.environ)
-            stdout = subprocess.check_output((size, self.exe_path),
+            stdout = subprocess.check_output((size, full_exe_path),
                     env=total_env)
             sizeout = stdout.decode().splitlines()[1]
             match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', sizeout)
@@ -204,7 +217,7 @@ class Build(Base):
             self.data = int(match.group(2))
             self.bss  = int(match.group(3))
 
-            self.hex_checksum = xbx.util.sha256_file(self.hex_path)
+            self.hex_checksum = xbx.util.sha256_file(full_hex_path)
 
         self.timestamp = job.timestamp
         self.log = job.log
@@ -222,10 +235,18 @@ class Build(Base):
 
     @property
     def env(self):
+        config = self.build_session.config
 
         # Set build environment variables
-        tmpl_path = self.platform.tmpl_path
+        tmpl_path = ''
+        if self.platform.tmpl_path:
+            tmpl_path = os.path.join(config.platforms_path, self.platform.tmpl_path)
         env = {
+            'templatePlatformDir': tmpl_path,
+            'HAL_PATH':            os.path.join(config.platforms_path,
+                                                self.platform.path,'hal'),
+            'HAL_T_PATH':          os.path.join(tmpl_path,
+                                                'hal') if tmpl_path else '',
             'templatePlatformDir': tmpl_path if tmpl_path else '',
             'HAL_PATH':            os.path.join(self.platform.path,'hal'),
             'HAL_T_PATH':          os.path.join(tmpl_path,'hal') if tmpl_path else '',
@@ -257,17 +278,20 @@ class Build(Base):
         operation = self.implementation.primitive.operation
         primitive = self.implementation.primitive
 
+        config = self.build_session.config
+        full_work_path = os.path.join(config.work_path, self.work_path)
+
         # Generate files 
         try:
-            os.makedirs(self.work_path)
+            os.makedirs(full_work_path)
         except OSError:
             pass
 
-        _gen_envfile(self.work_path, self.env)
+        _gen_envfile(full_work_path, self.env)
 
-        makefile = os.path.join(self.work_path, 'Makefile')
-        o_h = os.path.join(self.work_path, operation.name+".h")
-        op_h = os.path.join(self.work_path, 
+        makefile = os.path.join(full_work_path, 'Makefile')
+        o_h = os.path.join(full_work_path, operation.name+".h")
+        op_h = os.path.join(full_work_path,
                 operation.name + "_" + primitive.name+".h")
         if not os.path.isfile(makefile):
             self._genmake(makefile)
@@ -276,10 +300,11 @@ class Build(Base):
         if not os.path.isfile(op_h):
             self._gen_op_h(op_h, self.implementation)
 
-    @property
-    def valid_hex_checksum(self):
+    def validate_hex_checksum(self):
         """Verifies if checksum still valid"""
-        hash = dirchecksum(self.hex_path)
+        config = self.build_session.config
+        full_hex_path = os.path.join(config.work_path, self.hex_path)
+        hash = xbx.util.sha256_file(full_hex_path)
         return hash == self.hex_checksum
 
     def _genmake(self, filename):
@@ -293,7 +318,7 @@ class Build(Base):
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         macro_expand = []
-        o = primitive.operation.name 
+        o = primitive.operation.name
         op = o + '_'+primitive.name
 
         for m in primitive.operation.macro_names:
@@ -312,6 +337,7 @@ class Build(Base):
 
 
     def _gen_op_h(self, filename, implementation):
+        config = self.build_session.config
         import xbx.buildfiles as buildfiles
         #self.logger.debug("Generating "+filename+"...", extra=self.log_attr)
         operation = implementation.primitive.operation
@@ -319,7 +345,7 @@ class Build(Base):
 
         macro_expand = []
         prototype_expand = []
-        o = primitive.operation.name 
+        o = primitive.operation.name
         op = o + '_'+primitive.name
         opi = op + '_' + implementation.name
         api_h = None
@@ -331,9 +357,11 @@ class Build(Base):
         for pr in operation.prototypes:
             prototype_expand+=("extern int {}{};".format(opi, pr),)
 
-        with open(os.path.join(implementation.path, "api.h")) as f:
+        with open(os.path.join(config.algopack_path,
+                               implementation.path, "api.h")) as f:
             api_h = f.read()
-            api_h = re.sub(r"^#define .*("+'|'.join(map(re.escape, implementation.macros.keys()))+")", 
+            api_h = re.sub(r"^#define .*("+'|'.join(map(re.escape,
+                                                        implementation.macros.keys()))+")",
                            "#define "+opi+r"\1", api_h, flags=re.MULTILINE)
 
         subst_dict = {
@@ -355,10 +383,12 @@ class Build(Base):
         small_test_ok = None
         large_test_ok = None
 
-        if self.checksumsmall_result and self.checksumsmall_result == build.primitive.checksumsmall:
+        if (self.checksumsmall_result and
+                self.checksumsmall_result == build.primitive.checksumsmall):
             small_test_ok = True
 
-        if self.checksumlarge_result and self.checksumlarge_result == build.primitive.checksumlarge:
+        if (self.checksumlarge_result and
+                self.checksumlarge_result == build.primitive.checksumlarge):
             large_test_ok = True
 
         if small_test_ok == None and large_test_ok == None:
@@ -391,7 +421,9 @@ def build_hal(config, index):
             'HAL',
             str(index))
 
-    tmpl_path = config.platform.tmpl_path
+    tmpl_path = None
+    if config.platform.tmpl_path:
+        tmpl_path = os.path.join(config.platforms_path, config.platform.tmpl_path)
 
     try:
         os.makedirs(work_path)
@@ -408,7 +440,8 @@ def build_hal(config, index):
     env = ({
         'templatePlatformDir': tmpl_path if tmpl_path else '',
         'XBD_PATH': os.path.join(config.embedded_path,'xbd'),
-        'HAL_PATH': os.path.join(config.platform.path,'hal'),
+        'HAL_PATH': os.path.join(config.platforms_path,
+                                 config.platform.path,'hal'),
         'HAL_T_PATH': os.path.join(tmpl_path,'hal') if tmpl_path else ''})
 
     for k, v in env.items():
@@ -522,9 +555,6 @@ class BuildSession(Base, xbxs.SessionMixin):
                 break
 
         for j in self.config.implementations:
-            # Skip if hash is not current
-            if not j.valid_hash:
-                continue
             for i in range(num_compilers):
                 # Don't have to add to self.builds as Build sets
                 # BuildSession as parent, which inserts into

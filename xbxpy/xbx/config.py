@@ -36,7 +36,7 @@ class Platform(Base):
     name           = Column(String, nullable=False)
     clock_hz       = Column(Integer)
     pagesize       = Column(Integer)
-    path           = Column(String)
+    path           = Column(String) # Path relative to config.platforms_path
     tmpl_path      = Column(String)
 
     compilers = relationship(
@@ -47,40 +47,45 @@ class Platform(Base):
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
     )
-    @property
-    def valid_hash(self):
+    def validate_hash(self, platforms_path):
         """Verifies if hash still valid"""
-        hash = dirchecksum(self.path)
+        hash = dirchecksum(os.path.join(platforms_path, self.path))
         return hash == self.hash
 
     @classmethod
-    def from_path(cls, path):
+    def from_path(cls, name, platforms_path):
+        # TODO: Parse rest of settings.ini, eg memory available
+        full_path = os.path.join(platforms_path, name)
         config = configparser.ConfigParser()
-        config.read(os.path.join(path, "settings.ini"))
+        config.read(os.path.join(full_path, "settings.ini"))
         tmpl_path = None
         if config.has_option('platform_settings', 'templatePlatform'):
             tmpl_path = os.path.join(
-                    self.platforms_path,
+                    platforms_path,
                     config.get('platform_settings','templatePlatform'))
 
         clock_hz = config.getint('platform_settings','cyclespersecond')
         pagesize = config.getint('platform_settings','pagesize')
 
-        compilers = cls.__enum_compilers(path, tmpl_path)
+        compilers = cls.__enum_compilers(full_path, tmpl_path)
 
 
-        hash = dirchecksum(path)
+        hash = dirchecksum(full_path)
+        tmpl_rel_path = None
         if tmpl_path:
             h = hashlib.sha256()
             h.update(hash)
             h.update(dirchecksum(tmpl_path))
             hash = h.sha256()
+            if tmpl_path:
+                tmpl_rel_path = os.path.relpath(tmpl_path, platforms_path)
+
 
         return cls(
             hash=hash,
-            name=os.path.basename(os.path.normpath(path)),
-            path=path,
-            tmpl_path=tmpl_path,
+            name=name,
+            path=os.path.relpath(full_path, platforms_path),
+            tmpl_path=tmpl_rel_path,
             clock_hz=clock_hz,
             pagesize=pagesize,
             compilers=compilers
@@ -208,7 +213,7 @@ class Primitive(Base):
     operation_name = Column(String, nullable=False)
     checksumsmall  = Column(String)
     checksumbig    = Column(String)
-    path           = Column(String)
+    path           = Column(String)  #Path relative to algobase
 
     implementations = relationship(
         "Implementation",
@@ -242,7 +247,7 @@ class Implementation(Base):
     name           = Column(String, nullable=False)
     operation_name = Column(String, nullable=False)
     primitive_name = Column(String, nullable=False)
-    path           = Column(String)
+    path           = Column(String) #Path relative to algobase
     macros         = Column(JSONEncodedDict)
 
     dependencies   = relationship(
@@ -260,10 +265,9 @@ class Implementation(Base):
     )
 
 
-    @property
-    def valid_hash(self):
+    def validate_hash(self, platforms_path):
         """Verifies if hash still valid"""
-        hash = dirchecksum(self.path)
+        hash = dirchecksum(os.path.join(platforms_path, self.path))
         return hash == self.hash
 
 
@@ -372,9 +376,8 @@ class Config(Base):
 
 
         # Platform
-        self.platform = Platform.from_path(
-            os.path.join(self.platforms_path,
-                         config.get('hardware','platform')))
+        self.platform = Platform.from_path(config.get('hardware','platform'),
+                                           self.platforms_path)
 
         # Operation
         name                    = config.get('algorithm','operation')
@@ -659,7 +662,7 @@ def _enum_prim_impls(operation, primitive_names, algopack_path):
         p = Primitive(
                 operation=operation,
                 name=name,
-                path=path,
+                path=os.path.relpath(path, algopack_path),
                 checksumsmall=checksumsmall,
                 checksumbig=checksumbig
             )
@@ -668,18 +671,19 @@ def _enum_prim_impls(operation, primitive_names, algopack_path):
 
     for p in primitives:
         all_impls = {}
+        p_fpath = os.path.join(algopack_path, p.path)
 
         # Find all directories w/ api.h
-        walk =  os.walk(p.path)
-        for i in walk:
-            if "api.h" in i[2]:
-                path = os.path.relpath(i[0], p.path)
+        walk =  os.walk(p_fpath)
+        for dirpath, dirnames, filenames in walk:
+            if "api.h" in filenames:
+                path = os.path.relpath(dirpath, p_fpath)
                 name = path.translate(str.maketrans("./-","___"))
                 all_impls[name] = path
 
         for name in all_impls.keys():
             # Parse api.h and get macro values
-            path = os.path.join(p.path,all_impls[name])
+            path = os.path.join(p_fpath,all_impls[name])
             checksum = dirchecksum(path)
 
             api_h = None
@@ -709,7 +713,7 @@ def _enum_prim_impls(operation, primitive_names, algopack_path):
             implementations += Implementation(
                 hash=checksum,
                 name=name,
-                path=path,
+                path=os.path.relpath(path, algopack_path),
                 primitive=p,
                 macros=macros
             ),
@@ -725,6 +729,7 @@ def _enum_operation(name, filename):
             match = re.match(r'(\w+) ([:_\w]+) (.*)$', l)
             if match.group(1) == name:
                 return Operation(name=name, operation_str=l.strip())
+
 
 
 
