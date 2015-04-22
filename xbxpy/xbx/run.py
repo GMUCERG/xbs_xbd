@@ -275,6 +275,10 @@ class BuildExec(Base):
         num_end_tests = config.checksum_tests//2
         num_start_tests = config.checksum_tests-num_end_tests
         def test(num):
+            if not self.build.primitive.checksumsmall:
+                _logger.warn("No checksum for build {}".format(self.build))
+                return
+
             for i in range(num):
                 _logger.info("Testing build {}".format(self.build))
 
