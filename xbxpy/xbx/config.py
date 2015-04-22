@@ -233,9 +233,11 @@ class Primitive(Base):
 # Join table for libsupercop dependencies
 _impl_dep_join_table = Table('config_impl_dep_join', Base.metadata,
     Column('dependent_impl_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+           ForeignKey('implementation.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True),
     Column('dependency_impl_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False)
+           ForeignKey('implementation.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True)
 )
 
 @unique_constructor(scoped_session,
@@ -275,17 +277,21 @@ class Implementation(Base):
 _config_impl_join_table = Table(
     'config_implementation_join', Base.metadata,
     Column('implementation_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+           ForeignKey('implementation.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True),
     Column('config_hash', Integer,
-           ForeignKey('config.hash', ondelete="CASCADE"))
+           ForeignKey('config.hash', ondelete="CASCADE"), nullable=False,
+           primary_key=True)
 )
 
 _config_libsupercop_impl_join_table = Table(
     'config_libsupercop_impl_join', Base.metadata,
     Column('implementation_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"), nullable=False),
+           ForeignKey('implementation.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True),
     Column('config_hash', Integer,
-           ForeignKey('config.hash', ondelete="CASCADE"))
+           ForeignKey('config.hash', ondelete="CASCADE"), nullable=False,
+           primary_key=True)
 )
 
 
@@ -469,7 +475,6 @@ class Config(Base):
 
             self.implementations = impl_list
             self.whitelist = whitelist
-            s.flush()
             return
 
         blacklist = []
