@@ -267,7 +267,6 @@ class BuildExec(Base):
                                      self.build.hex_path)
         self.xbh.upload_prog(full_hex_path)
 
-    @xbhlib.attempt("xbh")
     def execute(self):
         del self.runs[:] # Delete existing runs for this build
         config = self.run_session.config
