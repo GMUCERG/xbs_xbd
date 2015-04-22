@@ -49,7 +49,7 @@ MEMORY {
   INFOB            : ORIGIN = 0x1900, LENGTH = 0x0080 /* END=0x197F, size 128 */
   INFOC            : ORIGIN = 0x1880, LENGTH = 0x0080 /* END=0x18FF, size 128 */
   INFOD            : ORIGIN = 0x1800, LENGTH = 0x0080 /* END=0x187F, size 128 */
-  ROM (rx)         : ORIGIN = 0x4400, LENGTH = 0xb000 /* END=0xF3FF, size 45056 */
+  ROM (rx)         : ORIGIN = 0x4400, LENGTH = 0xac00 /* END=0xF3FF, size 44032 */
   BSL              : ORIGIN = 0x1000, LENGTH = 0x0800
   USBRAM           : ORIGIN = 0x1C00, LENGTH = 0x0800
   HIROM (rx)       : ORIGIN = 0x00010000, LENGTH = 0x000143FF
