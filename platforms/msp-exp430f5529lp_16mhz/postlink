@@ -21,13 +21,14 @@ config = configparser.ConfigParser()
 config.read(CONF_FILE)
 
 if os.path.isfile(BINFILE):
-    # Fix binary so that rodata is actually marked READONLY, so size counts it
-    # as part of .text
-    cmd = [OBJCOPY,
-           '--set-section-flags', '.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
-           '--set-section-flags', '.upper.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
-           'xbdprog.bin']
-    subprocess.call(cmd)
+# Unneeded as we do this directly in linker script
+#    # Fix binary so that rodata is actually marked READONLY, so size counts it
+#    # as part of .text
+#    cmd = [OBJCOPY,
+#           '--set-section-flags', '.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
+#           '--set-section-flags', '.upper.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
+#           'xbdprog.bin']
+#    subprocess.call(cmd)
 
     cmd = [SIZE, BINFILE]
     stdout = subprocess.check_output(cmd).decode()

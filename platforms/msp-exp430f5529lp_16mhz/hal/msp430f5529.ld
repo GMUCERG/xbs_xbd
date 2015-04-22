@@ -47,10 +47,10 @@ MEMORY {
   INFOB            : ORIGIN = 0x1900, LENGTH = 0x0080 /* END=0x197F, size 128 */
   INFOC            : ORIGIN = 0x1880, LENGTH = 0x0080 /* END=0x18FF, size 128 */
   INFOD            : ORIGIN = 0x1800, LENGTH = 0x0080 /* END=0x187F, size 128 */
-  ROM (rx)         : ORIGIN = 0x4400, LENGTH = 0xac00 /* END=0xF3FF, size 44032 */
+  ROM (rx)       : ORIGIN = 0x4400, LENGTH = 0xac00 /* END=0xF3FF, size 44032 */
   BSL              : ORIGIN = 0x1000, LENGTH = 0x0800
   USBRAM           : ORIGIN = 0x1C00, LENGTH = 0x0800
-  HIROM (rx)       : ORIGIN = 0x00010000, LENGTH = 0x000143FF
+  HIROM (rx)     : ORIGIN = 0x00010000, LENGTH = 0x000143FF
 }
 
 SECTIONS
@@ -61,6 +61,7 @@ SECTIONS
     PROVIDE (_start = .);
     . = ALIGN(2);
     KEEP (*(SORT(.crt_*)))
+    . = ALIGN(2);
     KEEP (*(.lowtext))
   } > ROM
 
@@ -72,23 +73,44 @@ SECTIONS
     *(.lower.rodata.* .lower.rodata)
     . = ALIGN(2);
     *(.rodata .rodata.* .gnu.linkonce.r.* .const .const:*)
+    . = ALIGN(2);
     *(.rodata1)
 
+  } > ROM
+
+  .cxx_rt :
+  {
+    . = ALIGN(2);
     *(.eh_frame_hdr)
+    . = ALIGN(2);
     KEEP (*(.eh_frame))
+    . = ALIGN(2);
     KEEP (*(.gcc_except_table)) *(.gcc_except_table.*)
+    . = ALIGN(2);
     PROVIDE (__preinit_array_start = .);
+    . = ALIGN(2);
     KEEP (*(.preinit_array))
+    . = ALIGN(2);
     PROVIDE (__preinit_array_end = .);
+    . = ALIGN(2);
     PROVIDE (__init_array_start = .);
+    . = ALIGN(2);
     KEEP (*(SORT(.init_array.*)))
+    . = ALIGN(2);
     KEEP (*(.init_array))
+    . = ALIGN(2);
     PROVIDE (__init_array_end = .);
+    . = ALIGN(2);
     PROVIDE (__fini_array_start = .);
+    . = ALIGN(2);
     KEEP (*(.fini_array))
+    . = ALIGN(2);
     KEEP (*(SORT(.fini_array.*)))
+    . = ALIGN(2);
     PROVIDE (__fini_array_end = .);
+    . = ALIGN(2);
     LONG(0); /* Sentinel.  */
+    . = ALIGN(2);
 
     /* gcc uses crtbegin.o to find the start of the constructors, so
        we make sure it is first.  Because this is a wildcard, it
@@ -97,23 +119,31 @@ SECTIONS
        wildcard.  The wildcard also means that it doesn't matter which
        directory crtbegin.o is in.  */
     KEEP (*crtbegin*.o(.ctors))
+    . = ALIGN(2);
 
     /* We don't want to include the .ctor section from from the
        crtend.o file until after the sorted ctors.  The .ctor section
        from the crtend file contains the end of ctors marker and it
        must be last */
     KEEP (*(EXCLUDE_FILE (*crtend*.o ) .ctors))
+    . = ALIGN(2);
     KEEP (*(SORT(.ctors.*)))
+    . = ALIGN(2);
     KEEP (*(.ctors))
+    . = ALIGN(2);
 
     KEEP (*crtbegin*.o(.dtors))
+    . = ALIGN(2);
     KEEP (*(EXCLUDE_FILE (*crtend*.o ) .dtors))
+    . = ALIGN(2);
     KEEP (*(SORT(.dtors.*)))
+    . = ALIGN(2);
     KEEP (*(.dtors))
   } > ROM
 
   .upper.rodata :
   {
+    . = ALIGN(2);
     *(.upper.rodata.* .upper.rodata)
   } > HIROM
 
@@ -128,15 +158,22 @@ SECTIONS
 
     . = ALIGN(2);
     KEEP (*(.jcr))
+    . = ALIGN(2);
     *(.data.rel.ro.local) *(.data.rel.ro*)
+    . = ALIGN(2);
     *(.dynamic)
 
     . = ALIGN(2);
     *(.data .data.* .gnu.linkonce.d.*)
+    . = ALIGN(2);
     KEEP (*(.gnu.linkonce.d.*personality*))
+    . = ALIGN(2);
     SORT(CONSTRUCTORS)
+    . = ALIGN(2);
     *(.data1)
+    . = ALIGN(2);
     *(.got.plt) *(.got)
+    . = ALIGN(2);
 
     /* We want the small data sections together, so single-instruction offsets
        can access them all, and initialized data all before uninitialized, so
@@ -162,8 +199,11 @@ SECTIONS
     *(.lower.bss.* .lower.bss)
     . = ALIGN(2);
     *(.either.bss.* .either.bss)
+    . = ALIGN(2);
     *(.dynbss)
+    . = ALIGN(2);
     *(.sbss .sbss.*)
+    . = ALIGN(2);
     *(.bss .bss.* .gnu.linkonce.b.*)
     . = ALIGN(2);
     *(COMMON)
