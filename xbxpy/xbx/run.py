@@ -395,13 +395,14 @@ class RunSession(Base, xbxs.SessionMixin):
 
     @xbhlib.attempt("xbh", raise_err=True)
     def do_drift_measurement(self):
+        _logger.info("Doing drift measurement...")
         for i in range(self.config.drift_measurements):
             (abs_error,
              rel_error,
              cycles,
              measured_cycles) = self.xbh.measure_timing_error()
 
-            logger.debug(("Abs Error: {}, Rel Error: {}, Cycles: {}, "
+            _logger.info(("Abs Error: {}, Rel Error: {}, Cycles: {}, "
                           "Measured Cycles: {}").format(abs_error,
                                                        rel_error,
                                                        cycles,
