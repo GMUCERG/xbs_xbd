@@ -3,6 +3,7 @@ import logging
 import socket
 import sys
 import binascii
+import os
 from datetime import datetime
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
