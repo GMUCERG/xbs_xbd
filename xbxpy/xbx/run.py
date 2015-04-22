@@ -163,7 +163,6 @@ class TestRun(Run):
 
     id = Column(Integer, nullable=False)
     checksumsmall_result = Column(String)
-    checksumlarge_result = Column(String)
     checksumfail_cause   = Column(String)
     test_ok              = Column(Boolean)
 
