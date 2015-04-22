@@ -4,6 +4,7 @@ sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
 gccOpts="-pipe -fomit-frame-pointer -std=gnu99 -Dgcc"
 posOpts="" 
 mcuOpts="-mmcu=msp430f5529"
+debugOpts="-ggdb3"
 #debugOpts="-DXBX_DEBUG_APP -Og -ggdb3 -gdwarf-2 -fno-lto -no-fomit-frame-pointer"
 
 
