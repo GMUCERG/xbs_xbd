@@ -98,8 +98,7 @@ class Build(Base):
     hex_checksum         = Column(String)
 
     rebuilt              = Column(Boolean)
-
-    test_ok              = Column(Boolean)
+    build_ok             = Column(Boolean)
 
     log                  = Column(Text)
 
@@ -175,12 +174,14 @@ class Build(Base):
         config = self.build_session.config
         full_work_path = os.path.join(config.work_path, self.work_path)
 
+        full_hex_path = os.path.join(config.work_path, self.hex_path)
+        full_exe_path = os.path.join(config.work_path, self.exe_path)
 
         if os.path.isdir(full_work_path):
             self.rebuilt = True
             try:
-                os.remove(self.hex_path)
-                os.remove(self.exe_path)
+                os.remove(full_hex_path)
+                os.remove(full_exe_path)
             except FileNotFoundError:
                 pass
 
@@ -191,7 +192,7 @@ class Build(Base):
             full_work_path, self.parallel_make,
             {'buildid': self.buildid},
             self.buildid, self.platform.name,
-            os.path.join(config.work_path, self.hex_path)
+            full_hex_path
         )
 
     def do_postbuild(self, job):
@@ -199,6 +200,7 @@ class Build(Base):
 
         Also inspects post build environment for stats
         """
+        self.build_ok = False
         config = self.build_session.config
         full_hex_path = os.path.join(config.work_path, self.hex_path)
         full_exe_path = os.path.join(config.work_path, self.exe_path)
@@ -217,7 +219,9 @@ class Build(Base):
             self.data = int(match.group(2))
             self.bss  = int(match.group(3))
 
-            self.hex_checksum = xbx.util.sha256_file(full_hex_path)
+            if os.path.isfile(full_hex_path):
+                self.hex_checksum = xbx.util.sha256_file(full_hex_path)
+                self.build_ok = True
 
         self.timestamp = job.timestamp
         self.log = job.log
@@ -391,25 +395,6 @@ class Build(Base):
         with open(filename, 'w') as f:
             f.write(string.Template(buildfiles.OP_H).substitute(subst_dict))
 
-    @property
-    def test_ok(self):
-        small_test_ok = None
-        large_test_ok = None
-
-        if (self.checksumsmall_result and
-                self.checksumsmall_result == build.primitive.checksumsmall):
-            small_test_ok = True
-
-        if (self.checksumlarge_result and
-                self.checksumlarge_result == build.primitive.checksumlarge):
-            large_test_ok = True
-
-        if small_test_ok == None and large_test_ok == None:
-            return None
-        elif small_test_ok != False and large_test_ok != False:
-            return True
-        else:
-            return False
 
 
     def __repr__(self):
