@@ -648,15 +648,18 @@ def _enum_prim_impls(operation, primitive_names, algopack_path):
             checksumsmall = ""
             with open(checksumfile) as f:
                 checksumsmall = f.readline().strip()
+        except FileNotFoundError:
+            _logger.warn(("Checksumsmall file not found for "
+                           "{}/{}").format(operation.name,name))
 
+        try:
             checksumfile = os.path.join(path, "checksumbig")
             checksumbig= ""
             with open(checksumfile) as f:
                 checksumbig = f.readline().strip()
         except FileNotFoundError:
-            _logger.error(("Checksum(big|small) files not found for "
+            _logger.warn(("Checksumbig file not found for "
                            "{}/{}").format(operation.name,name))
-            continue
 
         p = Primitive(
                 operation=operation,
