@@ -34,8 +34,6 @@
 /* Version: 1.159 */
 /* Default linker script, for normal executables */
 
-/* Modified for building executables loaded through XBX bootloader */
-
 OUTPUT_ARCH(msp430)
 ENTRY(_start)
 
@@ -66,7 +64,58 @@ SECTIONS
     KEEP (*(.lowtext))
   } > ROM
 
+  .rodata :
+  {
+    . = ALIGN(2);
+    *(.plt)
+    . = ALIGN(2);
+    *(.lower.rodata.* .lower.rodata)
+    . = ALIGN(2);
+    *(.rodata .rodata.* .gnu.linkonce.r.* .const .const:*)
+    *(.rodata1)
 
+    *(.eh_frame_hdr)
+    KEEP (*(.eh_frame))
+    KEEP (*(.gcc_except_table)) *(.gcc_except_table.*)
+    PROVIDE (__preinit_array_start = .);
+    KEEP (*(.preinit_array))
+    PROVIDE (__preinit_array_end = .);
+    PROVIDE (__init_array_start = .);
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array))
+    PROVIDE (__init_array_end = .);
+    PROVIDE (__fini_array_start = .);
+    KEEP (*(.fini_array))
+    KEEP (*(SORT(.fini_array.*)))
+    PROVIDE (__fini_array_end = .);
+    LONG(0); /* Sentinel.  */
+
+    /* gcc uses crtbegin.o to find the start of the constructors, so
+       we make sure it is first.  Because this is a wildcard, it
+       doesn't matter if the user does not actually link against
+       crtbegin.o; the linker won't look for a file to match a
+       wildcard.  The wildcard also means that it doesn't matter which
+       directory crtbegin.o is in.  */
+    KEEP (*crtbegin*.o(.ctors))
+
+    /* We don't want to include the .ctor section from from the
+       crtend.o file until after the sorted ctors.  The .ctor section
+       from the crtend file contains the end of ctors marker and it
+       must be last */
+    KEEP (*(EXCLUDE_FILE (*crtend*.o ) .ctors))
+    KEEP (*(SORT(.ctors.*)))
+    KEEP (*(.ctors))
+
+    KEEP (*crtbegin*.o(.dtors))
+    KEEP (*(EXCLUDE_FILE (*crtend*.o ) .dtors))
+    KEEP (*(SORT(.dtors.*)))
+    KEEP (*(.dtors))
+  } > ROM
+
+  .upper.rodata :
+  {
+    *(.upper.rodata.* .upper.rodata)
+  } > HIROM
 
   .data :
   {
@@ -161,60 +210,12 @@ SECTIONS
     KEEP (*(.init))
     KEEP (*(.fini))
     KEEP (*(.tm_clone_table))
-
-
-    . = ALIGN(2);
-    *(.plt)
-    . = ALIGN(2);
-    *(.lower.rodata.* .lower.rodata)
-    . = ALIGN(2);
-    *(.rodata .rodata.* .gnu.linkonce.r.* .const .const:*)
-    *(.rodata1)
-
-    *(.eh_frame_hdr)
-    KEEP (*(.eh_frame))
-    KEEP (*(.gcc_except_table)) *(.gcc_except_table.*)
-    PROVIDE (__preinit_array_start = .);
-    KEEP (*(.preinit_array))
-    PROVIDE (__preinit_array_end = .);
-    PROVIDE (__init_array_start = .);
-    KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array))
-    PROVIDE (__init_array_end = .);
-    PROVIDE (__fini_array_start = .);
-    KEEP (*(.fini_array))
-    KEEP (*(SORT(.fini_array.*)))
-    PROVIDE (__fini_array_end = .);
-    LONG(0); /* Sentinel.  */
-
-    /* gcc uses crtbegin.o to find the start of the constructors, so
-       we make sure it is first.  Because this is a wildcard, it
-       doesn't matter if the user does not actually link against
-       crtbegin.o; the linker won't look for a file to match a
-       wildcard.  The wildcard also means that it doesn't matter which
-       directory crtbegin.o is in.  */
-    KEEP (*crtbegin*.o(.ctors))
-
-    /* We don't want to include the .ctor section from from the
-       crtend.o file until after the sorted ctors.  The .ctor section
-       from the crtend file contains the end of ctors marker and it
-       must be last */
-    KEEP (*(EXCLUDE_FILE (*crtend*.o ) .ctors))
-    KEEP (*(SORT(.ctors.*)))
-    KEEP (*(.ctors))
-
-    KEEP (*crtbegin*.o(.dtors))
-    KEEP (*(EXCLUDE_FILE (*crtend*.o ) .dtors))
-    KEEP (*(SORT(.dtors.*)))
-    KEEP (*(.dtors))
-
   } > ROM
 
   .upper.text :
   {
     . = ALIGN(2);
     *(.upper.text.* .upper.text)
-    *(.upper.rodata.* .upper.rodata)
   } > HIROM
 
   .infoA     : {} > INFOA              /* MSP430 INFO FLASH MEMORY SEGMENTS */
