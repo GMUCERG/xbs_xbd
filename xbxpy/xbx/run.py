@@ -279,7 +279,9 @@ class BuildExec(Base):
         def test(num):
             for i in range(num):
                 _logger.info("Testing build {}".format(self.build))
-                t = TestRun.run(self)
+
+                runner = xbhlib.attempt(self.xbh)(TestRun.run)
+                t = runner(self)
                 if not t.test_ok:
                     raise XbdResultFailError("Build " + str(self.build) +
                                                " fails checksum tests")
@@ -291,7 +293,8 @@ class BuildExec(Base):
 
             for i in range(config.exec_runs):
                 for p in self.run_session.config.operation_params:
-                    self.RunType.run(self, p)
+                    runner = xbhlib.attempt(self.xbh)(self.RunType.run)
+                    runner(self, p)
 
             # Test for remaining specified runs after running benchmarks to see
             # if results still valid to check if not corrupted
