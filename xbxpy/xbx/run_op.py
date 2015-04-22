@@ -151,6 +151,8 @@ class CryptoAeadRun(xbxr.Run):
                      "associated data length {}".
                      format(build_exec.build, params[0], params[1]))
 
+        primitive = build_exec.build.primitive;
+
 
         enc_run = cls(build_exec, plaintext_len=params[0],
                       assoc_data_len=params[1], mode=CryptoAeadRun.ENCRYPT)
@@ -197,8 +199,9 @@ class CryptoAeadRun(xbxr.Run):
              dec_output[struct.calcsize(fmt):]
          )
 
-        if (decrypted_plaintext != plaintext or
-                decrypted_secret_num != secret_num):
+        if ((decrypted_plaintext != plaintext or
+             decrypted_secret_num != secret_num) and
+                primitive.name != '0cipher'):
             raise xbxr.XbdResultFailError(
                 "Decrypted plaintext does not match CipherText")
 
@@ -214,11 +217,9 @@ class CryptoAeadRun(xbxr.Run):
 
         retval,_ = dec_forged_run._execute(forged_data)
 
-        if retval != -1:
+        if retval != -1 and primitive.name != '0cipher':
             raise xbxr.XbdResultFailError(
                 "Message forgery not detected")
-
-
 
         return enc_run, dec_run, dec_forged_run
 
