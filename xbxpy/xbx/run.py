@@ -418,7 +418,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
 
     def runall(self):
-        for b in self.build_session.builds:
+        for b in (i for i in self.build_session.builds if i.build_ok):
             s = xbxdb.scoped_session()
             be = BuildExec(self,b)
 
