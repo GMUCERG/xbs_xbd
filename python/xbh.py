@@ -81,6 +81,8 @@ class attempt:
         tries = self.tries
         raise_err = self.raise_err
 
+        caught_errors = (XbdFailError, HardwareError)
+
         if isinstance(xbh_var,str):
 
             def func_wrapper(self, *args, **kwargs):
@@ -89,7 +91,7 @@ class attempt:
                 for t in range(tries):
                     try:
                         return func(self, *args, **kwargs)
-                    except Error as e:
+                    except caught_errors as e:
                         time.sleep(0.5)
                         try:
                             xbh.reconnect()
@@ -109,7 +111,7 @@ class attempt:
                 for t in range(tries):
                     try:
                         return func(*args, **kwargs)
-                    except Error as e:
+                    except caught_errors as e:
                         time.sleep(0.5)
                         try:
                             xbh.reconnect()
