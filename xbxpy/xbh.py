@@ -486,9 +486,10 @@ class Xbh:
 
     def measure_timing_error(self):
         cycles = self.get_timing_cal()
+        timings = self._get_timings()
         if cycles == 0:
             raise xbh.ValueError("Cycle count 0!")
-        measured_cycles = self.get_measured_cycles()
+        measured_cycles = self.get_measured_cycles(timings)
         if measured_cycles == 0:
             raise xbh.ValueError("Measured cycle count 0!")
         abs_error = measured_cycles - cycles
