@@ -55,3 +55,8 @@ tuple (optionally hash)
 
 
 Use global blacklist to block implementations using malloc
+
+document how to fill out libsupercop deps
+for i in $(grep -rl '\(crypto_core\|crypto_verify\)' |xargs dirname); do echo $i $(../../dirchecksum $i); done
+
+0cipher is no-op- test harness has to ignore output
