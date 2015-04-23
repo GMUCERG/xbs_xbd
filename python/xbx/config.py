@@ -24,7 +24,7 @@ import xbx.util
 
 _logger=logging.getLogger(__name__)
 
-DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "config.ini")
+DEFAULT_CONF = os.path.join(os.path.dirname(__file__), "default_config.ini")
 
 @unique_constructor(scoped_session,
         lambda **kwargs: kwargs['hash'],

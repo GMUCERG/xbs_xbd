@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 
-import logging.config
 import sys
+sys.path.append('./python')
+
+import logging.config
 import multiprocessing as mp
 import os
 
