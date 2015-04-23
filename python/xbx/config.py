@@ -254,6 +254,7 @@ class Implementation(Base):
 
     dependencies   = relationship(
         "Implementation", backref="dependents",
+        collection_class=set,
         secondary=_impl_dep_join_table,
         primaryjoin=(_impl_dep_join_table.c.dependent_impl_hash == hash),
         secondaryjoin=(_impl_dep_join_table.c.dependency_impl_hash == hash)
@@ -579,7 +580,7 @@ class Config(Base):
 
                 for j in deps:
                     key = tuple(j.strip().split())
-                    dependent.dependencies += dependencies[key],
+                    dependent.dependencies.add(dependencies[key]),
 
     def _enum_supercop_impls(self, conf_parser, impl_conf_parser):
 
