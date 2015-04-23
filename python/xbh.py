@@ -373,7 +373,7 @@ class Xbh:
         msg = self._xbh_response()
         msg = msg.decode().split(',')
         rev = msg[0]
-        mac = msg[1]
+        mac = msg[1].strip('\0')
 
         return rev, mac
 
