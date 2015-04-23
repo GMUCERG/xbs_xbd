@@ -738,6 +738,8 @@ def _enum_operation(name, filename):
 
 config_hash_cache = {}
 
+# Hash all inputs that justify regenerating config
+# Config entry in database is keyed to this hash
 def hash_config(config_path):
     config_hash = xbx.util.sha256_file(config_path)
 
@@ -753,6 +755,7 @@ def hash_config(config_path):
         config_path,
         config.get('paths','operations'),
         config.get('paths','impl_conf'),
+        os.path.realpath(__file__)    # We hash this file so that edits here trigger a reparse
     )
 
     dir_paths = (
