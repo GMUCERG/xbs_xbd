@@ -18,13 +18,12 @@ Base = declarative_base()
 
 # Override __repr__ for all SqlAlchemy objects
 def _base__repr__(self):
-    import collections
+    import pprint
     obj = vars(self)
     output = {}
     for i in self.__mapper__.columns.keys():
         output[i]=obj[i]
-    return '({},{})'.format(str(output),
-                            str(self.__mapper__.relationships.keys()))
+    return pprint.saferepr((output, self.__mapper__.relationships.keys()))
 
 Base.__repr__ = _base__repr__
 
