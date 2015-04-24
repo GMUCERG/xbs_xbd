@@ -375,6 +375,7 @@ class RunSession(Base, xbxs.SessionMixin):
 
     def init_xbh(self):
         c = self.config
+        s = xbxdb.scoped_session()
         try:
             self.xbh = xbhlib.Xbh(
                 c.xbh_addr, c.xbh_port,
@@ -392,6 +393,8 @@ class RunSession(Base, xbxs.SessionMixin):
         if not self.drift_measurements:
             self.do_drift_measurement()
 
+        s.add(self)
+        s.commit()
         # Initialize xbh attribute on all build_execs and build_exec.runs if items loaded
         # from db
         for be in self.build_execs:
