@@ -22,7 +22,10 @@ def _base__repr__(self):
     obj = vars(self)
     output = {}
     for i in self.__mapper__.columns.keys():
-        output[i]=obj[i]
+        try:
+            output[i]=obj[i]
+        except KeyError:
+            pass
     return pprint.saferepr((output, self.__mapper__.relationships.keys()))
 
 Base.__repr__ = _base__repr__
