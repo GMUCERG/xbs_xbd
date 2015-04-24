@@ -16,6 +16,18 @@ _logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
+# Override __repr__ for all SqlAlchemy objects
+def _base__repr__(self):
+    obj = vars(self)
+    output = {}
+    for i in self.__mapper__.columns.keys():
+        output[i]=obj[i]
+    return '({},{})'.format(str(output),
+                            str(self.__mapper__.relationships.keys()))
+
+Base.__repr__ = _base__repr__
+
+
 from sqlalchemy.orm import scoped_session as ss, sessionmaker as sm
 scoped_session = ss(sm())
 def init(data_path):
