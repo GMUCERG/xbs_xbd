@@ -46,7 +46,7 @@ class CryptoHashRun(xbxr.Run):
         """Factory method that generates run instances and attaches them to
         build_exec. Call this instead of constructor"""
         _logger.info("Running benchmark on {} with msg length {}".
-                     format(build_exec.build, params[0]))
+                     format(build_exec.build.buildid, params[0]))
         run = cls(build_exec, msg_len=params[0])
         run._execute(run._assemble_params())
         return run
@@ -149,7 +149,7 @@ class CryptoAeadRun(xbxr.Run):
         """
         _logger.info("Running benchmark on {} with plaintext length {} and "
                      "associated data length {}".
-                     format(build_exec.build, params[0], params[1]))
+                     format(build_exec.build.buildid, params[0], params[1]))
 
         primitive = build_exec.build.primitive;
 
