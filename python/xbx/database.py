@@ -20,8 +20,8 @@ Base = declarative_base()
 def _base__repr__(self):
     import collections
     obj = vars(self)
-    output = collections.OrderedDict()
-    for i in self.__mapper__.columns.keys().sort():
+    output = {}
+    for i in self.__mapper__.columns.keys():
         output[i]=obj[i]
     return '({},{})'.format(str(output),
                             str(self.__mapper__.relationships.keys()))
