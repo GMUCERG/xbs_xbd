@@ -18,9 +18,10 @@ Base = declarative_base()
 
 # Override __repr__ for all SqlAlchemy objects
 def _base__repr__(self):
+    import collections
     obj = vars(self)
-    output = {}
-    for i in self.__mapper__.columns.keys():
+    output = collections.OrderedDict()
+    for i in self.__mapper__.columns.keys().sort():
         output[i]=obj[i]
     return '({},{})'.format(str(output),
                             str(self.__mapper__.relationships.keys()))
