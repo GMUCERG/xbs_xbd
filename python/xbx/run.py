@@ -175,6 +175,7 @@ class TestRun(Run):
         ForeignKeyConstraint(["id"], ["run.id"]))
 
     def _execute(self, packed_params=None):
+        self.test_ok = False
         xbh = self.build_exec.run_session.xbh
         results = None
         timings = None
@@ -197,8 +198,6 @@ class TestRun(Run):
         elif (self.checksumsmall_result ==
               self.build_exec.build.primitive.checksumsmall):
             self.test_ok = True
-        else:
-            self.test_ok = False
 
 
 
@@ -282,7 +281,7 @@ class BuildExec(Base):
             for i in range(num):
                 _logger.info("Testing build {}".format(self.build))
 
-                runner = xbhlib.attempt(self.xbh)(TestRun.run)
+                runner = TestRun.run)
                 t = runner(self)
                 if not t.test_ok:
                     raise XbdResultFailError("Build " + str(self.build) +
