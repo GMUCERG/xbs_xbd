@@ -299,9 +299,8 @@ _config_libsupercop_impl_join_table = Table(
 @unique_constructor(
     scoped_session,
     lambda config_path, **kwargs: hash_config(config_path),
-    lambda query, config_path, **kwargs: query.filter(
-        Config.hash == hash_config(config_path)
-    )
+    lambda query, path, **kwargs: query.filter(
+        Config.hash == hash_config(path))
 )
 class Config(Base):
     """Configuration for running benchmarks on a single operation on a single platform"""
@@ -755,7 +754,7 @@ def hash_config(config_path):
         config_path,
         config.get('paths','operations'),
         config.get('paths','impl_conf'),
-        os.path.realpath(__file__)    # We hash this file so that edits here trigger a reparse
+#        os.path.realpath(__file__)    # We hash this file so that edits here trigger a reparse
     )
 
     dir_paths = (
