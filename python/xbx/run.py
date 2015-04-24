@@ -388,7 +388,8 @@ class RunSession(Base, xbxs.SessionMixin):
 
         self.xbh_rev,self.xbh_mac = self.xbh.get_xbh_rev()
 
-        self.do_drift_measurement()
+        if not self.drift_measurements:
+            self.do_drift_measurement()
 
         # Initialize xbh attribute on all build_execs and build_exec.runs if items loaded
         # from db
