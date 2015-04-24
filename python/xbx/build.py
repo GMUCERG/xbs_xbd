@@ -396,13 +396,6 @@ class Build(Base):
             f.write(string.Template(buildfiles.OP_H).substitute(subst_dict))
 
 
-
-    def __repr__(self):
-        return self.buildid
-
-    def __lt__(self, other):
-        return self.buildid < other.buildid
-
 # Support fxns
 def build_hal(config, index):
     """Builds HAL for given compiler index"""
