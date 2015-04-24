@@ -281,7 +281,7 @@ class BuildExec(Base):
             for i in range(num):
                 _logger.info("Testing build {}".format(self.build))
 
-                runner = TestRun.run)
+                runner = xbhlib.attempt(self.xbh)(TestRun.run)
                 t = runner(self)
                 if not t.test_ok:
                     raise XbdResultFailError("Build " + str(self.build) +
