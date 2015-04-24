@@ -206,7 +206,7 @@ class TestRun(Run):
         """Factory method that generates run instances and attaches them to
         buildexec. Call this instead of constructor"""
         _logger.info("Running tests on {}".
-                     format(build_exec.build))
+                     format(build_exec.build.buildid))
         run = cls(build_exec)
         run._execute()
         return run
