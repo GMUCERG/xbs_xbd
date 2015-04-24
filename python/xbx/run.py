@@ -257,7 +257,8 @@ class BuildExec(Base):
 
     @xbhlib.attempt("xbh", tries=2, raise_err=True)
     def load_build(self):
-        _logger.info("Loading build {} into XBD".format(self.build))
+        _logger.info("Loading build {} into XBD".
+                     format(self.build.buildid))
 
         if not self.build.validate_hex_checksum():
             raise RunValueError("Hex checksum for build invalid. Rerun build")
@@ -275,20 +276,20 @@ class BuildExec(Base):
         num_start_tests = config.checksum_tests-num_end_tests
         def test(num):
             if not self.build.primitive.checksumsmall:
-                _logger.warn("No checksum for build {}".format(self.build))
+                _logger.warn("No checksum for build {}".format(self.build.buildid))
                 return
 
             for i in range(num):
-                _logger.info("Testing build {}".format(self.build))
+                _logger.info("Testing build {}".format(self.build.buildid))
 
                 runner = xbhlib.attempt(self.xbh)(TestRun.run)
                 t = runner(self)
                 if not t.test_ok:
-                    raise XbdResultFailError("Build " + str(self.build) +
+                    raise XbdResultFailError("Build " + str(self.build.buildid) +
                                                " fails checksum tests")
 
         try:
-            _logger.info("Running benchmarks for {}".format(self.build))
+            _logger.info("Running benchmarks for {}".format(self.build.buildid))
             # Test for half specified runs before running benchmarks
             test(num_start_tests)
 
