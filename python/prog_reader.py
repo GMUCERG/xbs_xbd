@@ -34,13 +34,14 @@ class ProgramReader:
             self.areas[last_area_addr] = bytearray()
 
             for addr, data in hexfile.areas.items():
-                hole_size = (addr - last_addr) - 1
+                hole_size = (addr - last_addr)
                 # Test for hole
                 if hole_size > 0:
                     # if page size specified AND empty page exists in between
                     # we make a new area
                     if (page_size != None and
                             (addr_mask & addr) - (addr_mask & last_addr) > 1):
+                        raise Error("Make sure this actually works")
                         last_area_addr = addr
                         self.areas[last_area_addr] = bytearray()
                     #Otherwise, zero fill hole
