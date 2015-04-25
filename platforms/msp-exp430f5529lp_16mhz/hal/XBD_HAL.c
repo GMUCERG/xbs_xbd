@@ -166,10 +166,9 @@ void XBD_switchToApplication() {
 
 
 void XBD_switchToBootLoader() {
-    /* execute the code in the binary buffer */
-    // pointer called reboot that points to the reset vector
-    void (*reboot)( void ) = (void*)(FLASH_ADDR_MAX+1); // defines the function reboot to location 0xe000
-    reboot();	// calls function reboot function, did not need to change unless change location to 0x1000, at flash info memory
+    WDTCTL = 0;     //Write invalid key to trigger soft reset
+                    //XXX Be aware soft reset does not reset register values, thus
+                    //code must initialize registers before use.
 }
 
 #pragma GCC diagnostic push
@@ -253,7 +252,6 @@ void XBD_stopWatchDog()
 __attribute__((__interrupt__(PORT2_VECTOR))) void soft_reset(void){
     uint8_t timer;
     P2IFG &= ~BIT7; //Clear IFG for pin 2.0
-    for(timer=0; timer < 12; timer++);
     if(!(P2IN&BIT7)){
         WDTCTL = 0;     //Write invalid key to trigger soft reset
                         //XXX Be aware soft reset does not reset register values, thus
