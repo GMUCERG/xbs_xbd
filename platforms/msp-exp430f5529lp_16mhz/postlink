@@ -12,17 +12,27 @@ OBJCOPY="msp430-elf-objcopy"
 
 app_path = os.path.dirname(__file__)
 
-conf_file = os.path.join(app_path, 'settings.ini')
-size = os.path.join(app_path, 'size')
+CONF_FILE = os.path.join(app_path, 'settings.ini')
+SIZE = os.path.join(app_path, 'size')
+OBJCOPY = 'msp430-elf-objcopy'
 
 
 config = configparser.ConfigParser()
-config.read(conf_file)
+config.read(CONF_FILE)
 
 if os.path.isfile(BINFILE):
-    cmd = [size, BINFILE]
+# Unneeded as we do this directly in linker script
+#    # Fix binary so that rodata is actually marked READONLY, so size counts it
+#    # as part of .text
+#    cmd = [OBJCOPY,
+#           '--set-section-flags', '.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
+#           '--set-section-flags', '.upper.rodata=CONTENTS,ALLOC,LOAD,DATA,READONLY',
+#           'xbdprog.bin']
+#    subprocess.call(cmd)
+
+    cmd = [SIZE, BINFILE]
     stdout = subprocess.check_output(cmd).decode()
-    match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)', 
+    match = re.match(r'^\s*(\w+)\s+(\w+)\s+(\w+)',
             stdout.splitlines()[1])
     text = int(match.group(1))
     data = int(match.group(2))

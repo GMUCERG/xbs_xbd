@@ -8,6 +8,19 @@
 #include <msp430.h>
 #include "global.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+/* From http://mspgcc.sourceforge.net/manual/c1408.html */
+static void __inline__ delay_cycles(unsigned long n)
+{
+    RTCCTL01 = RTCHOLD | RTCSSEL0| RTCTEV1|RTCTEV0;
+#define RTCNT (*((volatile uint32_t*) &RTCNT1))
+    RTCNT = 0;
+    RTCCTL01 &= ~RTCHOLD; //Start clock
+    while(RTCNT < n);
+    RTCCTL01 |= RTCHOLD; //Stop clock
+}
+#pragma GCC diagnostic pop
 
 static void enableXtal()
 {
@@ -31,7 +44,7 @@ static void enableXtal()
 		/* Clear the Oscillator fault interrupt flag */
 		SFRIFG1 &= ~OFIFG;
 		/* @ 1MHz startup: delay for 500ms */
-		__delay_cycles(500000L * (F_CPU/1000000L));
+		delay_cycles(500000L * (F_CPU/1000000L));
 		if(!timeout) break;
 	/* Test the fault flag */
 	}while (SFRIFG1 & OFIFG);

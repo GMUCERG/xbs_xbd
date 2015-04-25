@@ -56,7 +56,7 @@ void XBD_init() {
     //Enable interrupt for soft reset on pin 2.0
     P2SEL &= ~BIT7;
     P2DIR &= ~BIT7;
-    P2IES |= BIT7; //Trigger on falling edge
+    P2IES &= ~BIT7; //Trigger on rising edge
     P2IE = BIT7;
 
     __eint();
