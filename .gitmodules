@@ -10,3 +10,6 @@
 [submodule "external/supercop"]
 	path = external/supercop
 	url = https://github.com/floodyberry/supercop.git
+[submodule "external/embedded_algopack"]
+	path = external/embedded_algopack
+	url = https://github.com/jhnphm/embedded_algopack.git
