@@ -249,8 +249,7 @@ void XBD_stopWatchDog()
 /**
  * Soft reset using interrupt lines from XBH
  */
-__attribute__((__interrupt__(PORT2_VECTOR))) void soft_reset(void){
-    uint8_t timer;
+__attribute__((used,interrupt(PORT2_VECTOR))) void soft_reset(void){
     P2IFG &= ~BIT7; //Clear IFG for pin 2.0
     if(!(P2IN&BIT7)){
         WDTCTL = 0;     //Write invalid key to trigger soft reset
