@@ -11,10 +11,13 @@ import subprocess
 import sys
 import hashlib
 
-from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Text, Boolean, DateTime
-from sqlalchemy.orm import relationship, reconstructor
+from sqlalchemy import and_
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import relationship, reconstructor, backref
+from sqlalchemy.orm.collections import column_mapped_collection
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint
 
 from xbx.dirchecksum import dirchecksum
 import xbx.database as xbxdb
@@ -230,15 +233,6 @@ class Primitive(Base):
     )
 
 
-# Join table for libsupercop dependencies
-_impl_dep_join_table = Table('config_impl_dep_join', Base.metadata,
-    Column('dependent_impl_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"),
-           nullable=False, primary_key=True),
-    Column('dependency_impl_hash', Integer,
-           ForeignKey('implementation.hash', ondelete="CASCADE"),
-           nullable=False, primary_key=True)
-)
 
 @unique_constructor(scoped_session,
         lambda **kwargs: kwargs['hash'],
@@ -252,13 +246,6 @@ class Implementation(Base):
     path           = Column(String) #Path relative to algobase
     macros         = Column(JSONEncodedDict)
 
-    dependencies   = relationship(
-        "Implementation", backref="dependents",
-        collection_class=set,
-        secondary=_impl_dep_join_table,
-        primaryjoin=(_impl_dep_join_table.c.dependent_impl_hash == hash),
-        secondaryjoin=(_impl_dep_join_table.c.dependency_impl_hash == hash)
-    )
     __table_args__ = (
         PrimaryKeyConstraint("hash"),
         ForeignKeyConstraint(
@@ -273,24 +260,77 @@ class Implementation(Base):
         hash = dirchecksum(os.path.join(platforms_path, self.path))
         return hash == self.hash
 
+    def get_config_assoc(self, config):
+        s = xbxdb.scoped_session()
+        a = s.query(ConfigImplAssociation).filter(
+            ConfigImplAssociation.config_hash == config.hash,
+            ConfigImplAssociation.implementation_hash == self.hash
+        ).one()
+        return a
 
-# Join table for primitves connected to config
-_config_impl_join_table = Table(
-    'config_implementation_join', Base.metadata,
-    Column('implementation_hash', Integer,
+
+# Join table for libsupercop dependencies
+_impl_dep_join_table = Table('config_impl_dep_join', Base.metadata,
+    Column('config_hash', String,
+           ForeignKey('config.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True),
+    Column('dependent_impl_hash', String,
            ForeignKey('implementation.hash', ondelete="CASCADE"),
            nullable=False, primary_key=True),
-    Column('config_hash', Integer,
-           ForeignKey('config.hash', ondelete="CASCADE"), nullable=False,
-           primary_key=True)
+    Column('dependency_impl_hash', String,
+           ForeignKey('implementation.hash', ondelete="CASCADE"),
+           nullable=False, primary_key=True)
 )
 
+# Association for implementation+config
+class ConfigImplAssociation(Base):
+    __tablename__ = 'config_impl_dep_assoc'
+    config_hash = Column(String, nullable=False)
+    implementation_hash = Column(String, nullable=False)
+
+
+    implementation = relationship(
+        "Implementation",
+        backref="config_impl_assocs",
+    )
+
+    config = relationship(
+        "Config",
+        backref=backref("config_impl_assocs", cascade="all, delete-orphan")
+    )
+
+    dependencies = relationship(
+        "Implementation",
+        secondary=_impl_dep_join_table,
+        primaryjoin=and_(
+            _impl_dep_join_table.c.dependent_impl_hash == implementation_hash,
+            _impl_dep_join_table.c.config_hash == config_hash
+        ),
+        secondaryjoin=(_impl_dep_join_table.c.dependency_impl_hash ==
+                       Implementation.hash)
+    )
+
+    __table_args__ = (
+        PrimaryKeyConstraint("config_hash", "implementation_hash"),
+        ForeignKeyConstraint(["config_hash"],
+                             ["config.hash"],
+                             ondelete="CASCADE"),
+        ForeignKeyConstraint(["implementation_hash"],
+                             ["implementation.hash"],
+                             ondelete="CASCADE"),
+    )
+
+
+
+
+
+# Join table for supercop implemntations to config
 _config_libsupercop_impl_join_table = Table(
     'config_libsupercop_impl_join', Base.metadata,
-    Column('implementation_hash', Integer,
+    Column('implementation_hash', String,
            ForeignKey('implementation.hash', ondelete="CASCADE"),
            nullable=False, primary_key=True),
-    Column('config_hash', Integer,
+    Column('config_hash', String,
            ForeignKey('config.hash', ondelete="CASCADE"), nullable=False,
            primary_key=True)
 )
@@ -342,15 +382,17 @@ class Config(Base):
 
     platform              = relationship("Platform", uselist=False)
     operation             = relationship("Operation", uselist=False)
-    implementations       = relationship("Implementation",
-                                         secondary=_config_impl_join_table)
+    implementations       = association_proxy('config_impl_assocs',
+                                              'implementation',
+                                              creator=lambda i:
+                                              ConfigImplAssociation(implementation=i))
 
     libsupercop_impls     = relationship("Implementation",
                                          secondary=_config_libsupercop_impl_join_table)
 
 
     __table_args__   = (
-        PrimaryKeyConstraint("hash" ),
+        PrimaryKeyConstraint("hash"),
         ForeignKeyConstraint(["platform_hash"], ["platform.hash"]),
         ForeignKeyConstraint(["operation_name"], ["operation.name"]),
     )
@@ -372,7 +414,7 @@ class Config(Base):
         self.embedded_path         = config.get('paths','embedded')
         self.work_path             = config.get('paths','work')
         self.data_path             = config.get('paths','data')
-        self.impl_conf_path = config.get('paths', 'impl_conf')
+        self.impl_conf_path        = config.get('paths', 'impl_conf')
 
         self.one_compiler = config.getboolean('build', 'one_compiler')
         self.parallel_build = config.getboolean('build', 'parallel_build')
@@ -423,10 +465,23 @@ class Config(Base):
             primitives,
             self.algopack_path
         )
+
+
+
         self._process_black_white_lists(config, impl_conf)
+
+        # Need to flush in order to populate associations
+        s = xbxdb.scoped_session()
+        s.add(self)
+        s.flush()
 
         self._enum_supercop_impls(config, impl_conf)
         self._enum_dependencies(config, impl_conf)
+
+        # Update after implementations updated for black/whitelists and
+        # dependencies
+        s.flush()
+
 
     def _process_black_white_lists(self, conf_parser, impl_conf_parser):
         impl_index = {}
@@ -577,9 +632,13 @@ class Config(Base):
                     else:
                         _logger.warn(errmsg)
 
+                impl_dependencies = []
                 for j in deps:
                     key = tuple(j.strip().split())
-                    dependent.dependencies.add(dependencies[key]),
+                    impl_dependencies += dependencies[key],
+
+                assoc = dependent.get_config_assoc(self)
+                assoc.dependencies = impl_dependencies
 
     def _enum_supercop_impls(self, conf_parser, impl_conf_parser):
 
@@ -753,9 +812,8 @@ def hash_config(config_path):
         DEFAULT_CONF,
         config_path,
         config.get('paths','operations'),
-        config.get('paths','impl_conf'),
+        config.get('paths','impl_conf'))
 #        os.path.realpath(__file__)    # We hash this file so that edits here trigger a reparse
-    )
 
     dir_paths = (
         config.get('paths','platforms'),

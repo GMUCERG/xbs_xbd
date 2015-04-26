@@ -240,8 +240,11 @@ class Build(Base):
     @property
     def env(self):
         config = self.build_session.config
+
+        dependencies = self.implementation.get_config_assoc(config).dependencies
+
         dep_paths = [os.path.abspath(os.path.join(config.algopack_path, i.path))
-                     for i in self.implementation.dependencies]
+                     for i in dependencies]
         # Set build environment variables
         tmpl_path = ''
         if self.platform.tmpl_path:
@@ -306,8 +309,10 @@ class Build(Base):
         if not os.path.isfile(op_h):
             self._gen_op_h(op_h, self.implementation)
 
+        dependencies = self.implementation.get_config_assoc(config).dependencies
+
         # Generate dependency header files
-        for i in self.implementation.dependencies:
+        for i in dependencies:
             o_h = os.path.join(full_work_path, i.primitive.operation.name + ".h")
             op_h = os.path.join(full_work_path, i.primitive.operation.name +
                                 '_' + i.primitive.name+ ".h")
@@ -526,7 +531,7 @@ class BuildSession(Base, xbxs.SessionMixin):
         """Builds all targets specified in xbx self.config
 
         If database was specified in constructor, completion will commit
-        database entry. 
+        database entry.
         """
         self.cpu_count = mp.cpu_count()
 
