@@ -421,7 +421,8 @@ class Xbh:
         except XbdFailError as e:
             retval, msg = self._get_results();
             if retval == FAIL_CHECKSUM:
-                raise ChecksumFailError("Test failure: "+msg.decode().strip('\0') from e
+                raise ChecksumFailError("Test failure: "+
+                                        msg.decode().strip('\0')) from e
             else:
                 raise
 
