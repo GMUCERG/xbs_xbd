@@ -6,4 +6,4 @@ import xbh as xbhpkg
 
 logging.config.fileConfig("logging.ini", disable_existing_loggers=False)
 xbh = xbhpkg.Xbh()
-xbh.switch_to_app()
+xbh.switch_to_bl()
