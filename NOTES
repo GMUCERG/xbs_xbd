@@ -43,7 +43,8 @@ watchdog timeout should always be shorter than tcp timeout
 
 
 size puts read-only sections and executable sections into .text, else if has
-contents into .data, else .bss 
+contents into .data, else .bss . There is a bug in the linker script making
+.rodata read/write 
 
 
 code cannot use malloc, as that is not deterministic and suitable for many
@@ -60,3 +61,17 @@ document how to fill out libsupercop deps
 for i in $(grep -rl '\(crypto_core\|crypto_verify\)' |xargs dirname); do echo $i $(../../dirchecksum $i); done
 
 0cipher is no-op- test harness has to ignore output
+
+
+yet another bug due to improper handling of holes while reading hex files
+
+Switch to bootloader/application code assumes entry point is at the beginning,
+       which is not necessarily the case with MSP430
+
+
+Note that without checksumsmall files, the checksum tests will be skipped and
+the tests will be assumed to have succeeded. To check for this case, check for
+the lack of RunTests
+
+msp430 requires directives to prevent LTO from optimizing out ISRs
+Submit bug reports for above
