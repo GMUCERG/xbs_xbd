@@ -105,8 +105,9 @@ class Build(Base):
     platform             = relationship("Platform", uselist=False,
                                         foreign_keys=[platform_hash])
 
-    compiler             = relationship("Compiler", uselist=False)
-    operation            = relationship("Operation", uselist=False)
+    compiler             = relationship("Compiler", uselist=False, viewonly=True)
+    operation            = relationship("Operation", uselist=False,
+                                        viewonly=True)
     primitive            = relationship("Primitive", uselist=False)
     implementation       = relationship("Implementation", uselist=False)
 
