@@ -28,7 +28,6 @@ FAIL_TYPE_MISMATCH = -61
 
 
 _XBH_CMD_LEN = 8
-_CALC_TIMEOUT = 5*60
 
 _logger=logging.getLogger(__name__)
 
@@ -52,6 +51,9 @@ class XbhValueError(xbh.Error, ValueError):
     pass
 
 class RetryError(Error):
+    pass
+
+class TimeoutError(xbh.Error):
     pass
 
 class HardwareError(xbh.Error):
@@ -130,10 +132,10 @@ class Xbh:
 
 
     def __init__(self, host="xbh", port=22595, page_size = 1024,
-            xbd_hz=16000000, timeout=2000, src_host=''):
-        self._connargs = ((host,port), timeout, (src_host, 0))
+            xbd_hz=16000000, timeout=1200, sock_timeout=30, src_host=''):
+        self._connargs = ((host,port), sock_timeout, (src_host, 0))
         self._sock = socket.create_connection(*self._connargs)
-        self._timeout = timeout
+        self.timeout = timeout
         self._cmd_pending = None
         self._bl_mode = None
         self.page_size = page_size
@@ -181,33 +183,45 @@ class Xbh:
         self._cmd_pending = command
 
     def _xbh_response(self):
-        msg = self._recvall(4)
-        size = int(msg,16)
-        msg = self._recvall(size)
-        match = re.match(
-                r"^XBH([0-9]{2})"+self._cmd_pending+r"([aof])",
-                msg[0:8].decode())
+        start_time = time.time()
+        while True:
+            if time.time()-start_time > self.timeout:
+                raise TimeoutError("Operation timed out")
 
-        if match == None:
-            raise XbhValueError("Received invalid answer to " +
-                    self._cmd_pending+": "+msg.decode()+".")
+            msg = self._recvall(4)
+            size = int(msg,16)
+            msg = self._recvall(size)
 
-        version = match.group(1)
-        status = match.group(2)
 
-        if version != PROTO_VERSION:
-            raise XbhValueError("XBH protocol version was " + version +
-                    ", this tool requires "+PROTO_VERSION+".")
+            # Keep going if keepalive received
+            if msg[0:8].decode() == ("XBH"+PROTO_VERSION+"kao"):
+                _logger.debug("Received 'k'eep'a'live")
+                continue
 
-        if status == 'a':
-                _logger.debug("Received 'a'ck")
-        elif status == 'o':
-                _logger.debug("Received 'o'kay")
-        elif status == 'f':
-            raise XbdFailError("Received 'f'ail")
+            match = re.match(
+                    r"^XBH([0-9]{2})"+self._cmd_pending+r"([aof])",
+                    msg[0:8].decode())
 
-        # Return bytes after 8-byte command header
-        return msg[8:]
+            if match == None:
+                raise XbhValueError("Received invalid answer to " +
+                        self._cmd_pending+": "+msg.decode()+".")
+
+            version = match.group(1)
+            status = match.group(2)
+
+            if version != PROTO_VERSION:
+                raise XbhValueError("XBH protocol version was " + version +
+                        ", this tool requires "+PROTO_VERSION+".")
+
+            if status == 'a':
+                    _logger.debug("Received 'a'ck")
+            elif status == 'o':
+                    _logger.debug("Received 'o'kay")
+            elif status == 'f':
+                raise XbdFailError("Received 'f'ail")
+
+            # Return bytes after 8-byte command header
+            return msg[8:]
 
     def _upload_code_pages(self, addr, data):
         if len(data) % self.page_size != 0 and len(data) > self.page_size:
@@ -296,19 +310,15 @@ class Xbh:
         self.req_app()
         _logger.debug("Executing code")
 
-        self._sock.settimeout(_CALC_TIMEOUT)
         self._exec("ex")
         self._xbh_response()
-        self._sock.settimeout(self._timeout)
 
     def _calc_checksum(self):
         self.req_app()
         _logger.debug("Calculating checksum")
 
-        self._sock.settimeout(_CALC_TIMEOUT)
         self._exec("cc")
         self._xbh_response()
-        self._sock.settimeout(self._timeout)
 
     def _get_timings(self):
         """Returns seconds, frac, frac_per_sec"""
