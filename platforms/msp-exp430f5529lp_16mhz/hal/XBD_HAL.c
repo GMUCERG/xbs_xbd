@@ -48,10 +48,13 @@ void XBD_init() {
     i2cSetSlaveReceiveHandler( FRW_msgRecHand );
     i2cSetSlaveTransmitHandler( FRW_msgTraHand );
 
-    //Set Port 2.0 to output - Execution signal to XBH
-    P1SEL &= ~BIT3;
-    P1DIR |= BIT3;
-    P1OUT |= BIT3;     // Set pin high
+//    //Set Port 2.0 to output - Execution signal to XBH
+//    P1SEL &= ~BIT3;
+//    P1DIR |= BIT3;
+//    P1OUT |= BIT3;     // Set pin high
+    P2SEL &= ~BIT0;
+    P2DIR |= BIT0;
+    P2OUT |= BIT0;     // Set pin high
 
     //Enable interrupt for soft reset on pin 2.0
     P2SEL &= ~BIT7;
@@ -64,13 +67,13 @@ void XBD_init() {
 
 
 inline void XBD_sendExecutionStartSignal() {
-    P1OUT &= (~BIT3);
+    P2OUT &= (~BIT0);
     /* code for output pin = on here */
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
     /* code for output pin = off here */
-    P1OUT |= BIT3;
+    P2OUT |= BIT0;
 }
 
 
