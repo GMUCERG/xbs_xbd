@@ -20,8 +20,8 @@ COMMON = -mmcu=$(MCU) -I${SUPPORT_DIR}
 ## Compile options common for all C compilation units.
 CFLAGS += $(COMMON)
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -Wall -std=gnu11 -DBOOTLOADER -ffunction-sections -fdata-sections
-CFLAGS += -Os -flto
+CFLAGS += -Wall -std=gnu11 -DBOOTLOADER -ffunction-sections -fdata-sections -ggdb3
+CFLAGS += -Os# -flto
 #CFLAGS += -ggdb3 -O0 
 #CFLAGS += -O0 #-DXBX_DEBUG_BL 
 
