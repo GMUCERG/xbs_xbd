@@ -2,7 +2,6 @@ import logging
 import datetime
 import os
 import inspect
-import yaml
 
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint

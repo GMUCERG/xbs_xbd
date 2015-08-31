@@ -9,7 +9,7 @@ AXFFILE = $(PROJECT).axf
 TARGET =  $(PROJECT).bin
 
 #GCC_TYPE=eabi
-GCC_TYPE=stellaris-eabi
+GCC_TYPE=tiva_c-eabi
 
 CC = arm-$(GCC_TYPE)-gcc
 LD = arm-$(GCC_TYPE)-gcc

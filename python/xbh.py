@@ -132,7 +132,7 @@ class Xbh:
 
 
     def __init__(self, host="xbh", port=22595, page_size = 1024,
-            xbd_hz=16000000, timeout=1200, sock_timeout=30, src_host=''):
+            xbd_hz=16000000, timeout=999999, sock_timeout=30, src_host=''):
         self._connargs = ((host,port), sock_timeout, (src_host, 0))
         self._sock = socket.create_connection(*self._connargs)
         self.timeout = timeout
