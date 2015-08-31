@@ -8,7 +8,7 @@ import sys
 
 BINFILE = "xbdprog.bin"
 HEX_FLASH_FLAGS="-R .eeprom -R .fuse -R .lock -R .signature"
-OBJCOPY="arm-stellaris-eabi-objcopy"
+OBJCOPY="arm-tiva_c-eabi-objcopy"
 
 app_path = os.path.dirname(__file__)
 
