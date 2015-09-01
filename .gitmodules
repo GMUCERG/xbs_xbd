@@ -4,9 +4,6 @@
 [submodule "external/tiva-c_xtools"]
 	path = external/tiva-c_xtools
 	url = https://github.com/jhnphm/tiva-c_xtools.git
-[submodule "external/crosstool-ng"]
-	path = external/crosstool-ng
-	url = https://github.com/crosstool-ng/crosstool-ng.git
 [submodule "external/supercop"]
 	path = external/supercop
 	url = https://github.com/floodyberry/supercop.git
