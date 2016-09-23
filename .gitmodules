@@ -4,9 +4,6 @@
 [submodule "external/tiva-c_xtools"]
 	path = external/tiva-c_xtools
 	url = https://github.com/jhnphm/tiva-c_xtools.git
-[submodule "external/supercop"]
-	path = external/supercop
-	url = https://github.com/floodyberry/supercop.git
 [submodule "external/embedded_algopack"]
 	path = external/embedded_algopack
 	url = https://github.com/jhnphm/embedded_algopack.git
