@@ -93,12 +93,12 @@ void XBD_init() {
     MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_5);
 #endif
 
-    // Configure execution signal pin
+    // Configure execution signal pin (TimerFlag TF)
     // Enable for AHB
-    // Enable all pins on ports as GPIO outs and set to 0 except pin 5
-    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOC);
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_AHB_BASE, GPIO_PIN_5);
- 	MAP_GPIOPinWrite(GPIO_PORTC_AHB_BASE, GPIO_PIN_5, GPIO_PIN_5);
+    // Enable all pins on ports as GPIO outs and set to 0 except pin 2
+    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOB);
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_AHB_BASE, GPIO_PIN_2);
+ 	MAP_GPIOPinWrite(GPIO_PORTB_AHB_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
     // Configure i2c
     i2cSetSlaveReceiveHandler(FRW_msgRecHand);
@@ -121,7 +121,7 @@ void XBD_init() {
 
 inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
-    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = 0;
+    HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = 0;
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = 0;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
 
@@ -129,7 +129,7 @@ inline void XBD_sendExecutionStartSignal() {
 
 inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
-    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = GPIO_PIN_5;
+    HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = GPIO_PIN_2;
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = GPIO_PIN_5;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
 }
