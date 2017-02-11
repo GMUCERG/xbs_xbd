@@ -5,6 +5,7 @@ import sys
 import binascii
 import os
 from datetime import datetime
+import time
 
 from sqlalchemy.schema import ForeignKeyConstraint, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime, Float 
@@ -405,6 +406,7 @@ class RunSession(Base, xbxs.SessionMixin):
     def do_drift_measurement(self):
         _logger.info("Doing drift measurement...")
         for i in range(self.config.drift_measurements):
+
             (abs_error,
              rel_error,
              cycles,
@@ -424,6 +426,7 @@ class RunSession(Base, xbxs.SessionMixin):
                 run_session=self
             )
 
+            
 
     def runall(self):
         for b in (i for i in self.build_session.builds if i.build_ok):
