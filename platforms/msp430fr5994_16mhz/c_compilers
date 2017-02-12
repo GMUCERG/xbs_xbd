@@ -1,0 +1,25 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections -Wl,-gc-sections"
+gccOpts="-pipe -fomit-frame-pointer -std=gnu99 -Dgcc"
+posOpts="" 
+mcuOpts="-mmcu=msp430fr5994"
+debugOpts="-ggdb3"
+#debugOpts="-DXBX_DEBUG_APP -Og -ggdb3 -gdwarf-2 -fno-lto -no-fomit-frame-pointer"
+
+
+cat <<EOF
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O0 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -Os $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O1 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O2 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O3 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -Os -flto=8 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O1 -flto=8 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O2 -flto=8 $sizeOpts $debugOpts 
+msp430-elf-gcc $mcuOpts $gccOpts $posOpts -O3 -flto=8 $sizeOpts $debugOpts 
+EOF
+
+#cat <<EOF
+#msp430-gcc $debugOpts $mcuOpts $posOpts -O0 -fomit-frame-pointer $sizeOpts
+#EOF

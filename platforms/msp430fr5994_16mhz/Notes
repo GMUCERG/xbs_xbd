@@ -1,0 +1,64 @@
+Copied files as is from msp4305529
+
+
+XBD (FR5994)
+	*I2C - P7.1(SCL), P7.0(SDA)
+	*Soft Reset -	P6.3
+	*Execute Sig. - P7.3		(P5.7)
+
+
+
+
+Changes:
+	c_compilers:
+		- changed mcuopts to 5994
+	Makefile:
+		- changed general flags
+		- need to change BL_ADDR (0x004000 Main: code memory??)
+	Setting.ini:
+		
+	global.h:
+
+	XBDDeviceDependent.h:
+		- FLASH_ADDR_MIN?? same?
+	
+	drivers/
+		msp430.h -	Replaced file with newer version
+		ms430fr5994.h -	Replaced the 5529 specific header
+		hardware.h -	Not being used?
+		i2cconf.h -	No change needed
+		i2c.c:
+			- i2cInit()								- DONE
+				-configured i2c, set P7.1 and P7.0, couldn't find select bits on datasheet (used from example)...
+			- i2cSetLocalDeviceAddr()						- DONE
+				-But ucb1 addr. register not found, used ucb0 instead....
+			- i2cSetSlaveReceiveHandler() and i2cSetSlaveTransmitHandler()		- no changes??
+				-where are i2c rx,tx ISRs?
+			- twi_isr()								- DONE
+				-changed register names
+		iomacros.h -	has interrupt define statement, same gcc so no changes.
+		memory.c -	might have to modify...
+		in430.h -	might have to modify...
+		RS232.c - 	used for debug, needs modification...				- needs MODIFICATIONS
+		RS232.h -	header, no changes...
+		clock_init.h - 	no changes
+		clock_init.c -	needs modification....						- functions used, needs MODIFICATIONS	
+
+	XBD_HAL:
+		- XBD_init()									- DONE
+			-configure exec,rst pins..
+		- XBD_sendExecutionStartSignal()						- DONE
+		- XBD_sendExecutionCompleteSignal()						- DONE
+		- XBD_programPage()								- needs MODIFICATIONS
+		- XBD_busyLoopWithTiming()							- might needs MODIFICATION
+		- soft_reset()									- DONE
+			-changed register names
+
+	msp430fr5994.ld -	Added file from TI folder, needed?
+		
+
+
+
+
+
+
