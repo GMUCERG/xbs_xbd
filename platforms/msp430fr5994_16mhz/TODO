@@ -1,0 +1,2 @@
+Update this to work w/ new msp430-gcc toolchain. Currently this is made to work
+on the deprecated mspgcc 
