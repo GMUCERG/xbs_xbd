@@ -52,6 +52,11 @@
 
 #else
 
+#define sfr_b(x) extern volatile unsigned char x
+#define sfr_w(x) extern volatile unsigned int x
+#define sfr_a(x) extern volatile unsigned long int x
+#define sfr_l(x) extern volatile unsigned long int x
+
 #define sfrb_(x,x_) extern volatile unsigned char x __asm__(#x_)
 #define sfrw_(x,x_) extern volatile unsigned int x __asm__(#x_)
 #define sfra_(x,x_) extern volatile unsigned long int x __asm__(#x_)

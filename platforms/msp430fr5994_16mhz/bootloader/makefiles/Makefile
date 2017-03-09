@@ -1,5 +1,5 @@
 ###############################################################################
-# Makefile for the project XBD_BL_MSP430F5529_4MHz
+# Makefile for the project XBD_BL_MSP430FR5994_16MHz
 ###############################################################################
 
 ## General Flags
@@ -10,6 +10,7 @@ CC = msp430-elf-gcc
 #BL_ADDR=0xf000
 #BL_ADDR=0xe000
 BL_ADDR=0xf000
+#BL_ADDR=0x4000
 
 MSP430GCC_INC := $(shell msp430-elf-gcc -xc -E -v - </dev/null 2>&1 | awk '/^\#include </ {getline; print $$0}')
 SUPPORT_DIR := $(realpath ${MSP430GCC_INC}/../../../../../include)

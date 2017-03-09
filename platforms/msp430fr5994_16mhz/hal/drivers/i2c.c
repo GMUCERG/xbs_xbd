@@ -93,7 +93,7 @@ void i2cInit(void) {
     UCB2CTLW0 &= ~UCMST;            //slave
     UCB2CTLW0 |= UCMODE_3 | UCSYNC;     //i2c_mode
 
-    UCB0CTLW0 &= ~UCSWRST;      //clear reset
+    UCB2CTLW0 &= ~UCSWRST;      //clear reset
 
     // clear SlaveReceive and SlaveTransmit handler to null
     i2cSlaveReceive = 0;
@@ -112,7 +112,7 @@ void i2cInit(void) {
 void i2cSetLocalDeviceAddr(uint8_t deviceAddr, uint8_t genCallEn) {
     // set local device address (used in slave mode only)
     UCB2CTLW0 |= UCSWRST;                      // Enable SW reset
-    UCB0I2COA0 = ((deviceAddr | (genCallEn?UCGCEN:0)) | UCOAEN);    //own addr. + addr. enable
+    UCB2I2COA0 = ((deviceAddr | (genCallEn?UCGCEN:0)) | UCOAEN);    //own addr. + addr. enable
     UCB2CTLW0 &= ~UCSWRST;                     // Clear SW reset, resume operation
 }
 

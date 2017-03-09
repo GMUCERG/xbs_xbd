@@ -7,55 +7,106 @@ XBD (FR5994)
 	*Execute Sig. - P7.3		(P5.7)
 
 
-
+2 gcc include folders..
 
 Changes:
-	c_compilers:
-		- changed mcuopts to 5994
+	c_compilers:		(used by XBS to compile algorithms)
+		- changed mcuopts to 5994 
 	Makefile:
 		- changed general flags
-		- need to change BL_ADDR (0x004000 Main: code memory??)
-	Setting.ini:
+		- need to change BL_ADDR (0x004000 Main: code memory?? not needed same addr.)
+	Setting.ini: ??????
 		
 	global.h:
 
 	XBDDeviceDependent.h:
-		- FLASH_ADDR_MIN?? same?
+		- FLASH_ADDR_MIN?? same?	YES
 	
 	drivers/
 		msp430.h -	Replaced file with newer version
+				*header needs to be converted make it compatable with gcc sfrw, sfrb..
+		legacy.h -	msp430.h dependancy, might not be needed... remove...
 		ms430fr5994.h -	Replaced the 5529 specific header
 		hardware.h -	Not being used?
 		i2cconf.h -	No change needed
 		i2c.c:
 			- i2cInit()								- DONE
-				-configured i2c, set P7.1 and P7.0, couldn't find select bits on datasheet (used from example)...
+				-configured i2c, set P7.1 and P7.0
 			- i2cSetLocalDeviceAddr()						- DONE
-				-But ucb1 addr. register not found, used ucb0 instead....
+				-But ucb2 addr. register not found, used ucb0 instead....
 			- i2cSetSlaveReceiveHandler() and i2cSetSlaveTransmitHandler()		- no changes??
 				-where are i2c rx,tx ISRs?
 			- twi_isr()								- DONE
 				-changed register names
-		iomacros.h -	has interrupt define statement, same gcc so no changes.
-		memory.c -	might have to modify...
+		iomacros.h -	Used new iomacros						- DONE
+		memory.c -	might have to modify...		(not used)
 		in430.h -	might have to modify...
 		RS232.c - 	used for debug, needs modification...				- needs MODIFICATIONS
 		RS232.h -	header, no changes...
 		clock_init.h - 	no changes
-		clock_init.c -	needs modification....						- functions used, needs MODIFICATIONS	
+		clock_init.c -	needs modifications....						- functions used, needs MODIFICATIONS	
+				-modified delay_cycles(), rest modify later
 
-	XBD_HAL:
+	XBD_HAL.c:
 		- XBD_init()									- DONE
 			-configure exec,rst pins..
 		- XBD_sendExecutionStartSignal()						- DONE
 		- XBD_sendExecutionCompleteSignal()						- DONE
-		- XBD_programPage()								- needs MODIFICATIONS
-		- XBD_busyLoopWithTiming()							- might needs MODIFICATION
+		- XBD_programPage()								- DONE but test the func.
+			*Use FRCTL_A
+		- XBD_busyLoopWithTiming()							- DONE
+			*Use RTC_C - need ctr mode
+			*32 bit addressable, possible on 5994? RTCNT..
+			*why is 8/16 bit overflow needed?
 		- soft_reset()									- DONE
 			-changed register names
+	
+	HAL:
+		msp430fr5994.ld -	Added file from TI folder, needed?	Yes, used by ./compile.py for algo. (maybe BL makefile too)
+			- changed 'RAM' length to full 8k (0x2000, prev. val. 0x1000) and commented out 'LEARAM', 'LEASTACK'
+		msp430fr5994_symbols.ld -	Added, msp430fr5994.ld dependency
 
-	msp430fr5994.ld -	Added file from TI folder, needed?
+	bootloader:
+		msp430fr5994.ld -	Added file from TI folder, needed?
+		msp430fr5994_symbols.ld -	Added, msp430fr5994.ld dependency
+
+	
 		
+
+TO DO:	
+	- CRC module code??
+	- Currently commented out rs232.c and clocks.c (since dev. already runs at 16mhz) and added 'unlock ports' in XBD_init(), modify later
+	- setting.ini changes?
+	- Makefile - Wrong BL_addr, unable to upload program, change value..
+
+
+Changes on the XBS side:
+		- No changes
+
+
+-------------------------------------------------------------
+Other Notes:
+
+	- flash addr received on I2C from XBH(<-XBS)
+
+	
+	XBD_BL.c (->XBD_HAL.c):
+		"pfr" -> XBD_BL_HandleProgramFlashRequest():
+					- receives flash addr, flash length
+		"fdr" -> XBD_BL_HandleFlashDownloadRequest():
+					- receives data from XBH, buffers till PAGESIZE, then flashes XBD (i.e itself)
+	
+	XBH.c:
+		"cdr" -> XBH_HandleCodeDownloadRequest() -> "pfr"
+	
+			
+	XBH.py:
+		upload_prog -> _upload_code_pages -> "cdr"
+
+
+	
+	How does XBS know where the flash start addr. is for the XBD? xbdprog.hex??
+	
 
 
 
