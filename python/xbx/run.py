@@ -102,7 +102,7 @@ class Run(Base):
     median_power    = Column(Integer)
     total_energy    = Column(Integer)
 
-    power_samples   = relationship("PowerSample")
+    power_samples   = relationship("PowerSample", backref="run")
     timestamp       = Column(DateTime)
     build_exec_id   = Column(Integer)
 
@@ -127,7 +127,11 @@ class Run(Base):
         pass
 
     def _calculate_power(self):
-        pass
+        s = xbxdb.scoped_session()
+        volts = self.xbh.get_power();
+        pwrSample = PowerSample(voltage = volts)
+        s.add(pwrSample)
+        s.commit()
 
     def _execute(self, packed_params=None):
         """Executes and returns results
