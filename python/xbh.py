@@ -332,7 +332,7 @@ class Xbh:
 
         return seconds, frac, frac_per_sec
     
-    def _get_power(self):
+    def get_power(self):
         """Returns Power"""
         _logger.debug("Downloading power measurements")
 
