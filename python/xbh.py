@@ -331,6 +331,17 @@ class Xbh:
                 seconds, frac, frac_per_sec))
 
         return seconds, frac, frac_per_sec
+    
+    def _get_power(self):
+        """Returns Power"""
+        _logger.debug("Downloading power measurements")
+
+        self._exec("pw")
+        msg = self._xbh_response()
+        power = struct.unpack("!I", msg)
+        _logger.debug("Receive {}".format(power))
+
+        return power
 
     def _get_stack_usage(self):
         self.req_app()
