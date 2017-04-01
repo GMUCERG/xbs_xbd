@@ -129,7 +129,7 @@ class Run(Base):
     def _calculate_power(self):
         s = xbxdb.scoped_session()
         volts = self.xbh.get_power();
-        pwrSample = PowerSample(voltage = volts)
+        pwrSample = PowerSample(voltage=volts, run=self)
         s.add(pwrSample)
         s.commit()
 
