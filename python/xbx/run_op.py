@@ -49,6 +49,7 @@ class CryptoHashRun(xbxr.Run):
                      format(build_exec.build.buildid, params[0]))
         run = cls(build_exec, msg_len=params[0])
         run._execute(run._assemble_params())
+        run._calculate_power()
         return run
 
 
@@ -174,8 +175,9 @@ class CryptoAeadRun(xbxr.Run):
         # Generate data
         (enc_data, plaintext, assoc_data,
          key, secret_num, public_num) = enc_run._gen_enc_params()
-
+        
         retval, ciphertext = enc_run._execute(enc_data)
+        enc_run._calculate_power()
 
         if retval != 0:
             raise xbxr.XbdResultFailError(
@@ -185,7 +187,7 @@ class CryptoAeadRun(xbxr.Run):
                                                   public_num, key)
 
         retval, dec_output = dec_run._execute(dec_data)
-
+        dec_run._calculate_power()
 
         # Unpack lengths
         # We put secret num first since it is fixed length
@@ -216,7 +218,8 @@ class CryptoAeadRun(xbxr.Run):
                                                          key)
 
         retval,_ = dec_forged_run._execute(forged_data)
-
+        dec_forged_run = _calculate_power()
+        
         if retval != -1 and primitive.name != '0cipher':
             raise xbxr.XbdResultFailError(
                 "Message forgery not detected")
