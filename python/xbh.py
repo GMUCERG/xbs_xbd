@@ -338,10 +338,11 @@ class Xbh:
 
         self._exec("pw")
         msg = self._xbh_response()
-        power = struct.unpack("!I", msg)
-        _logger.debug("Receive {}".format(power))
+        power, current, voltage, avgpwr, maxpwr = struct.unpack("!IIIII", msg)
+        _logger.debug("Receive {} {} {} {} {}".format(
+                power, current, voltage, avgpwr, maxpwr))
 
-        return power
+        return power, current, voltage, avgpwr, maxpwr
 
     def _get_stack_usage(self):
         self.req_app()
