@@ -128,10 +128,10 @@ class Run(Base):
 
     def _calculate_power(self):
         s = xbxdb.scoped_session()
-        volts = self.xbh.get_power();
-        pwrSample = PowerSample(voltage=volts, run=self)
-        s.add(pwrSample)
-        s.commit()
+        power, current, voltage, avgpwr, maxpwr = self.xbh.get_power()
+        this.power_samples = PowerSample(power=power, current=current,voltage=voltage, run=self)
+        this.max_power = maxpwr
+        this.avg_power = avgpwr
 
     def _execute(self, packed_params=None):
         """Executes and returns results
