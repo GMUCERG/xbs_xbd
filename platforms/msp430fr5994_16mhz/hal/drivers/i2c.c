@@ -18,6 +18,7 @@
 #include "i2c.h"
 #include "XBD_HAL.h"
 #include "XBD_debug.h"
+#include "RS232.h"
 
 //#include "uart2.h"
 
@@ -85,8 +86,8 @@ void i2cInit(void) {
     // //UCB1CTL1 &= ~(UCTR|UCSWRST);              // Clear RX and enable I2C state machine
 
 
-    P1SEL1 |= BIT6 | BIT7;               // Configure I2C pins UCB2
-    P1SEL0 &= ~(BIT6 | BIT7);
+    P7SEL1 &= ~(BIT1 | BIT0);               // Configure I2C pins UCB2
+    P7SEL0 |=  BIT1 | BIT0;
 
    
     UCB2CTLW0 |= UCSWRST;                   // Enable SW reset
@@ -139,21 +140,21 @@ void i2cSetSlaveTransmitHandler(uint8_t (*i2cSlaveTx_func)(uint8_t transmitDataL
 /** dsk: disabled interrupt */
 
 void twi_isr(){ 
-//#define DEBUG_I2C
+// #define DEBUG_I2C
     #define START 0
     #define RX 1
     #define TX 2
     #define TXSTART 3
     #define DONE 4
 
-    static uint8_t state=START;
+    static uint8_t state=START; //XBD_DEBUG("In TWI_ISR\r\n");
 
     switch(state){
         case START:
             if(UCB2IFG&UCSTTIFG){		//start condition?
-#ifdef DEBUG_I2C
+                #ifdef DEBUG_I2C
                 XBD_DEBUG("Start\r\n");
-#endif
+                #endif
                 UCB2IFG &= ~UCSTTIFG;  //yes: clear start flag
                 I2cSendDataIndex = 0;	//reset counters
                 I2cReceiveDataIndex = 0;
@@ -173,9 +174,9 @@ void twi_isr(){
                     if(!(UCB2IFG&UCSTPIFG)){
                         I2cReceiveDataIndex++;
                     }
-#ifdef DEBUG_I2C
+                    #ifdef DEBUG_I2C
                     XBD_DEBUG("RX byte\r\n");
-#endif
+                    #endif
                 } else {
                     XBD_DEBUG("NACK\r\n");
                     // receive data byte and return NACK
@@ -187,9 +188,9 @@ void twi_isr(){
             }
             if(UCB2IFG&UCSTPIFG){
                 // i2c receive is complete, call i2cSlaveReceive
-#ifdef DEBUG_I2C
+                #ifdef DEBUG_I2C
                 XBD_DEBUG("RX done\r\n");
-#endif
+                #endif
                 if(i2cSlaveReceive) i2cSlaveReceive(I2cReceiveDataIndex, I2cReceiveData);
                 UCB2IFG &= ~UCSTPIFG;
                 state=START;
@@ -198,17 +199,17 @@ void twi_isr(){
         case TX:
             if(UCB2IFG&UCTXIFG){       
                 if(I2cSendDataIndex==0){
-#ifdef DEBUG_I2C
+                    #ifdef DEBUG_I2C
                     XBD_DEBUG("TX start\r\n");
-#endif
+                    #endif
                     // request data from application
 
                     if(i2cSlaveTransmit) {I2cSendDataLength = i2cSlaveTransmit(I2C_SEND_DATA_BUFFER_SIZE, I2cSendData);
                     }
                 }
-#ifdef DEBUG_I2C
+                #ifdef DEBUG_I2C
                 XBD_DEBUG("TX byte\r\n");
-#endif
+                #endif
                 
                 UCB2TXBUF=I2cSendData[I2cSendDataIndex];
                 I2cSendDataIndex++;

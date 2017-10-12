@@ -13,6 +13,8 @@
 #include "clock_init.h"
 //#include <JTAGfunc.h>
 
+// #define DEBUG 
+
 #define I2C_BAUDRATE 400
 #define SLAVE_ADDR 0x75
 
@@ -26,21 +28,47 @@ static uint8_t *address;
 //extern uint8_t __stack;		/* stack top address */
 extern uint8_t _end;  ///<Last used byte of the last segment in RAM (defined by the linker)
 
+//Cycle Count timer variable
+volatile uint32_t TIMER_COUNT = 0;
+
 
 void XBD_init() {
 
 	__dint();
 	WDTCTL = WDTPW|WDTHOLD;                   // Stop WDT
-	PM5CTL0 &= ~LOCKLPM5;          // clear lock bit for ports
+	// PM5CTL0 &= ~LOCKLPM5;          			// clear lock bit for ports
+
 
 #ifdef BOOTLOADER
-	// initClocks();
+	initClocks();
 #endif
+
+	// P3SEL1 |= BIT4;				//SMCLK
+	// P3DIR |= BIT4;
+
+	// P5SEL1 |= BIT7;				//MCLK
+	// P5SEL0 |= BIT7;
+	// P5DIR |= BIT7;
 
 #ifdef DEBUG
 	usart_init();
-	XBD_debugOut("START MSP430F5529 HAL\r\n");
+	XBD_debugOut("START MSP430FR5994 HAL\r\n");
 	XBD_debugOut("\r\n");
+
+	// Interrupt enable for global FRAM memory protection
+	FRCTL0 = FRCTLPW;
+    GCCTL0 |= WPIE;
+
+    //DEBUG LED(RED) - comment out this code when running tests
+    P1OUT &= ~BIT0;                         
+    P1DIR |= BIT0;              // Set P1.0 to output direction
+    P1OUT |= BIT0;				// Turn on led to indicate usart debug enabled
+#else
+    //DEBUG LED(RED) - OFF
+    P1OUT &= ~BIT0;                         
+    P1DIR |= BIT0;              // Set P1.0 to output direction
+    P1OUT &= ~BIT0;				// Turn on led to indicate usart debug enabled
+
 #endif
 
 	i2cInit();
@@ -63,6 +91,8 @@ void XBD_init() {
 	P6IE = BIT3;
 
 	__eint();
+
+	// XBD_switchToApplication();
 }
 
 
@@ -79,7 +109,7 @@ inline void XBD_sendExecutionCompleteSignal() {
 
 void XBD_debugOut(const char *message) {
 #ifdef DEBUG
-	/* if you have some kind of debug interface, write message to it */
+	 //if you have some kind of debug interface, write message to it 
 	usart_puts(message);
 #endif
 }
@@ -159,20 +189,27 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
 // 	FCTL3 = FWKEY|LOCK;                                      // Lock flash
 // 	__enable_interrupt();
 
-
+	// XBD_debugOut("In function XBD_programPage\r\n");
 
 	// new CODE
 	__disable_interrupt();
 	FRCTL0 = FRCTLPW;				//unlock write to registers, otherwise generates PUC, later lock in byte mode
-	FRCTL0 &= ~WPROT;				//write only to lower byte?
+	// FRCTL0 &= ~WPROT;				//write only to lower byte?
 	for(u = 0;u < PAGESIZE/(sizeof(uint16_t)); u++)          
 	{
 		*startAddress++ = *bufPtr++;
+
+
+		// usart_putint(startAddress);
+		// XBD_debugOut("\r\n");
+		if(*(startAddress-1)!= *(bufPtr-1)){
+			XBD_debugOut("Data not properly written to FRAM\r\n");
+		}
 	}
 
-	FRCTL0_H = 0;				//to lock the registers again
+	// FRCTL0_H = 0;				//relock write access to registers
 	__enable_interrupt();
-
+	// XBD_debugOut("Going out of function XBD_programPage\r\n");
 
 
 
@@ -186,8 +223,16 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
 void XBD_switchToApplication() {
 	/* execute the code in the binary buffer */
 	// pointer called reboot that points to the reset vector
+	XBD_debugOut("Going to application mode\r\n");
+	usart_putint(FLASH_ADDR_MIN);
+	XBD_debugOut("\r\n");	
+
 	void (*reboot)( void ) = (void*)FLASH_ADDR_MIN; // defines the function reboot to location 0x3200
+	// void (*reboot)( void ) = (void*) 0xC400; // defines the function reboot to location 0x3200
+	
 	reboot();	// calls function reboot function
+
+	XBD_debugOut("Returned from application mode\r\n");
 }
 
 
@@ -225,22 +270,43 @@ uint32_t XBD_busyLoopWithTiming(volatile uint32_t approxCycles) {
 
 	// return exactCycles;
 
-	//new CODE
-	uint32_t exactCycles=0;
-#define RTCNT (*((volatile uint32_t*) &RTCCNT1))
+	//new CODE RTC - doesn't work because RTC can't source from SMCLK. Use Timers.
+// 	uint32_t exactCycles=0;
+// #define RTCNT (*((volatile uint32_t*) &RTCCNT1))
 
-	__disable_interrupt();
-	RTCCTL0_H = RTCKEY_H;                      //unlock RTC_C for writes
-	RTCCTL13 = RTCHOLD | RTCSSEL0 | RTCTEV1|RTCTEV0;
-	RTCNT = 0;                               //reset ctr
+// 	__disable_interrupt();
+// 	RTCCTL0_H = RTCKEY_H;                      //unlock RTC_C for writes
+// 	RTCCTL13 = RTCHOLD | RTCSSEL0 | RTCTEV1|RTCTEV0;
+// 	RTCNT = 0;                               //reset ctr
+// 	XBD_sendExecutionStartSignal();
+// 	RTCCTL13 &= ~RTCHOLD;
+// 	while(RTCNT < approxCycles);
+// 	RTCCTL13 |= RTCHOLD;
+// 	XBD_sendExecutionCompleteSignal();
+// 	exactCycles = RTCNT;
+// 	RTCCTL0_H = 0;      					//lock RTC_C again
+// 	__enable_interrupt();
+
+// 	return exactCycles;
+
+	//Timer Code
+	uint32_t exactCycles=0;
+	TIMER_COUNT = 0;						//Reset Timer
+
+	// SMCLK, contmode, clear TAR, enable overflow interrupt
+	TA0CTL = TASSEL__SMCLK | MC__CONTINUOUS | TACLR | TAIE;		//START CLOCK
 	XBD_sendExecutionStartSignal();
-	RTCCTL13 &= ~RTCHOLD;
-	while(RTCNT < approxCycles);
-	RTCCTL13 |= RTCHOLD;
-	XBD_sendExecutionCompleteSignal();
-	exactCycles = RTCNT;
-	RTCCTL0_H = 0;      					//lock RTC_C again
 	__enable_interrupt();
+	// __delay_cycles(approxCycles);
+	__delay_cycles(F_CPU);			//Use #if F_CPU to set approx cycles (16x2^15,8x2^15,...)
+	__disable_interrupt();
+	XBD_sendExecutionCompleteSignal();
+	TA0CTL |= MC__STOP;						//STOP CLOCK
+	TIMER_COUNT += TA0R;					//needs to be atomic
+	__enable_interrupt();
+
+	exactCycles = TIMER_COUNT;
+	TIMER_COUNT = 0;						//Reset Timer
 
 	return exactCycles;
 
@@ -295,7 +361,7 @@ void XBD_stopWatchDog()
 /**
  * Soft reset using interrupt lines from XBH
  */
-__attribute__((used,interrupt(PORT2_VECTOR))) void soft_reset(void){
+__attribute__((used,interrupt(PORT6_VECTOR))) void soft_reset(void){
 	P6IFG &= ~BIT3; //Clear IFG for pin 2.0
 	if(!(P6IN&BIT3)){
 		WDTCTL = 0;     //Write invalid key to trigger soft reset
@@ -312,3 +378,67 @@ __attribute__((used,interrupt(PORT2_VECTOR))) void soft_reset(void){
 }
 
 #endif
+
+
+// Timer0_A1 Interrupt Vector (TAIV) handler - Cycle Counting
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=TIMER0_A1_VECTOR
+__interrupt void TIMER0_A1_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) TIMER0_A1_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(TA0IV, TAIV__TAIFG))
+    {
+        // case TAIV__NONE:   break;           // No interrupt
+        // case TAIV__TACCR1: break;           // CCR1 not used
+        // case TAIV__TACCR2: break;           // CCR2 not used
+        // case TAIV__TACCR3: break;           // reserved
+        // case TAIV__TACCR4: break;           // reserved
+        // case TAIV__TACCR5: break;           // reserved
+//      //  case TAIV__TACCR6: break;           // reserved
+        case TAIV__TAIFG:                   // overflow
+        	TIMER_COUNT += 0xffff;
+        	TA0CTL &= ~TAIFG;		//clear interrupt
+            break;
+        default: break;
+    }
+}
+
+
+
+
+// //SYSNMI - used for invaild writes to FRAM
+// #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+// #pragma vector=SYSNMI_VECTOR
+// __interrupt void SYSNMI_ISR(void)
+// #elif defined(__GNUC__)
+// void __attribute__ ((interrupt(SYSNMI_VECTOR))) SYSNMI_ISR (void)
+// #else
+// #error Compiler not supported!
+// #endif
+// {
+//     switch(__even_in_range(SYSSNIV, SYSSNIV__LEASCCMD))
+//     {
+//         case SYSSNIV__NONE       : break;   // No interrupt pending
+//         case SYSSNIV__UBDIFG     : break;   // Uncorrectable FRAM bit error detection
+//         case SYSSNIV__ACCTEIFG   : break;   // FRAM Access Time Error
+//         case SYSSNIV__MPUSEGPIFG : break;   // MPUSEGPIFG encapsulated IP memory segment violation
+//         case SYSSNIV__MPUSEGIIFG : break;   // MPUSEGIIFG information memory segment violation
+//         case SYSSNIV__MPUSEG1IFG : break;   // MPUSEG1IFG segment 1 memory violation
+//         case SYSSNIV__MPUSEG2IFG : break;   // MPUSEG2IFG segment 2 memory violation
+//         case SYSSNIV__MPUSEG3IFG : break;   // MPUSEG3IFG segment 3 memory violation
+//         case SYSSNIV__VMAIFG     : break;   // VMAIFG Vacant memory access
+//         case SYSSNIV__JMBINIFG   : break;   // JMBINIFG JTAG mailbox input
+//         case SYSSNIV__JMBOUTIFG  : break;   // JMBOUTIFG JTAG mailbox output
+//         case SYSSNIV__CBDIFG     : break;   // Correctable FRAM bit error detection
+//         case SYSSNIV__WPROT      :          // FRAM write protection detection
+//             XBD_debugOut("DATA WRITTEN TO FRAM BUT 'WPROT' BIT NOT CLEARED\r\n");
+//             break;
+//         case SYSSNIV__LEASCTO    : break;   // LEA time-out fault
+//         case SYSSNIV__LEASCCMD   : break;   // LEA command fault
+//         default: break;
+//     }
+// }

@@ -4,6 +4,16 @@
 // Size of receive ring buffer. Must be at least 2.
 #define USART_BUFFER_SIZE 10
 
+/**
+ * Wrapper for debug to usart with file and line number
+ * @param ... String
+ */
+#ifdef DEBUG
+#define XBD_debugLine(str_out) {usart_puts(__FILE__); usart_puts(": ");usart_putint(__LINE__); usart_puts(": "); usart_puts(str_out);}
+#else
+#define XBD_debugLine(str_out)
+#endif
+
 /* Baudrate settings. Refer to datasheet for baud rate error.
    Note also maximun baud rate.
    br = baudrate, fosc = clock frequency in megahertzs */
@@ -31,5 +41,8 @@ unsigned char usart_unread_data(void);
 
 void usart_putbyte(uint8_t val);
 
+void usart_putint (int usart_num);
 
-void usart_putuint32_thex(uint32_t num);
+void usart_putu32_hex(uint32_t num);
+
+

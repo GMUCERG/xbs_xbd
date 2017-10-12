@@ -1,4 +1,4 @@
-Copied files as is from msp4305529
+Copied files as is from msp4305529, then modified.
 
 
 XBD (FR5994)
@@ -6,7 +6,7 @@ XBD (FR5994)
 	*Soft Reset -	P6.3
 	*Execute Sig. - P7.3		(P5.7)
 
-
+	
 2 gcc include folders..
 
 Changes:
@@ -18,13 +18,15 @@ Changes:
 	Setting.ini: ??????
 		
 	global.h:
+		-F_CPU,I2C_ADDR, UART_BAUDRATE(not used)
 
 	XBDDeviceDependent.h:
 		- FLASH_ADDR_MIN?? same?	YES
 	
 	drivers/
 		msp430.h -	Replaced file with newer version
-				*header needs to be converted make it compatable with gcc sfrw, sfrb..
+				*header needs to be converted to make it compatable with gcc sfrw, sfrb..
+					- not needed include new header that already contains the MACROS
 		legacy.h -	msp430.h dependancy, might not be needed... remove...
 		ms430fr5994.h -	Replaced the 5529 specific header
 		hardware.h -	Not being used?
@@ -33,41 +35,52 @@ Changes:
 			- i2cInit()								- DONE
 				-configured i2c, set P7.1 and P7.0
 			- i2cSetLocalDeviceAddr()						- DONE
-				-But ucb2 addr. register not found, used ucb0 instead....
+				-But ucb2 addr. register not found, used ucb0 instead.... (fixed?)
 			- i2cSetSlaveReceiveHandler() and i2cSetSlaveTransmitHandler()		- no changes??
-				-where are i2c rx,tx ISRs?
+				-where are i2c rx,tx ISRs? code in twi_isr(), calls func. depending
+					on state.
 			- twi_isr()								- DONE
 				-changed register names
 		iomacros.h -	Used new iomacros						- DONE
 		memory.c -	might have to modify...		(not used)
 		in430.h -	might have to modify...
-		RS232.c - 	used for debug, needs modification...				- needs MODIFICATIONS
-		RS232.h -	header, no changes...
+		RS232.c - 	used for debug, needs modification...				- DONE
+				- 115200 baudrate, set using F_CPU
+		RS232.h -	header
+				- define XBD_debugLine Macro
 		clock_init.h - 	no changes
 		clock_init.c -	needs modifications....						- functions used, needs MODIFICATIONS	
-				-modified delay_cycles(), rest modify later
+				-modified clk sys registers. freq.= 16,8,4,1 MHz.
+				-16 Mhz not working. Why?
+				-modified RTC registers in delay_cycles()
+					-update with timer code for accuracy OR just use TI __delay_cycles()..
 
 	XBD_HAL.c:
 		- XBD_init()									- DONE
 			-configure exec,rst pins..
+			-P1.0 LED - DEBUG MODE
 		- XBD_sendExecutionStartSignal()						- DONE
 		- XBD_sendExecutionCompleteSignal()						- DONE
 		- XBD_programPage()								- DONE but test the func.
 			*Use FRCTL_A
 		- XBD_busyLoopWithTiming()							- DONE
 			*Use RTC_C - need ctr mode
-			*32 bit addressable, possible on 5994? RTCNT..
-			*why is 8/16 bit overflow needed?
+			*Can's use RTC, it can't source from SMCLK.
+			*Use Timers. 
+				-__delay_cycles(F_CPU) instead approx cycles = ~1s.
+				- so currently not using approxCycles
 		- soft_reset()									- DONE
 			-changed register names
+		- XBD_debugOut()
+			- no changes
 	
-	HAL:
-		msp430fr5994.ld -	Added file from TI folder, needed?	Yes, used by ./compile.py for algo. (maybe BL makefile too)
+	/HAL:
+		msp430fr5994.ld -	Added file from TI folder, needed?	Yes, used by ./compile.py for algo.
 			- changed 'RAM' length to full 8k (0x2000, prev. val. 0x1000) and commented out 'LEARAM', 'LEASTACK'
 		msp430fr5994_symbols.ld -	Added, msp430fr5994.ld dependency
 
-	bootloader:
-		msp430fr5994.ld -	Added file from TI folder, needed?
+	/bootloader:
+		msp430fr5994.ld -	Added file from TI folder, needed?	Yes, used by linker for making bootloader
 		msp430fr5994_symbols.ld -	Added, msp430fr5994.ld dependency
 
 	
@@ -75,13 +88,24 @@ Changes:
 
 TO DO:	
 	- CRC module code??
-	- Currently commented out rs232.c and clocks.c (since dev. already runs at 16mhz) and added 'unlock ports' in XBD_init(), modify later
+	- Currently commented out rs232.c and clocks.c and added 'unlock ports' in XBD_init(), modify later
 	- setting.ini changes?
+		- Don't think this is being used for compiling/flashing of BL, just for checking size of binary (postlink.py) during algo 
+			compilation by XBS.
 	- Makefile - Wrong BL_addr, unable to upload program, change value..
+
+	-- UART debug
+	-- Modify XBD_debugOut so it works like printf, multiple arguments.. use MACRO to also print file/line numbers
+
+	- Application Mode doesn't work because of either flash writes/initial housekeeping func. (crt0) - now works after moving crt0 section in .ld file
+	
+	- in xbd_init() - set p1.0 to off
 
 
 Changes on the XBS side:
-		- No changes
+		- Add platform to config.ini
+		- No other changes?
+		- select XBD frequency???
 
 
 -------------------------------------------------------------
@@ -106,8 +130,121 @@ Other Notes:
 
 	
 	How does XBS know where the flash start addr. is for the XBD? xbdprog.hex??
-	
 
+
+	Baud rate calc. for debug:
+			To calculate the correct the correct settings for the baud-rate generation, perform these
+			steps:
+			1. Calculate N = fBRCLK/baud rate [if N > 16 continue with step 3, otherwise with step 2]
+			2. OS16 = 0, UCBRx = INT(N) [continue with step 4]
+			3. OS16 = 1, UCBRx = INT(N/16), UCBRFx = INT([(N/16) – INT(N/16)] × 16)
+			4. UCBRSx can be found by looking up the fractional part of N ( = N - INT(N) ) in table
+			Table 39-4
+			5. If OS16 = 0 was chosen, TI recommends performing a detailed error calculation
+
+	I2C -	PSEL  might be the problem.... (PSEL in uC specific guide)
+
+	-initClocks() messes up clocks for debug... FIXED (freq. set to ~16 x 10^6 NOT 16 x 2^20 for F5529)
+
+	-flashing addr of algorithm is 0x4400 (start of flash mem.)???	YES for F5529
+	-For F5529 Flash BankB non-contiguous mem. (mem+INT VEC+mem) how does uC know to skip INT vectors? (.ld files..) 
+	-How does the linker know to use the specific .ld files (not mentioned in the makefiles)??
+
+	Clocks (F5529):
+		- Note XT2=4MHz (not used)
+		Current Config:
+		- MCLK is system clock, which is sourced from DCOCLK or DCOCLKDIV.
+		- DCOCLK sources from XT1CLK (with div /1) (which has a freq. of 2^15)
+		- DCOCLKDIV itself is divided by /1 (FLLD) for all configs.. but there is a multiplier 'N' (FLLN)
+			- f_DCOCLK = D × (N + 1) × (f_FLLREFCLK ÷ n),	i.e	f_DCOCLK = FLLD × (FLLN + 1) × (SELREF ÷ FLLREFDIV)
+			- f_DCOCLKDIV = (N + 1) × (f_FLLREFCLK ÷ n),	i.e	f_DCOCLKDIV = (FLLN + 1) × (SELREF ÷ FLLREFDIV)
+		- 'n' is the refclk divider (i.e. XT1CLK's divider)
+		- E.g. For 8MHz = 8388608
+			- f_DCOCLKDIV = (0x0F3 + 1) × (2^15 ÷ 1) = 7995392 ~= 8388608
+		
+		- Current Settings: -ACLK=XT1CLK 	-MCLK=DCO/DCODIV	-SMCLK=MCLK
+		Frequencies: (F5529)
+			- 16000000 -> 15990784
+			- 8000000 -> 7995392
+			- 1000000 -> 983040
+	
+	Clocks (FR5594):
+		- XT1 => LFXT, XT2 => HFXT
+		- MCLK, SMCLK sourced from DCOCLK
+		- DCO has limited selectable frequencies (no multiplier)
+
+		-fix delay_cycles - OSC Faults
+		
+	- Can't use RTC since it can't be sourced by SMCLK, use timers..
+
+	1) Make sure 5994 can do 115200
+	2) Make sure clocks work and baudrate works with clocksinit()
+	3) Merge code with platform code and adjust BL memory mapping
+		
+
+	
+	XBS problem: IHEX: 
+		Traceback (most recent call last):
+		  File "./execute.py", line 35, in <module>
+		    main()
+		  File "./execute.py", line 27, in main
+		    rs.runall()
+		  File "./python/xbx/run.py", line 439, in runall
+		    be.load_build()
+		  File "./python/xbh.py", line 95, in func_wrapper
+		    return func(self, *args, **kwargs)
+		  File "./python/xbx/run.py", line 269, in load_build
+		    self.xbh.upload_prog(full_hex_path)
+		  File "./python/xbh.py", line 442, in upload_prog
+		    reader = prog_reader.ProgramReader(filename, program_type, self.page_size)
+		  File "./python/prog_reader.py", line 44, in __init__
+		    raise Error("Make sure this actually works")
+		NameError: name 'Error' is not defined
+
+		- FIXED - removed interrupt vector definitions in /HAL/*.ld linker file
+	
+	-Note: I2C_DEBUG - causing i2c issues when set, might be due to delays caused by UART or placement of the debug statements
+		UART OUTPUT:
+		START MSP430FR5994 HAL
+
+		XBD BL e6357ed4fa7084ff2663df3cb3bfbd02408396da started
+		Start
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX done
+		Disregarding Block (CRC failed..)
+		XBD04crc :
+		58424430347362
+		(expCRC_rxCRC): FFD7_727B
+		---------------------
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX byte
+		RX done
+		Disregarding Block (CRC failed..)
+		XBD04crc :
+		58424430347362727B3F584244303476
+		69
+		(expCRC_rxCRC): A888_724A
+		---------------------
+		Start
+		RX byte
+		
+		- Confirmed - it is because of delays. Also, use 10k pull-up resistors.
 
 
 

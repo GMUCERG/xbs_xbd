@@ -54,7 +54,7 @@ MEMORY {
   JTAGSIGNATURE    : ORIGIN = 0xFF80, LENGTH = 0x0004
   BSLSIGNATURE     : ORIGIN = 0xFF84, LENGTH = 0x0004
   IPESIGNATURE     : ORIGIN = 0xFF88, LENGTH = 0x0008
-  VECT0           : ORIGIN = 0xFF90, LENGTH = 0x0002
+  /* VECT0           : ORIGIN = 0xFF90, LENGTH = 0x0002
   VECT1           : ORIGIN = 0xFF92, LENGTH = 0x0002
   VECT2           : ORIGIN = 0xFF94, LENGTH = 0x0002
   VECT3           : ORIGIN = 0xFF96, LENGTH = 0x0002
@@ -109,7 +109,7 @@ MEMORY {
   VECT52           : ORIGIN = 0xFFF8, LENGTH = 0x0002
   VECT53           : ORIGIN = 0xFFFA, LENGTH = 0x0002
   VECT54           : ORIGIN = 0xFFFC, LENGTH = 0x0002
-  RESETVEC         : ORIGIN = 0xFFFE, LENGTH = 0x0002
+  RESETVEC         : ORIGIN = 0xFFFE, LENGTH = 0x0002 */
 }
 
 SECTIONS
@@ -123,7 +123,7 @@ SECTIONS
     KEEP (*(.jtagpassword))
   } > IPESIGNATURE
 
-  __interrupt_vector_0   : { KEEP (*(__interrupt_vector_0  )) } > VECT0
+  /* __interrupt_vector_0   : { KEEP (*(__interrupt_vector_0  )) } > VECT0
   __interrupt_vector_1   : { KEEP (*(__interrupt_vector_1  )) } > VECT1
   __interrupt_vector_2   : { KEEP (*(__interrupt_vector_2  )) } > VECT2
   __interrupt_vector_3   : { KEEP (*(__interrupt_vector_3  )) } > VECT3
@@ -178,7 +178,43 @@ SECTIONS
   __interrupt_vector_52  : { KEEP (*(__interrupt_vector_52)) KEEP (*(__interrupt_vector_comp_e)) } > VECT52
   __interrupt_vector_53  : { KEEP (*(__interrupt_vector_53)) KEEP (*(__interrupt_vector_unmi)) } > VECT53
   __interrupt_vector_54  : { KEEP (*(__interrupt_vector_54)) KEEP (*(__interrupt_vector_sysnmi)) } > VECT54
-  __reset_vector         : { KEEP (*(__interrupt_vector_55)) KEEP (*(__interrupt_vector_reset)) KEEP (*(.resetvec)) } > RESETVEC
+  __reset_vector         : { KEEP (*(__interrupt_vector_55)) KEEP (*(__interrupt_vector_reset)) KEEP (*(.resetvec)) } > RESETVEC 
+
+  */
+
+  .text :
+  {
+    PROVIDE (_start = .);
+
+    . = ALIGN(2);
+    KEEP (*(SORT(.crt_*)))
+
+    . = ALIGN(2);
+    KEEP (*(.lowtext))
+
+    . = ALIGN(2);
+    *(.lower.text.* .lower.text)
+
+    . = ALIGN(2);
+    *(.text .stub .text.* .gnu.linkonce.t.* .text:*)
+    /* See the note in .rodata section about why we do not have this line here:
+
+        *(.either.text.* .either.text)
+    */
+  
+    KEEP (*(.text.*personality*))
+    /* .gnu.warning sections are handled specially by elf32.em.  */
+    *(.gnu.warning)
+    *(.interp .hash .dynsym .dynstr .gnu.version*)
+    PROVIDE (__etext = .);
+    PROVIDE (_etext = .);
+    PROVIDE (etext = .);
+    . = ALIGN(2);
+    KEEP (*(.init))
+    KEEP (*(.fini))
+    KEEP (*(.tm_clone_table))
+  } > ROM
+
 
   .rodata :
   {
@@ -395,7 +431,7 @@ SECTIONS
     *(.stack)
   }
 
-  .text :
+/*  .text :
   {
     PROVIDE (_start = .);
 
@@ -414,9 +450,9 @@ SECTIONS
 
         *(.either.text.* .either.text)
     */
-	
+/*	
     KEEP (*(.text.*personality*))
-    /* .gnu.warning sections are handled specially by elf32.em.  */
+    /* .gnu.warning sections are handled specially by elf32.em.  */ /*
     *(.gnu.warning)
     *(.interp .hash .dynsym .dynstr .gnu.version*)
     PROVIDE (__etext = .);
@@ -427,7 +463,7 @@ SECTIONS
     KEEP (*(.fini))
     KEEP (*(.tm_clone_table))
   } > ROM
-
+*/
   .upper.text :
   {
     /* Note - if this section is not going to be included in the script

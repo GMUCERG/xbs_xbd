@@ -41,9 +41,9 @@ ENTRY(_start)
 MEMORY {
   TINYRAM          : ORIGIN = 0xA, LENGTH = 0x0016
   BSL              : ORIGIN = 0x1000, LENGTH = 0x0800
-  RAM              : ORIGIN = 0x1C00, LENGTH = 0x1000
-  LEARAM           : ORIGIN = 0x2C00, LENGTH = 0x0EC8
-  LEASTACK         : ORIGIN = 0x3AC8, LENGTH = 0x0138
+  RAM              : ORIGIN = 0x1C00, LENGTH = 0x2000    /*RAM len. was 0x1000 but we need full 8k (0x2000) */
+  /*LEARAM           : ORIGIN = 0x2C00, LENGTH = 0x0EC8
+  LEASTACK         : ORIGIN = 0x3AC8, LENGTH = 0x0138*/
   INFOMEM          : ORIGIN = 0x1800, LENGTH = 0x0200
   INFOD            : ORIGIN = 0x1800, LENGTH = 0x0080
   INFOC            : ORIGIN = 0x1880, LENGTH = 0x0080
