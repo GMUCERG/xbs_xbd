@@ -1,0 +1,23 @@
+#!/bin/bash
+
+sizeOpts="-ffunction-sections -fdata-sections"
+gccOpts="-pipe -fomit-frame-pointer -mthumb -std=gnu99 -Dgcc"
+mcuOpts="-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -DPART_TM4C129ENCPDT"
+linkOpts="-Wl,-T,XBD_AF.ld,-gc-sections -fuse-linker-plugin"
+#debugOpts="-DDEBUG -DXBX_DEBUG_APP  -ggdb3"
+debugOpts="-ggdb3"
+
+cat <<EOF
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O0 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os -flto=8 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 -flto=8 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 -flto=8 $sizeOpts $debugOpts 
+arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 -flto=8 $sizeOpts $debugOpts 
+EOF
+
+
+

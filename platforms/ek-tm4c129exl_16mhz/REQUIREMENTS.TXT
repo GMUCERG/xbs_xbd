@@ -1,0 +1,13 @@
+In order to get this hal running, you will need to initialize the hal/tivaware
+submodule is checked out and ensure the symlinks in hal/drivers to the
+hal/tivaware contents work.
+
+Run git submodule init and git submodule update
+
+Obtain lm4flash and use it to flash the bootloader, or use openocd to do so.
+Ensure only one Tiva-C device is plugged in, otherwise edit serial numbers into
+the scripts, using lm4flash to obtain them. Be sure to read openocd.cfg
+
+Edit makefile to ensure TARGET_IS_TM4C123_RB1 is defined if using ek-tm4c123gxl
+or TARGET_IS_TM4C123_RA1 if using lm4f232, or undefine altogether to not use ROM
+functions

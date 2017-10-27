@@ -1,0 +1,71 @@
+Copied files from tm4c123 as is and then modified.
+
+-Tm4c129 has AES module
+
+XBD (tm4c129) - modify
+	*I2C -	PA6(SCL), PA7(SDA)
+	*Soft Reset -	PA5			1 - Active High
+	*Execute Sig. -	PC5??			0 - Start, 1 - Complete
+
+
+
+
+
+- Commented out _calculate_power() in run_op.py and pass in _calculate_power (run.py) to run. (temp fix)
+- execution time of algorithm not working? calibration works.
+
+
+
+	
+	Makefile:
+		-changed part name to TM4C129ENCPDT
+	
+	c_compilers:
+		-changed part name to TM4C129ENCPDT
+
+	startup_gcc.c -> tm4c129encpdt_startup_ccs.c:
+		- Added file from code composer
+
+	XBD_BL.ld:
+		-
+
+/hal directory:
+	
+	XBD_HAL.c:
+		-
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
