@@ -42,6 +42,8 @@ static void nmiISR(void);
 static void faultISR(void);
 static void defaultISR(void);
 
+extern void EUSCIB0_IRQHandler(void);
+
 #ifndef HWREG
 #define HWREG(x) (*((volatile uint32_t *)(x)))
 #endif
@@ -98,7 +100,7 @@ void (* const interruptVectors[])(void) __attribute__ ((section (".intvecs"))) =
     defaultISR,                             /* EUSCIA1 ISR               */
     defaultISR,                             /* EUSCIA2 ISR               */
     defaultISR,                             /* EUSCIA3 ISR               */
-    defaultISR,                             /* EUSCIB0 ISR               */
+    EUSCIB0_IRQHandler,                     /* EUSCIB0 ISR               */
     defaultISR,                             /* EUSCIB1 ISR               */
     defaultISR,                             /* EUSCIB2 ISR               */
     defaultISR,                             /* EUSCIB3 ISR               */

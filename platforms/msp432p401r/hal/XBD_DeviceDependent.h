@@ -30,3 +30,5 @@
 // Use extern end to find end of .bss instead
 //#define TM4C123GH6PM_STACKTOP ((uint8_t *)0x20002000)
 //#define TM4C123GH6PM_STACKBOTTOM ((uint8_t *)0x20001c00)
+
+void printf_xbd(char *str);

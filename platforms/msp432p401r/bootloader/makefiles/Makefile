@@ -42,6 +42,9 @@ SOURCES   += XBD_crc.c
 SOURCES   += XBD_util.c
 SOURCES   += XBD_commands.c
 SOURCES   += XBD_HAL.c
+SOURCES   += i2c_comms.c
+Sources   += i2c.c
+sources   += systick.c
 
 
 # Use vpath to find source files

@@ -9,6 +9,7 @@
 #include "driverlib.h"
 #include "XBD_HAL.h"
 #include <XBD_FRW.h>
+#include "i2c_comms.h"
 
 char * print_ptr;
 unsigned int integer_print;
@@ -61,37 +62,36 @@ void strcpy(char *dst, const char *src)
 
 
 void XBD_init() {
+	printf_xbd("XBD_init\n");
 	/* Halting the Watchdog */
 	MAP_WDT_A_holdTimer();
 
-	/* Configuring GPIO as an output */
-	MAP_GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
+	MAP_CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_12);
+	MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1 );
+	MAP_CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1 );
+	MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1 );
+	MAP_CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-	/* Configuring SysTick to trigger at 1500000 (MCLK is 3MHz so this will make
-	* it toggle every 0.5s) */
-	MAP_SysTick_enableModule();
-	MAP_SysTick_setPeriod(750000);
-	//MAP_Interrupt_enableSleepOnIsrExit();
-	MAP_SysTick_enableInterrupt();
+
+	/* Configuring GPIO as an output */
+	MAP_GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN0);
+	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN0);
     
 	/* Enabling MASTER interrupts */
 	MAP_Interrupt_enableMaster();  
 
-	printf_xbd("Test Print\n");
+	i2c_set_rx(FRW_msgRecHand);
+	i2c_set_tx(FRW_msgTraHand);
+	i2c_init();
 }
 
 void XBD_serveCommunication(void) {
-	unsigned int i = 0;
-
-	for (i = 0; i < 1500; i++) {
-		//MAP_PCM_gotoLPM0();
-	}	
-	printf_xbd("Test Print\n");
+	i2c_rx();
 }
 
 void SysTick_Handler(void)
 {
-    MAP_GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+	
 }
 
 
@@ -113,11 +113,11 @@ void XBD_programPage(uint32_t pageStartAddress, uint8_t *buf) {
 }
 
 inline void XBD_sendExecutionStartSignal() {
-	
+	MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN0);
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
-	
+	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN0);
 }
 
 void soft_reset(void) {
@@ -133,6 +133,24 @@ void XBD_switchToApplication() {
 }
 
 uint32_t XBD_busyLoopWithTiming(uint32_t approxCycles) {
-	return 0;
+	volatile uint32_t exactCycles;
+	//printf_xbd("starting timing");
+	
+ 	MAP_SysTick_disableModule();
+	MAP_SysTick_disableInterrupt();
+	MAP_SysTick_setPeriod(approxCycles+10000);
+	//HWREG(NVIC_ST_CURRENT)=0;
+	SysTick->VAL = 0;
+
+	MAP_SysTick_enableModule();
+	XBD_sendExecutionStartSignal();
+
+	while( (exactCycles=MAP_SysTick_getValue()) > 10000);
+
+	MAP_SysTick_disableModule();
+	XBD_sendExecutionCompleteSignal();
+
+	exactCycles = (approxCycles+10000)-MAP_SysTick_getValue();
+	return exactCycles;
 }
 
