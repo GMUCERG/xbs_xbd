@@ -2,6 +2,7 @@
 #include "i2c_comms.h"
 #include "XBD_DeviceDependent.h"
 
+//#define I2C_DEBUG 1
 #ifdef I2C_DEBUG
 #define DEBUG_I2C(x) printf_xbd(x)
 #else
@@ -12,9 +13,7 @@
 //SDA - P1.6
 //TF - P3.0
 
-volatile uint_fast8_t rx_flag = 0;
 volatile uint_fast8_t tx_flag = 0;
-volatile uint_fast8_t xbd_process_data = 0;
 uint8_t i2c_buf[180] = {0};
 uint16_t i2c_size_read = 0;
 uint16_t i2c_size_sent = 0;
@@ -57,89 +56,77 @@ void i2c_init(void) {
 	MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
 
 	MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
-	// Do not enable stop interrupts yet because those are enabled when
-	// begin receive or transmit
+	MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
 
-
-	MAP_Interrupt_enableInterrupt(INT_EUSCIB0);
 	MAP_Interrupt_enableMaster();
 }
 
-// Interrupt handler for EUSCI
-void EUSCIB0_IRQHandler(void)
+typedef enum {
+	STATE_START,
+	STATE_RX, 
+	STATE_TX
+} state_t;
+
+state_t state = STATE_START;
+
+// Function called by XBD_serveCommunication to start processing of data
+void i2c_rx(void)
 {
 	uint_fast16_t status;
 
 	status = MAP_I2C_getEnabledInterruptStatus(EUSCI_B0_BASE);
 
-	// Clear any status flags
-	MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, status);
-
-	// Receive interrupt
-	if (status & EUSCI_B_I2C_RECEIVE_INTERRUPT0)
-	{
-		// Receive the byte from i2c
-		i2c_buf[i2c_size_read] = MAP_I2C_slaveGetData(EUSCI_B0_BASE);
-		i2c_size_read++;
-		// Disable transmit interrupts because receiving from XBH
-		MAP_I2C_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
-		// Enable stop interrupts to indicate completion of receive
-		MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
-		DEBUG_I2C("XBH sending\n");
-		rx_flag = 1;
+	switch (state) {
+	case STATE_START:
+		if (status & EUSCI_B_I2C_RECEIVE_INTERRUPT0) {
+			state = STATE_RX;
+		} else if (status & EUSCI_B_I2C_TRANSMIT_INTERRUPT0) {
+			state = STATE_TX;
+		}
+		break;
+	case STATE_RX:
+		// Receive interrupt
+		if (status & EUSCI_B_I2C_RECEIVE_INTERRUPT0)
+		{
+			// Receive the byte from i2c
+			i2c_buf[i2c_size_read] = MAP_I2C_slaveGetData(EUSCI_B0_BASE);
+			i2c_size_read++;
+			DEBUG_I2C("XBH sending\n");
 		
-	}
-
-	// Transmit interrupt
-	if (status & EUSCI_B_I2C_TRANSMIT_INTERRUPT0)
-	{
-		if (tx_flag == 0) {
-			i2cSlaveTransmit(160, i2c_buf);
-			DEBUG_I2C(i2c_buf);
-			tx_flag = 1;
 		}
-		// Transmit the byte over i2c
-		MAP_I2C_slavePutData(EUSCI_B0_BASE, i2c_buf[i2c_size_sent]);
-		i2c_size_sent++;
-		// Disable receive interrupts because transmitting to XBH
-		MAP_I2C_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
-		// Enable stop interrupts to indicate completion of transmit
-		MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
-		DEBUG_I2C("XBH receiving\n");
-		rx_flag = 0;
-	}
-
-	//Received stop
-	if (status & EUSCI_B_I2C_STOP_INTERRUPT) {
-		DEBUG_I2C("Received Stop\n");
-		if (rx_flag) {
-			rx_flag = 0;
-			xbd_process_data = 1;
-			// Disable all interrupts until data is processed
-			MAP_I2C_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
-			MAP_I2C_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
-		} else {
-			// Enable receive interrupt in case it is next
-			MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
+		//Received stop
+		if (status & EUSCI_B_I2C_STOP_INTERRUPT) {
+			MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+			DEBUG_I2C("Received Stop\n");
+			DEBUG_I2C((char *)i2c_buf);
+			i2cSlaveReceive(i2c_size_read, i2c_buf);
+			i2c_size_read = 0;
+			state = STATE_START;
 		}
-		MAP_I2C_disableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
-		i2c_size_sent = 0;
-		tx_flag = 0;
+		break;
+	case STATE_TX:
+		// Transmit interrupt
+		if (status & EUSCI_B_I2C_TRANSMIT_INTERRUPT0)
+		{
+			if (tx_flag == 0) {
+				i2cSlaveTransmit(160, i2c_buf);
+				DEBUG_I2C(i2c_buf);
+				tx_flag = 1;
+			}
+			// Transmit the byte over i2c
+			MAP_I2C_slavePutData(EUSCI_B0_BASE, i2c_buf[i2c_size_sent]);
+			i2c_size_sent++;
+			DEBUG_I2C("XBH receiving\n");
+		}
+		if (status & EUSCI_B_I2C_STOP_INTERRUPT) {
+			MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+			DEBUG_I2C("Received Stop\n");
+			DEBUG_I2C((char *)i2c_buf);
+			i2c_size_sent = 0;
+			tx_flag = 0;
+			state = STATE_START;
+		}
+		break;	
 	}
 }
-
-// Function called by XBD_serveCommunication to start processing of data
-void i2c_rx(void) {
-	// Command received
-	if (xbd_process_data) {
-		DEBUG_I2C((char *)i2c_buf);
-		i2cSlaveReceive(i2c_size_read, i2c_buf);
-		xbd_process_data = 0;
-		i2c_size_read = 0;
-		MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
-		MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
-	}
-}
-
-
 

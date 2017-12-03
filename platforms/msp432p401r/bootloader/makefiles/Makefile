@@ -18,19 +18,18 @@ PATH_BL =../../../../embedded/xbd/xbd_bl
 
 # GCC Configuration
 DEVICE ?= MSP432P401R
-GCC_MSP_INC_DIR	?= ../../hal/inc
-GCC_CMSIS_INC_DIR ?= $(GCC_MSP_INC_DIR)/CMSIS
+GCC_MSP_INC_DIR	?= ../../hal/drivers
 LDDIR := $(GCC_MSP_INC_DIR)/
 RM := rm -rf
 MKDIR := mkdir -p -- $@
 GCC_INC_DIR ?= /usr/lib/arm-none-eabi/include
 CC := arm-none-eabi-gcc
 GDB := arm-none-eabi-gdb
-INCLUDES := -I $(GCC_CMSIS_INC_DIR) -I $(GCC_MSP_INC_DIR) -I $(GCC_INC_DIR) -I ../../hal/drivers -I ../../hal/
+INCLUDES := -I $(GCC_MSP_INC_DIR) -I $(GCC_INC_DIR) -I ../../hal/drivers -I ../../hal/
 INCLUDES += -I$(PATH_BL)
 INCLUDES += -I$(PATH_AF)
-COMMONFLAGS := -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -D__$(DEVICE)__ -DTARGET_IS_MSP432P4XX -Dgcc -g -gstrict-dwarf -Wall
-CFLAGS := $(COMMONFLAGS) -ffunction-sections -fdata-sections -MD -std=c99
+COMMONFLAGS := -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -D__$(DEVICE)__ -DTARGET_IS_MSP432P4XX -Dgcc -g -gstrict-dwarf -Wall -DBL
+CFLAGS := $(COMMONFLAGS) -ffunction-sections -fdata-sections -MD -std=gnu99
 LDFLAGS := $(COMMONFLAGS) -T$(LDDIR)XBD.ld -l'c' -l'gcc' -l'nosys'
 
 
@@ -38,7 +37,6 @@ SOURCES   += startup_msp432p401r_gcc.c
 SOURCES   += system_msp432p401r.c
 SOURCES   += XBD_BL.c
 SOURCES   += XBD_crc.c
-#SOURCES   += XBD_debug.c
 SOURCES   += XBD_util.c
 SOURCES   += XBD_commands.c
 SOURCES   += XBD_HAL.c
@@ -49,6 +47,7 @@ sources   += systick.c
 
 # Use vpath to find source files
 VPATH := ../../hal:../../hal/drivers
+VPATH     += ../
 VPATH     += $(PATH_AF)
 VPATH     += $(PATH_BL)
 
