@@ -1,21 +1,44 @@
-Copied files from tm4c123 as is and then modified.
-
 -Tm4c129 has AES module
 
-XBD (tm4c129) - modify
+XBD (tm4c129) - modified
+	*I2C0 -	PB2(SCL), PB3(SDA)
+	*Soft Reset -	PC7			1 - Active High
+	*Execute Sig. -	PL4			0 - Start, 1 - Complete (Active low)	- was AHB
+
+XBD (tm4c123)
 	*I2C -	PA6(SCL), PA7(SDA)
 	*Soft Reset -	PA5			1 - Active High
 	*Execute Sig. -	PC5??			0 - Start, 1 - Complete
 
 
+- See eehusky.wordpress.com article for ti stellaris toolchain. MAP_/ROM_/ compiler, and linker flags, etc.
+- Added new tivaware
 
-
-
-- Commented out _calculate_power() in run_op.py and pass in _calculate_power (run.py) to run. (temp fix)
+- Commented out _calculate_power() in run_op.py and pass in _calculate_power (run.py) to run. (temp fix, workaround for new power measuring code)
 - execution time of algorithm not working? calibration works.
 
-
-
+- Algorithm -> XBD_OH.c -> XBD_APP.c -> [XBD_BL.c -> XBD_HAL.c]
+- use objdump to examine memory mapping (or look in the .map file)
+	- linker flag: -Map=$(PROJECT).map
+- ./compile looks in /algobase
+- buildfiles.py has makefiles for the Application/Algorithm (i.e. for binaries in /work dir)
+- arm-none-eabi-gcc flag: -march=armv7e-m
+- see https://www.math.utah.edu/docs/info/ld_3.html#SEC7 for understanding linker description files
+- change stacksize(pui32Stack[]) in startup_ccs_gcc.c
+	- default stacksize: 512
+	- For TI compiler/toolchain 
+		- look in startup_ccs.c (placing _STACK_TOP in intvecs)
+		- _STACK_TOP defined in .cmd file
+			- change: __STACK_TOP = __stack + 512;
+	- Initial stack address stored in [0] of ".intvecs"
+- Algorithms (round3)
+	- Most of the ones that return -1 for decrypt OR cause FaultISR seem to work if stack_size is increased.
+- Remember to reset after ./flash_bl
+- Bug/Note in XBS (config.ini)
+	- for listed primitives if there are multiple commented lines between consecutive listed ciphers then following
+		error appears: "ValueError: Primitive  directory does not exist!". (have to place them in immediate consecutive lines)
+- sha256 checksum of sent binary (xbdprog.hex in /work)
+-Flag 'TARGET_IS_TM4C129_RA0' not needed
 	
 	Makefile:
 		-changed part name to TM4C129ENCPDT
@@ -24,23 +47,256 @@ XBD (tm4c129) - modify
 		-changed part name to TM4C129ENCPDT
 
 	startup_gcc.c -> tm4c129encpdt_startup_ccs.c:
-		- Added file from code composer
+		- used old file from tm4c123, now works.
+		- changes stack_size from 56 -> 512
+		
 
 	XBD_BL.ld:
 		-
+	XBD_AF.ld:
+		- Added '.heap' section needed for aezv4 and twine80n6t4clocv3.
+/CCS_workspace:
+	-workspace_v6_2 _ARM_XBD_ALGO.zip - CCS workspace with round3 algorithms
+	-caesar_round3	- Table for curretn status of algos on the XBD (independently and on XXBX)
 
 /hal directory:
 	
 	XBD_HAL.c:
-		-
+		-Changed Execute and Rst pins in 
+			- XBD_init(), XBD_sendExecutionStartSignal()
+			- XBD_sendExecutionCompleteSignal()
+		- Port L doesn't have AHB
+		- XBD_programPage
+			- for this uC Blocks are 16 KB (not 1KB as in tm4c123) so the application (AF) starts from 0x4000 (in XBD_AF.ld).
+				0x0000 - 0x3FFF is for the bootloader.
+			- FlashErase is done only when addr%16K==0
+
+		- UART (for debug)
+			- SysCtlClockGet() in MAP_UARTConfigSetExpClk() is not working (returns 0)
+			- So clock is now setup using MAP_SysCtlClockFreqSet() (before MAP_SysCtlClockSet() was used)
+			- works.
+			
+	i2c_comm.c:
+		- Initialized I2C0 pins in i2cInit() and updated to i2c0 base for reading registers in i2cHandle()
+	
+	XBD_DeviceDependent.h:
+		- Change FLASH_ADDR_MIN & FLASH_ADDR_MAX
+
+		
+
+
+
+PL4 - Port L not AHB
+
+
+
+
+BL size w/o debug:
+   text	   data	    bss	    dec	    hex	filename
+   4458	      4	   1754	   6216	   1848	TM4C129ENCPDT_BL.axf
+
+with debug:
+   text	   data	    bss	    dec	    hex	filename
+   7389	      4	   1754	   9147	   23bb	TM4C129ENCPDT_BL.axf
+
+
+
+The (void (*)(void) is a type of function pointer taking no argument and returning no value. 
+The ((void (*)(void))0x00008000) is to type cast the address (0x00008000) to the function pointer.
+The ((void (*)(void))0x00008000)() is to execute the cast value as a function.
 	
 	
+	
+Debugger fails when compiling algorithms with GCC Linaro on CCS (BUG):
+	- see http://processors.wiki.ti.com/index.php/Using_GCC_with_Tiva_in_CCSv6
+	- tldr: Set entry point to 'ResetISR' in Linker script.
 
 
+#-----------Config Formatted for Caesar Round3---------------------
+# Newline seperated list of primitives to work on
+primitives = 
+      #ZERO Cipher
+      0cipher
 
+      #ACORN
+      acorn128v3
 
+      #AEGIS Cipher
+      aegis128
+      aegis128l
+      aegis256
 
+      #AES-OTR Cipher
+      aes128otrpv3
+      aes128otrsv3
+      aes256otrpv3
+      aes256otrsv3
 
+      #AEZ Cipher
+      aezv4
+
+      #ASCON Cipher
+      ascon128v12
+      ascon128av12
+
+      #CLOC Cipher
+      aes128n12t8clocv3
+      twine80n6t4clocv3
+
+      #SILC Cipher
+      aes128n12t8silcv3
+      present80n6t4silcv3
+      led80n6t4silcv3
+
+      #COLM Cipher
+      colm0v1
+      colm127v1
+
+      #DEOXYS Cipher
+      deoxysi128v141
+      deoxysii128v141
+      deoxysi256v141
+      deoxysii256v141
+
+      #JAMBU Cipher
+      simonjambu96v2
+      simonjambu64v2
+      simonjambu128v2
+      aesjambuv2
+
+      #KETJE Cipher
+      ketjejrv2
+      ketjesrv2
+      ketjeminorv2
+      ketjemajorv2
+
+      #KEYAK Cipher
+      riverkeyakv2
+      lakekeyakv2
+      seakeyakv2
+      oceankeyakv2
+      lunarkeyakv2
+
+      #MORUS Cipher
+      morus1280128v2
+      morus640128v2
+      morus1280256v2
+
+      #NORX Cipher
+      norx3241v3
+      norx6441v3
+      norx3261v3
+      norx6461v3
+      norx6444v3
+
+      #OCB Cipher
+      aeadaes128ocbtaglen128v1
+      aeadaes128ocbtaglen96v1
+      aeadaes128ocbtaglen64v1
+      aeadaes192ocbtaglen128v1
+      aeadaes192ocbtaglen96v1
+      aeadaes192ocbtaglen64v1
+      aeadaes256ocbtaglen128v1
+      aeadaes256ocbtaglen96v1
+      aeadaes256ocbtaglen64v1
+
+      #TIAOXIN Cipher
+      tiaoxinv2
+
+ 
+[implementation]
+
+# # If whitelist is set, blacklists are ignored and only implementations in whitelist are run
+# # Newline seperated path, relative from operation directory
+whitelist =
+       #ZERO Cipher
+      0cipher/empty
+
+      #ACORN
+      acorn128v3/ref
+
+      #AEGIS Cipher
+      aegis128/ref
+      aegis128l/ref
+      aegis256/ref
+
+      #AES-OTR Cipher
+      aes128otrpv3/ref
+      aes128otrsv3/ref
+      aes256otrpv3/ref
+      aes256otrsv3/ref
+
+      #AEZ Cipher
+      aezv4/ref
+
+      #ASCON Cipher
+      ascon128v12/ref
+      ascon128av12/ref
+
+      #CLOC Cipher
+      aes128n12t8clocv3/ref
+      twine80n6t4clocv3/ref
+
+      #SILC Cipher
+      aes128n12t8silcv3/ref
+      present80n6t4silcv3/ref
+      led80n6t4silcv3/ref
+
+      #COLM Cipher
+      colm0v1/ref
+      colm127v1/ref
+
+      #DEOXYS Cipher
+      deoxysi128v141/ref
+      deoxysii128v141/ref
+      deoxysi256v141/ref
+      deoxysii256v141/ref
+
+      #JAMBU Cipher
+      simonjambu96v2/ref
+      simonjambu64v2/ref
+      simonjambu128v2/ref
+      aesjambuv2/ref
+
+      #KETJE Cipher
+      ketjejrv2/ref
+      ketjesrv2/ref
+      ketjeminorv2/ref
+      ketjemajorv2/ref
+
+      #KEYAK Cipher
+      riverkeyakv2/ref
+      lakekeyakv2/ref
+      seakeyakv2/ref
+      oceankeyakv2/ref
+      lunarkeyakv2/ref
+
+      #MORUS Cipher
+      morus1280128v2/ref
+      morus640128v2/ref
+      morus1280256v2/ref
+
+      #NORX Cipher
+      norx3241v3/ref
+      norx6441v3/ref
+      norx3261v3/ref
+      norx6461v3/ref
+      norx6444v3/ref
+
+      #OCB Cipher
+      aeadaes128ocbtaglen128v1/ref
+      aeadaes128ocbtaglen96v1/ref
+      aeadaes128ocbtaglen64v1/ref
+      aeadaes192ocbtaglen128v1/ref
+      aeadaes192ocbtaglen96v1/ref
+      aeadaes192ocbtaglen64v1/ref
+      aeadaes256ocbtaglen128v1/ref
+      aeadaes256ocbtaglen96v1/ref
+      aeadaes256ocbtaglen64v1/ref
+
+      #TIAOXIN Cipher
+      tiaoxinv2/ref
+#------------------------End of config----------------------------------------------------
 
 
 

@@ -24,16 +24,20 @@
 *   concept */
 //#define PAGESIZE (MAP_SysCtlFlashSectorSizeGet())
 #define PAGESIZE (1024)
+// #define PAGESIZE (16384)
 /** mask for alignment of page boundaries, keep at this value if there is no
 * page concept */
 #define PAGE_ALIGN_MASK 0xfffffc00
+// #define PAGE_ALIGN_MASK 0xffffc000
 
 
 /** maximum flash / binary storage size */
-#define FLASH_ADDR_MAX (0x0003FFFF)
+// #define FLASH_ADDR_MAX (0x0003FFFF)
+#define FLASH_ADDR_MAX (0x00100000)
 
 /** minimum flash address, if boot loader resides below app */
-#define FLASH_ADDR_MIN (0x2800)
+// #define FLASH_ADDR_MIN (0x2800)
+#define FLASH_ADDR_MIN (0x4000)
 
 #define DEVICE_SPECIFIC_SANE_TC_VALUE (16000000)
 

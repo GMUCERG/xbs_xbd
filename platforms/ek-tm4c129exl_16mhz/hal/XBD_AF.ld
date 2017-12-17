@@ -41,7 +41,7 @@
 ENTRY(ResetISR)
 MEMORY
 {
-    FLASH (rx) : ORIGIN = 0x00002800, LENGTH = 0x0003d800
+    FLASH (rx) : ORIGIN = 0x00004000, LENGTH = 0x0003d800
     SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
@@ -78,6 +78,17 @@ SECTIONS
         _ebss = .;
         _end = .;
     } > SRAM
+
+    .heap : {
+        __heap_start__ = .;
+        end = __heap_start__;
+        _end = end;
+        __end = end;
+        KEEP(*(.heap))
+        __heap_end__ = .;
+        __HeapLimit = __heap_end__;
+    } > SRAM
+
     .stack (ORIGIN (SRAM) + LENGTH(SRAM)) : {
         PROVIDE (__stack = .);
         *(.stack)

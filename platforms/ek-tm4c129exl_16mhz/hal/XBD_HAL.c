@@ -52,24 +52,42 @@ void XBD_switchToBootLoader(void);
 
 void XBD_init() {
   /* inititalisation code, called once */
+
+
+    uint32_t g_ui32SysClock;    // System clock rate in Hz.
     //
     // Set the clocking to run directly from the crystal. 16MHz
     //
-    MAP_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
-                       SYSCTL_XTAL_16MHZ);
+    // MAP_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN |
+    //                    SYSCTL_XTAL_16MHZ);
+    g_ui32SysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_16MHZ |
+                                                  SYSCTL_OSC_MAIN |
+                                                  SYSCTL_USE_OSC |
+                                                  SYSCTL_SYSDIV_1), 16000000);
 
 	/* enable uart0 for debug output */
    //
     // Enable the peripherals used by this example.
     //
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);    //Part A - A0,A1 UART
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);    //Port L (4) - Execute
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);    //Port C (7) - Rst
+
+
+    //LED Code for debug
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+    while(!MAP_SysCtlPeripheralReady(SYSCTL_PERIPH_GPION));
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0);
+    MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0);    //Turn ON LED
+    // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);             //Turn OFF LED
 
 #ifdef DEBUG
     //Configure UART pins
-    MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
-    MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
+//    MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
+//    MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
+    GPIOPinConfigure(GPIO_PA0_U0RX);
+	GPIOPinConfigure(GPIO_PA1_U0TX);
 
     //
     // Set GPIO A0 and A1 as UART pins.
@@ -79,18 +97,21 @@ void XBD_init() {
     //
     // Configure the UART for 115200, 8-N-1 operation.
     //
-    MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
-                        (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                         UART_CONFIG_PAR_NONE));
+    // MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+    //                     (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+    //                      UART_CONFIG_PAR_NONE));
+    MAP_UARTConfigSetExpClk(UART0_BASE, g_ui32SysClock, 115200,
+                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                             UART_CONFIG_PAR_NONE));
 #endif
 
 #ifdef BOOTLOADER
-    IntEnable(INT_GPIOA);
+    IntEnable(INT_GPIOC);      //(PC7 - Rst)
     // Configure Software reset pin
-    MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_5);
-    MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_5, GPIO_HIGH_LEVEL);
+    MAP_GPIOPinTypeGPIOInput(GPIO_PORTC_BASE, GPIO_PIN_7);
+    MAP_GPIOIntTypeSet(GPIO_PORTC_BASE, GPIO_PIN_7, GPIO_HIGH_LEVEL);
 //    GPIOIntRegister(GPIO_PORTA_BASE, XBD_switchToBootLoader);
-    MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_5);
+    MAP_GPIOIntEnable(GPIO_PORTC_BASE, GPIO_INT_PIN_7);
 #endif
 
     // Configure execution signal pin (TimerFlag TF)
@@ -100,16 +121,22 @@ void XBD_init() {
   //   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_AHB_BASE, GPIO_PIN_2);
  	// MAP_GPIOPinWrite(GPIO_PORTB_AHB_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
-  // Enable all pins on ports as GPIO outs and set to 0 except pin 5
-    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOC);
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_AHB_BASE, GPIO_PIN_5);
-  MAP_GPIOPinWrite(GPIO_PORTC_AHB_BASE, GPIO_PIN_5, GPIO_PIN_5);
+  // Enable all pins on ports as GPIO outs and set to 0 except pin 5 - for execute pin
+    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOL);
+  //   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_AHB_BASE, GPIO_PIN_4);
+  // MAP_GPIOPinWrite(GPIO_PORTL_AHB_BASE, GPIO_PIN_4, GPIO_PIN_4);
+
+     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_BASE, GPIO_PIN_4);
+     MAP_GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_4, GPIO_PIN_4);
+
 
     // Configure i2c
     i2cSetSlaveReceiveHandler(FRW_msgRecHand);
     i2cSetSlaveTransmitHandler(FRW_msgTraHand);
-    i2cInit(SLAVE_ADDR); // uses PA6 and PA7
+    i2cInit(SLAVE_ADDR); // uses PB2 and PB3
 
+
+    XBD_debugOut("XBD_init done\n");
     //TODO: Find out if grounding GPIO is necessary
     //This is not indicated in documentation unlike MSP430
 #if 0
@@ -127,7 +154,8 @@ void XBD_init() {
 inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
     // HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = 0;
-    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = 0;
+    // HWREG(GPIO_PORTL_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = 0;
+    HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = 0;
 
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = 0;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
@@ -137,7 +165,8 @@ inline void XBD_sendExecutionStartSignal() {
 inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
     // HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = GPIO_PIN_2;
-    HWREG(GPIO_PORTC_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_5 << 2))) = GPIO_PIN_5;
+    // HWREG(GPIO_PORTL_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = GPIO_PIN_4;
+  HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = GPIO_PIN_4;
     
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = GPIO_PIN_5;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
@@ -186,12 +215,38 @@ void XBD_programPage( uint32_t pageStartAddress, uint8_t * buf ) {
   /* copy data from buf (PAGESIZE bytes) to pageStartAddress of
   application binary */
 	//static uint32_t last_pageStartAddress=UINT32_MAX;
-
+    // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);             //Turn OFF LED
     //
     // Erase this block of the flash.
     //
-    FlashErase(pageStartAddress);
-    FlashProgram((uint32_t *)buf, pageStartAddress, PAGESIZE);
+    int32_t err1 = 0;
+    int32_t err2 = 0;
+
+
+    //only erase Flash Block if on the block boundary (16384)
+    if((pageStartAddress&~0xffc000) == 0){
+      err1 = FlashErase(pageStartAddress);
+      XBD_debugOut("Erasing Block\r\n");
+    }
+
+    
+    err2 = FlashProgram((uint32_t *)buf, pageStartAddress, PAGESIZE);
+
+    // if((err1==-1) || (err2==-1)){
+    //   // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);             //Turn OFF LED
+    //   XBD_debugOut("Error erasing/writing to Flash Block.");
+    // }
+    // else{
+    //   // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 1);             //Turn ON LED
+    // }
+
+    if(buf[0] == *(unsigned char *)pageStartAddress){
+      XBD_debugOut("Write matches\r\n");
+    }
+    else{
+      XBD_debugOut("Write mismatch\r\n");
+    }
+    
 
 }
  __attribute__ ( ( naked ) )
@@ -199,7 +254,22 @@ void XBD_switchToApplication() {
   /* execute the code in the binary buffer */
   // __MSR_MSP(*(unsigned long *)0x2000);
    //((void(*)(void))FLASH_ADDR_MIN)();
-   asm("mov pc,%[addr]"::[addr] "r" (FLASH_ADDR_MIN));
+  // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);             //Turn OFF LED
+  XBD_debugOut("In XBD_switchToApplication, ADDR: FLASH_ADDR_MIN");
+
+   // asm("mov pc,%[addr]"::[addr] "r" (FLASH_ADDR_MIN));
+  asm("mov pc,%[addr]"::[addr] "r" (0x4000));
+  // asm("MOV pc, #0x00000000");
+
+  //  void (*reboot)( void ) = (void*)FLASH_ADDR_MIN; // defines the function reboot to location 0x3200
+  // void (*reboot)( void ) = (void*) 0x00; // defines the function reboot to location 0x3200
+  
+  // reboot(); // calls function reboot function
+  // ((void (*)(void))0x0000878)();
+  // main();
+
+
+   
 }
 
 void soft_reset(void){
@@ -207,6 +277,7 @@ void soft_reset(void){
 }
 
 void XBD_switchToBootLoader() {
+    // MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);             //Turn OFF LED
     MAP_SysCtlReset();
 }
 
