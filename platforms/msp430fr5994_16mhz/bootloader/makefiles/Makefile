@@ -12,7 +12,8 @@ CC = msp430-elf-gcc
 # BL_ADDR=0xf000
 # BL_ADDR=0x4400
 #BL_ADDR=0xE448
-BL_ADDR=0xC400
+# BL_ADDR=0xC400
+BL_ADDR=0x4000
 
 MSP430GCC_INC := $(shell msp430-elf-gcc -xc -E -v - </dev/null 2>&1 | awk '/^\#include </ {getline; print $$0}')
 SUPPORT_DIR := $(realpath ${MSP430GCC_INC}/../../../../../include)
@@ -23,7 +24,7 @@ COMMON = -mmcu=$(MCU) -I${SUPPORT_DIR}
 ## Compile options common for all C compilation units.
 CFLAGS += $(COMMON)
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -Wall -std=gnu11 -DBOOTLOADER -ffunction-sections -fdata-sections -ggdb3 #-DDEBUG #-DDEBUG_I2C #-E
+CFLAGS += -Wall -std=gnu11 -DBOOTLOADER -ffunction-sections -fdata-sections -ggdb3 -DDEBUG #-DDEBUG_I2C #-E
 CFLAGS += -Os# -flto
 #CFLAGS += -ggdb3 -O0 
 #CFLAGS += -O0 #-DXBX_DEBUG_BL 
