@@ -18,14 +18,18 @@
 // Segment size of MSP is supposed to be 512, however program ROM starts at
 #define PAGE_ALIGN_MASK 0xfffffe00
 
-// #define FLASH_ADDR_MIN (0x4000)
+//#define FLASH_ADDR_MIN (0x4000)
 #define FLASH_ADDR_MIN (0x8000)
 // #define FLASH_ADDR_MIN (0xce32)
 
 // #define FLASH_ADDR_MAX (0xE448)
 
 // #define FLASH_ADDR_MIN (0x4400)
+<<<<<<< Updated upstream
 // #define FLASH_ADDR_MAX (0xefff)
+=======
+//#define FLASH_ADDR_MAX (0xefff)
+>>>>>>> Stashed changes
 #define FLASH_ADDR_MAX (0xff80)
 
 

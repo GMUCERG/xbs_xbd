@@ -10,10 +10,9 @@ CC = msp430-elf-gcc
 #BL_ADDR=0xf000
 #BL_ADDR=0xe000
 # BL_ADDR=0xf000
-# BL_ADDR=0x4400
+BL_ADDR=0x4000
 #BL_ADDR=0xE448
 # BL_ADDR=0xC400
-BL_ADDR=0x4000
 
 MSP430GCC_INC := $(shell msp430-elf-gcc -xc -E -v - </dev/null 2>&1 | awk '/^\#include </ {getline; print $$0}')
 SUPPORT_DIR := $(realpath ${MSP430GCC_INC}/../../../../../include)
@@ -50,7 +49,7 @@ LDFLAGS += -fuse-linker-plugin
 
 
 ## Include Directories
-INCLUDES += -I../../../../embedded/xbd/xbd_af -I../../hal  -I../../hal/drivers
+INCLUDES += -I../../../../embedded/xbd/xbd_af -I../../hal  -I../../hal/drivers -I /opt/ti/gcc/include/
 #-I"../../../atmega_common/hal" -I"../../../atmega_common/hal/drivers" 
 
 ## Objects that must be built in order to link

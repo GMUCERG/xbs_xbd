@@ -13,7 +13,7 @@
 #include "clock_init.h"
 //#include <JTAGfunc.h>
 
-// #define DEBUG 
+//#define DEBUG  // now in Makefile 
 
 #define I2C_BAUDRATE 400
 #define SLAVE_ADDR 0x75
@@ -40,29 +40,35 @@ void XBD_init() {
 
 
 #ifdef BOOTLOADER
+
 	initClocks();
 #endif
 
-	// P3SEL1 |= BIT4;				//SMCLK
-	// P3DIR |= BIT4;
+//	P3SEL1 |= BIT4;				//SMCLK
+//	P3DIR |= BIT4;
 
+        
 	// P5SEL1 |= BIT7;				//MCLK
 	// P5SEL0 |= BIT7;
 	// P5DIR |= BIT7;
 
 #ifdef DEBUG
-	usart_init();
-	XBD_debugOut("START MSP430FR5994 HAL\r\n");
+    //DEBUG LED(RED) - comment out this code when running tests
+    P1OUT &= ~BIT0;                         
+    P1DIR |= BIT0;              // Set P1.0 to output direction
+    P1OUT |= BIT0;	   
+    
+    usart_init();
+     
+        
+    XBD_debugOut("START MSP430FR5994 HAL\r\n");
 	XBD_debugOut("\r\n");
 
 	// Interrupt enable for global FRAM memory protection
 	FRCTL0 = FRCTLPW;
     GCCTL0 |= WPIE;
 
-    //DEBUG LED(RED) - comment out this code when running tests
-    P1OUT &= ~BIT0;                         
-    P1DIR |= BIT0;              // Set P1.0 to output direction
-    P1OUT |= BIT0;				// Turn on led to indicate usart debug enabled
+			// Turn on led to indicate usart debug enabled
 #else
     //DEBUG LED(RED) - OFF
     P1OUT &= ~BIT0;                         
@@ -83,12 +89,13 @@ void XBD_init() {
 	P7DIR |= BIT3;
 	P7OUT |= BIT3;          // Set pin high
 
+	// Now we are having hard interrupt from XBH
 	//Enable interrupt for soft reset on pin 6.3
-	P6SEL1 &= ~BIT3;
-	P6SEL0 &= ~BIT3;
-	P6DIR &= ~BIT3;
-	P6IES &= ~BIT3;         //Trigger on rising edge
-	P6IE = BIT3;
+	//P6SEL1 &= ~BIT3;
+	//P6SEL0 &= ~BIT3;
+	//P6DIR &= ~BIT3;
+	//P6IES &= ~BIT3;         //Trigger on rising edge
+	//P6IE = BIT3;
 
 	__eint();
 

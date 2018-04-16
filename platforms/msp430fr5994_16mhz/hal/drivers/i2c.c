@@ -140,7 +140,7 @@ void i2cSetSlaveTransmitHandler(uint8_t (*i2cSlaveTx_func)(uint8_t transmitDataL
 /** dsk: disabled interrupt */
 
 void twi_isr(){ 
-// #define DEBUG_I2C
+// #define DEBUG_I2C  // can be done in makefile
     #define START 0
     #define RX 1
     #define TX 2
@@ -178,7 +178,9 @@ void twi_isr(){
                     XBD_DEBUG("RX byte\r\n");
                     #endif
                 } else {
+                    #ifdef DEBUG_I2C
                     XBD_DEBUG("NACK\r\n");
+                    #endif
                     // receive data byte and return NACK
                     //I2cReceiveData[I2cReceiveDataIndex] = UCB1RXBUF;
                     UCB2IFG &= ~UCRXIFG;

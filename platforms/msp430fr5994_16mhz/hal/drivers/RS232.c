@@ -17,20 +17,25 @@ void usart_init()
     UCA0CTLW0 |= UCSSEL_2;              // CLK = SMCLK(=MCLK)
 
 #if F_CPU >= 16000000
-    UCA0BRW = 9;                                        //CLK=16777216 @ baud=115200
-    UCA0MCTLW = UCOS16| UCBRF_1| 0xB500;                //CLK=16777216 @ baud=115200
+    UCA0BRW = 8;                                        //CLK=16000000 @ baud=115200
+    UCA0MCTLW = UCOS16| UCBRF_10| 0xF700;               //CLK=16000000 @ baud=115200
+//  UCA0BRW = 9;                                        //CLK=16777216 @ baud=115200
+//  UCA0MCTLW = UCOS16| UCBRF_1| 0xB500;                //CLK=16777216 @ baud=115200
 #elif F_CPU >= 8000000
-    UCA0BRW = 4;                                        //CLK=8388608 @ baud=115200
-    UCA0MCTLW = UCOS16| UCBRF_8| 0xB500;                //CLK=8388608 @ baud=115200
+    UCA0BRW = 4;                                        //CLK=8000000 @ baud=115200
+    UCA0MCTLW = UCOS16| UCBRF_5| 0x5500;                //CLK=8000000 @ baud=115200
+//  UCA0BRW = 4;                                        //CLK=8388608 @ baud=115200
+//  UCA0MCTLW = UCOS16| UCBRF_8| 0xEE00;                //CLK=8388608 @ baud=115200
 #elif F_CPU >= 4000000
     UCA0BRW = 2;                                        //CLK=4194304 @ baud=115200
-    UCA0MCTLW = UCOS16| UCBRF_4| 0x9200;                //CLK=4194304 @ baud=115200
+    UCA0MCTLW = UCOS16| UCBRF_2| 0xBB00;                //CLK=4194304 @ baud=115200
+//  UCA0BRW = 2;                                        //CLK=4194304 @ baud=115200
+//  UCA0MCTLW = UCOS16| UCBRF_4| 0x9200;                //CLK=4194304 @ baud=115200
 #else
-//  UCA0BRW = 8;                                        //CLK=1000000 @ baud=115200
-//  UCA0MCTLW = 0xD600;                                 //CLK=1000000 @ baud=115200
-
-    UCA0BRW = 9;                                        //CLK=1048576 @ baud=115200
-    UCA0MCTLW = 0x0800;                                 //CLK=1048576 @ baud=115200
+    UCA0BRW = 8;                                        //CLK=1000000 @ baud=115200
+    UCA0MCTLW = 0xD600;                                 //CLK=1000000 @ baud=115200
+//  UCA0BRW = 9;                                        //CLK=1048576 @ baud=115200
+//  UCA0MCTLW = 0x0800;                                 //CLK=1048576 @ baud=115200
 
 //  UCA0BRW = 6;                                        //CLK=1048576 @ baud=9600
 //  UCA0MCTLW = UCOS16| UCBRF_13| 0x2200;               //CLK=1048576 @ baud=9600
