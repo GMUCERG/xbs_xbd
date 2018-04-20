@@ -530,6 +530,7 @@ void XBD_AF_EndianCheck()
 int main(void)
 {  
 	XBD_init();
+        usart_puts("in XBP APP\n\r");
 	XBD_AF_EndianCheck();
 	XBD_DEBUG("XBD APP started\n");
 

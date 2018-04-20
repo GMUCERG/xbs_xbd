@@ -84,10 +84,10 @@ void XBD_init() {
 	i2cSetSlaveTransmitHandler( FRW_msgTraHand );
 
 //    //Set Port 7.3 to output - Execution signal to XBH
-	P7SEL1 &= ~BIT3;
-	P7SEL0 &= ~BIT3;
-	P7DIR |= BIT3;
-	P7OUT |= BIT3;          // Set pin high
+	P5SEL1 &= ~BIT7;
+	P5SEL0 &= ~BIT7;
+	P5DIR |= BIT7;
+	P5OUT |= BIT7;          // Set pin high
 
 	// Now we are having hard interrupt from XBH
 	//Enable interrupt for soft reset on pin 6.3
@@ -104,18 +104,22 @@ void XBD_init() {
 
 
 inline void XBD_sendExecutionStartSignal() {
-	P7OUT &= (~BIT3);
+	P5OUT &= (~BIT7);
 	/* code for output pin = on here */
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
 	/* code for output pin = off here */
-	P7OUT |= BIT3;
+	P5OUT |= BIT7;
 }
 
 
 void XBD_debugOut(const char *message) {
 #ifdef DEBUG
+	 //if you have some kind of debug interface, write message to it 
+	usart_puts(message);
+#endif
+#ifdef XBX_DEBUG_APP
 	 //if you have some kind of debug interface, write message to it 
 	usart_puts(message);
 #endif
@@ -231,11 +235,11 @@ void XBD_switchToApplication() {
 	/* execute the code in the binary buffer */
 	// pointer called reboot that points to the reset vector
 	XBD_debugOut("Going to application mode\r\n");
-	usart_putint(FLASH_ADDR_MIN);
+	//usart_putint(FLASH_ADDR_MIN);
 	XBD_debugOut("\r\n");	
 
-	void (*reboot)( void ) = (void*)FLASH_ADDR_MIN; // defines the function reboot to location 0x3200
-	// void (*reboot)( void ) = (void*) 0xC400; // defines the function reboot to location 0x3200
+	//void (*reboot)( void ) = (void*)FLASH_ADDR_MIN; // defines the function reboot to location 0x3200
+	void (*reboot)( void ) = (void*) 0x08000; // defines the function reboot to location 0x3200
 	
 	reboot();	// calls function reboot function
 
@@ -244,6 +248,7 @@ void XBD_switchToApplication() {
 
 
 void XBD_switchToBootLoader() {
+   	XBD_debugOut("Soft Reset to switch to Bootloader\r\n");
 	WDTCTL = 0;     //Write invalid key to trigger soft reset
 					//XXX Be aware soft reset does not reset register values, thus
 					//code must initialize registers before use.

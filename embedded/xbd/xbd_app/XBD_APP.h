@@ -11,4 +11,6 @@
 // #define XBD_PARAMLENG_MAX (2048+ADDRSIZE)
 // #define XBD_RESULTLEN (512)
 #include "XBD_operation.h"
+
+#define XBX_DEBUG_APP
 #endif
