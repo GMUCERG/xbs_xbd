@@ -127,13 +127,20 @@ class Run(Base):
         pass
 
     def _calculate_power(self):
+        xbh = self.build_exec.run_session.xbh
         s = xbxdb.scoped_session()
-        return
+        #return
         # power, current, voltage, avgpwr, maxpwr = self.xbh.get_power()
-        avgpwr, maxpwr, cnt_overflow = self.xbh.get_power()
-        this.power_samples = PowerSample(power=power, current=current,voltage=voltage, run=self)
-        this.max_power = maxpwr
-        this.avg_power = avgpwr
+        avgpwr, maxpwr, cnt_overflow = xbh.get_power()
+        # this.power_samples = PowerSample(avgpwr=avgpwr, maxpwr=maxpwr, cnt_overflow=cnt_overflow, run=self)
+        # this.max_power = maxpwr
+        # this.avg_power = avgpwr
+        print(maxpwr)
+        print(avgpwr)
+        # power still has to be calculated
+        # Shunt resistor value must be in config.ini
+        # XBP gain must be in config.ini
+        # values must go into database
 
     def _execute(self, packed_params=None):
         """Executes and returns results
