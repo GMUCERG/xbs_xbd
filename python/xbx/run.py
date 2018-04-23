@@ -128,7 +128,9 @@ class Run(Base):
 
     def _calculate_power(self):
         s = xbxdb.scoped_session()
-        power, current, voltage, avgpwr, maxpwr = self.xbh.get_power()
+        return
+        # power, current, voltage, avgpwr, maxpwr = self.xbh.get_power()
+        avgpwr, maxpwr, cnt_overflow = self.xbh.get_power()
         this.power_samples = PowerSample(power=power, current=current,voltage=voltage, run=self)
         this.max_power = maxpwr
         this.avg_power = avgpwr

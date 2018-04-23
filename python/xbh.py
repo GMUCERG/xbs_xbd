@@ -338,11 +338,15 @@ class Xbh:
 
         self._exec("pw")
         msg = self._xbh_response()
-        power, current, voltage, avgpwr, maxpwr = struct.unpack("!IIIII", msg)
-        _logger.debug("Receive {} {} {} {} {}".format(
-                power, current, voltage, avgpwr, maxpwr))
+        # power, current, voltage, avgpwr, maxpwr = struct.unpack("!IIIII", msg)
+        # _logger.debug("Receive {} {} {} {} {}".format(
+        #         power, current, voltage, avgpwr, maxpwr))
 
-        return power, current, voltage, avgpwr, maxpwr
+        avgpwr, maxpwr, cnt_overflow = struct.unpack("!III", msg)
+        _logger.debug("Receive {} {} {}".format(
+                avgpwr, maxpwr, cnt_overflow))
+
+        return avgpwr, maxpwr, cnt_overflow
 
     def _get_stack_usage(self):
         self.req_app()
