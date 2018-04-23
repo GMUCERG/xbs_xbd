@@ -56,3 +56,5 @@ __pycache__
 
 # Logs
 *.log
+
+data.db
