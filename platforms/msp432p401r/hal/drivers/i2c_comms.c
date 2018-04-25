@@ -9,9 +9,9 @@
 #define DEBUG_I2C(x)
 #endif
 
-//SCL - P1.7
-//SDA - P1.6
-//TF - P3.0
+//SCL - P6.5
+//SDA - P6.4
+//TF - P3.0   2.5
 
 volatile uint_fast8_t tx_flag = 0;
 uint8_t i2c_buf[180] = {0};
@@ -36,27 +36,27 @@ void i2c_set_tx(uint8_t (*i2cSlaveTx_func)(uint8_t
 // Initialize i2c on EUSCI in slave mode
 void i2c_init(void) {
 
-	/* Select Port 1 for I2C - Set Pin 6, 7 to input Primary Module Function,
+	/* Select Port 1 for I2C - Set Pin 4, 5 to input Primary Module Function,
 	*   (UCB0SIMO/UCB0SDA, UCB0SOMI/UCB0SCL).
 	*/
-	MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P1,
-	  GPIO_PIN6 + GPIO_PIN7, GPIO_PRIMARY_MODULE_FUNCTION);
+	MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P6,
+	  GPIO_PIN4 + GPIO_PIN5, GPIO_PRIMARY_MODULE_FUNCTION);
 
 	/* eUSCI I2C Slave Configuration */
-	MAP_I2C_initSlave(EUSCI_B0_BASE, SLAVE_ADDRESS, EUSCI_B_I2C_OWN_ADDRESS_OFFSET0,
+	MAP_I2C_initSlave(EUSCI_B1_BASE, SLAVE_ADDRESS, EUSCI_B_I2C_OWN_ADDRESS_OFFSET0,
 	  EUSCI_B_I2C_OWN_ADDRESS_ENABLE);
 
 	/* Enable the module and enable interrupts */
-	MAP_I2C_enableModule(EUSCI_B0_BASE);
+	MAP_I2C_enableModule(EUSCI_B1_BASE);
 
-	MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
-	MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
+	MAP_I2C_clearInterruptFlag(EUSCI_B1_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
+	MAP_I2C_enableInterrupt(EUSCI_B1_BASE, EUSCI_B_I2C_RECEIVE_INTERRUPT0);
 
-	MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
-	MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
+	MAP_I2C_clearInterruptFlag(EUSCI_B1_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
+	MAP_I2C_enableInterrupt(EUSCI_B1_BASE, EUSCI_B_I2C_TRANSMIT_INTERRUPT0);
 
-	MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
-	MAP_I2C_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+	MAP_I2C_clearInterruptFlag(EUSCI_B1_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+	MAP_I2C_enableInterrupt(EUSCI_B1_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
 
 	MAP_Interrupt_enableMaster();
 }
@@ -74,7 +74,7 @@ void i2c_rx(void)
 {
 	uint_fast16_t status;
 
-	status = MAP_I2C_getEnabledInterruptStatus(EUSCI_B0_BASE);
+	status = MAP_I2C_getEnabledInterruptStatus(EUSCI_B1_BASE);
 
 	switch (state) {
 	case STATE_START:
@@ -89,14 +89,14 @@ void i2c_rx(void)
 		if (status & EUSCI_B_I2C_RECEIVE_INTERRUPT0)
 		{
 			// Receive the byte from i2c
-			i2c_buf[i2c_size_read] = MAP_I2C_slaveGetData(EUSCI_B0_BASE);
+			i2c_buf[i2c_size_read] = MAP_I2C_slaveGetData(EUSCI_B1_BASE);
 			i2c_size_read++;
 			DEBUG_I2C("XBH sending\n");
 		
 		}
 		//Received stop
 		if (status & EUSCI_B_I2C_STOP_INTERRUPT) {
-			MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+			MAP_I2C_clearInterruptFlag(EUSCI_B1_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
 			DEBUG_I2C("Received Stop\n");
 			DEBUG_I2C((char *)i2c_buf);
 			i2cSlaveReceive(i2c_size_read, i2c_buf);
@@ -114,12 +114,12 @@ void i2c_rx(void)
 				tx_flag = 1;
 			}
 			// Transmit the byte over i2c
-			MAP_I2C_slavePutData(EUSCI_B0_BASE, i2c_buf[i2c_size_sent]);
+			MAP_I2C_slavePutData(EUSCI_B1_BASE, i2c_buf[i2c_size_sent]);
 			i2c_size_sent++;
 			DEBUG_I2C("XBH receiving\n");
 		}
 		if (status & EUSCI_B_I2C_STOP_INTERRUPT) {
-			MAP_I2C_clearInterruptFlag(EUSCI_B0_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
+			MAP_I2C_clearInterruptFlag(EUSCI_B1_BASE, EUSCI_B_I2C_STOP_INTERRUPT);
 			DEBUG_I2C("Received Stop\n");
 			DEBUG_I2C((char *)i2c_buf);
 			i2c_size_sent = 0;

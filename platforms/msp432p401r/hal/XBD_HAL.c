@@ -78,8 +78,8 @@ void XBD_init() {
 
 
 	/* Configuring GPIO as an output */
-	MAP_GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN0);
-	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN0);
+	MAP_GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN5);
+	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
     
 	/* Enabling MASTER interrupts */
 	MAP_Interrupt_enableMaster();  
@@ -154,11 +154,11 @@ void XBD_programPage(uint32_t pageStartAddress, uint8_t *buf) {
 }
 
 inline void XBD_sendExecutionStartSignal() {
-	MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN0);
+	MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
 }
 
 inline void XBD_sendExecutionCompleteSignal() {
-	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN0);
+	MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
 }
 
  __attribute__ ( ( naked ) )

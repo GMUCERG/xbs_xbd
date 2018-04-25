@@ -11,7 +11,7 @@ void i2c_set_tx(uint8_t (*i2cSlaveTx_func)(uint8_t transmitDataLengthMax,
 
 void i2c_init(void);
 
-void EUSCIB0_IRQHandler(void);
+void EUSCIB1_IRQHandler(void);
 
 void i2c_rx(void);
 

@@ -42,7 +42,7 @@ static void nmiISR(void);
 static void faultISR(void);
 static void defaultISR(void);
 
-extern void EUSCIB0_IRQHandler(void);
+extern void EUSCIB1_IRQHandler(void);
 
 #ifndef HWREG
 #define HWREG(x) (*((volatile uint32_t *)(x)))
