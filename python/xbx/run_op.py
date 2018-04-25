@@ -218,7 +218,8 @@ class CryptoAeadRun(xbxr.Run):
                                                          key)
 
         retval,_ = dec_forged_run._execute(forged_data)
-        dec_forged_run = _calculate_power()
+        #dec_forged_run = _calculate_power()
+        dec_forged_run._calculate_power()
         
         if retval != -1 and primitive.name != '0cipher':
             raise xbxr.XbdResultFailError(
