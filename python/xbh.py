@@ -140,6 +140,7 @@ class Xbh:
         self._bl_mode = None
         self.page_size = page_size
         self.xbd_hz = xbd_hz
+        self.set_power_gain(25)
 
     def __del__(self):
         try:
@@ -267,7 +268,12 @@ class Xbh:
     def req_app(self):
         if self.bl_mode != False:
             self.switch_to_app()
-        return
+
+    def set_power_gain(self, gain):
+        _logger.debug("Setting XBP gain to %u" % gain)
+        self._exec("pg",struct.pack("!I",gain))
+        self._xbh_response()
+
 
     def reset_xbd(self, reset_active):
         param = 'y' if reset_active else 'n'

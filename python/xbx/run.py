@@ -135,8 +135,8 @@ class Run(Base):
         # this.power_samples = PowerSample(avgpwr=avgpwr, maxpwr=maxpwr, cnt_overflow=cnt_overflow, run=self)
         # this.max_power = maxpwr
         # this.avg_power = avgpwr
-        print(maxpwr)
-        print(avgpwr)
+        # print(maxpwr)
+        # print(avgpwr)
         # power still has to be calculated
         # Shunt resistor value must be in config.ini
         # XBP gain must be in config.ini
@@ -284,7 +284,9 @@ class BuildExec(Base):
     def execute(self):
         del self.runs[:] # Delete existing runs for this build
         config = self.run_session.config
-
+        # SET GAIN to value from config.ini
+        self.xbh.set_power_gain(50)
+        
         # Make sure num_start_tests is the bigger half of config.checksum_tests//2
         num_end_tests = config.checksum_tests//2
         num_start_tests = config.checksum_tests-num_end_tests
@@ -399,7 +401,7 @@ class RunSession(Base, xbxs.SessionMixin):
             )
 
         except xbhlib.Error as e:
-            logger.critical(str(e))
+            _logger.critical(str(e))
             sys.exit(1)
 
         self.xbh_rev,self.xbh_mac = self.xbh.get_xbh_rev()
