@@ -2,7 +2,7 @@
 
 XBD (tm4c129) - modified
 	*I2C0 -	PB2(SCL), PB3(SDA)
-	*Soft Reset -	PC7			1 - Active High
+	*Soft Reset -	PM3			1 - Active High
 	*Execute Sig. -	PL4			0 - Start, 1 - Complete (Active low)	- was AHB
 
 XBD (tm4c123)
