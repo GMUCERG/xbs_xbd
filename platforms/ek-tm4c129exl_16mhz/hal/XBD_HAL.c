@@ -71,7 +71,8 @@ void XBD_init() {
     //
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);    //Part A - A0,A1 UART
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);    //Port L (4) - Execute
+    // MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);    //Port L (4) - Execute
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);    //Port M (3) - Execute
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);    //Port C (7) - Rst
 
 
@@ -122,12 +123,18 @@ void XBD_init() {
  	// MAP_GPIOPinWrite(GPIO_PORTB_AHB_BASE, GPIO_PIN_2, GPIO_PIN_2);
 
   // Enable all pins on ports as GPIO outs and set to 0 except pin 5 - for execute pin
-    SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOL);
-  //   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_AHB_BASE, GPIO_PIN_4);
+
+    // SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOL);
+
+    // MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_AHB_BASE, GPIO_PIN_4);
   // MAP_GPIOPinWrite(GPIO_PORTL_AHB_BASE, GPIO_PIN_4, GPIO_PIN_4);
 
-     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_BASE, GPIO_PIN_4);
-     MAP_GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_4, GPIO_PIN_4);
+     // MAP_GPIOPinTypeGPIOOutput(GPIO_PORTL_BASE, GPIO_PIN_4);
+     // MAP_GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_4, GPIO_PIN_4);
+
+     SysCtlGPIOAHBEnable(SYSCTL_PERIPH_GPIOM);
+     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTM_BASE, GPIO_PIN_3);
+     MAP_GPIOPinWrite(GPIO_PORTM_BASE, GPIO_PIN_3, GPIO_PIN_3);
 
 
     // Configure i2c
@@ -155,7 +162,10 @@ inline void XBD_sendExecutionStartSignal() {
   /* code for output pin = low here */
     // HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = 0;
     // HWREG(GPIO_PORTL_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = 0;
-    HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = 0;
+
+    // HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = 0;
+
+    HWREG(GPIO_PORTM_BASE+(GPIO_O_DATA + (GPIO_PIN_3 << 2))) = 0;
 
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = 0;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, 0);
@@ -166,7 +176,9 @@ inline void XBD_sendExecutionCompleteSignal() {
   /* code for output pin = high here */
     // HWREG(GPIO_PORTB_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_2 << 2))) = GPIO_PIN_2;
     // HWREG(GPIO_PORTL_AHB_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = GPIO_PIN_4;
-  HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = GPIO_PIN_4;
+
+  // HWREG(GPIO_PORTL_BASE+(GPIO_O_DATA + (GPIO_PIN_4 << 2))) = GPIO_PIN_4;
+  HWREG(GPIO_PORTM_BASE+(GPIO_O_DATA + (GPIO_PIN_3 << 2))) = GPIO_PIN_3;
     
     //GPIO_PORTC_AHB_DATA_BITS_R[GPIO_PIN_5] = GPIO_PIN_5;
  	//MAP_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_5, GPIO_PIN_5);
@@ -377,3 +389,4 @@ void XBD_stopWatchDog() {
 void XBD_serveCommunication() {
     i2cHandle();
 }
+
