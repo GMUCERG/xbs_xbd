@@ -23,18 +23,21 @@ SRCS += $(wildcard ${HAL_PATH}/*.c ${HAL_PATH}/drivers/*.c)
 ifdef HAL_T_PATH
 SRCS += $(wildcard ${HAL_T_PATH}/*.c ${HAL_T_PATH}/drivers/*.c)
 endif
+SRCS_ASM = $(wildcard ${HAL_PATH}/*.s ${HAL_PATH}/drivers/*.s)
 
 OBJS := $(SRCS:%.c=%.o)
 OBJS := $(OBJS:%.cpp=%.o)
 OBJS := $(OBJS:%.s=%.o)
 OBJS := $(OBJS:%.S=%.o)
 OBJS := $(patsubst ${HAL_PATH}%,${BUILDDIR}%,${OBJS})
+OBJS_ASM := $(SRCS_ASM:%.s=%.o)
+OBJS_ASM := $(patsubst ${HAL_PATH}%,${BUILDDIR}%,${OBJS_ASM})
 ifdef $HAL_T_PATH
 OBJS := $(patsubst ${HAL_T_PATH}%,${BUILDDIR}%,${OBJS})
 endif
 
 
-all: ${OBJS}
+all: ${OBJS} ${OBJS_ASM}
 
 ${OBJS}: Makefile env.make
 
@@ -43,6 +46,10 @@ ${BUILDDIR}:
 	@echo ${OBJS}|xargs dirname|xargs mkdir -p
 
 ${BUILDDIR}/%.o: ${HAL_PATH}/%.c |${BUILDDIR}
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${<}
+
+${BUILDDIR}/%.o: ${HAL_PATH}/%.s |${BUILDDIR}
 	@echo "CC  ${<}";
 	@${CC} -o ${@} -c ${<}
 
