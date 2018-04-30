@@ -132,6 +132,7 @@ class Run(Base):
         #return
         # power, current, voltage, avgpwr, maxpwr = self.xbh.get_power()
         avgpwr, maxpwr, cnt_overflow = xbh.get_power()
+     
         # this.power_samples = PowerSample(avgpwr=avgpwr, maxpwr=maxpwr, cnt_overflow=cnt_overflow, run=self)
         # this.max_power = maxpwr
         # this.avg_power = avgpwr
@@ -161,7 +162,8 @@ class Run(Base):
 
         self.measured_cycles = xbh.get_measured_cycles(timings)
         self.time = xbh.get_measured_time(timings)
-
+        self.avg_power, self.max_power, self.cnt_overflow = xbh.get_power()
+        self.total_energy = float(self.avg_power/self.time)
         return results
 
     @classmethod

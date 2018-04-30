@@ -344,6 +344,8 @@ class Xbh:
 
         self._exec("pw")
         msg = self._xbh_response()
+        #measured_time = self.get_measured_time(timings)
+        #gain = self.set_power_gain()
         # power, current, voltage, avgpwr, maxpwr = struct.unpack("!IIIII", msg)
         # _logger.debug("Receive {} {} {} {} {}".format(
         #         power, current, voltage, avgpwr, maxpwr))
@@ -351,7 +353,16 @@ class Xbh:
         avgpwr, maxpwr, cnt_overflow = struct.unpack("!III", msg)
         _logger.debug("Receive {} {} {}".format(
                 avgpwr, maxpwr, cnt_overflow))
-
+        #volatge is currently stored in avgpwr
+        avgpwr=float((avgpwr*3.3)/4096)
+        #power = V*I
+        avgpwr=float(avgpwr*3.3)
+        maxpwr=float((maxpwr*3.3)/4096)
+        maxpwr=float( maxpwr*3.3)
+        
+        #for now assuming cnt_overflow as total_energy
+       # cnt_overflow=float(avg_power/measured_time)
+        
         return avgpwr, maxpwr, cnt_overflow
 
     def _get_stack_usage(self):
