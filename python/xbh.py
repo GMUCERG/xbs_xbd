@@ -354,10 +354,10 @@ class Xbh:
         _logger.debug("Receive {} {} {}".format(
                 avgpwr, maxpwr, cnt_overflow))
         #volatge is currently stored in avgpwr
-        avgpwr=float((avgpwr*3.3)/4096)
+        avgpwr=float((avgpwr*3.3)/(4096*200))
         #power = V*I
         avgpwr=float(avgpwr*3.3)
-        maxpwr=float((maxpwr*3.3)/4096)
+        maxpwr=float((maxpwr*3.3)/(4096*200))
         maxpwr=float( maxpwr*3.3)
         
         #for now assuming cnt_overflow as total_energy

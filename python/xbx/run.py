@@ -163,7 +163,7 @@ class Run(Base):
         self.measured_cycles = xbh.get_measured_cycles(timings)
         self.time = xbh.get_measured_time(timings)
         self.avg_power, self.max_power, self.cnt_overflow = xbh.get_power()
-        self.total_energy = float(self.avg_power/self.time)
+        self.total_energy = float((self.avg_power*self.measured_cycles)/120000000)
         return results
 
     @classmethod
@@ -287,7 +287,7 @@ class BuildExec(Base):
         del self.runs[:] # Delete existing runs for this build
         config = self.run_session.config
         # SET GAIN to value from config.ini
-        self.xbh.set_power_gain(50)
+        self.xbh.set_power_gain(200)
         
         # Make sure num_start_tests is the bigger half of config.checksum_tests//2
         num_end_tests = config.checksum_tests//2
