@@ -23,7 +23,6 @@ XBH_MAX_PAYLOAD = 1400
 PROTO_VERSION = '05'
 
 FAIL_CHECKSUM = -62
-FAIL_DEFAULT = -63
 FAIL_TYPE_MISMATCH = -61
 
 
@@ -140,6 +139,7 @@ class Xbh:
         self._bl_mode = None
         self.page_size = page_size
         self.xbd_hz = xbd_hz
+        self.measured_
         self.set_power_gain(25)
 
     def __del__(self):
@@ -444,7 +444,7 @@ class Xbh:
     def get_measured_cycles(self, timings):
         # add 0.5 then cast to int to get rounded integer
         seconds, fractions, frac_per_sec = timings
-        measured_cycles = int((seconds + fractions/frac_per_sec)*self.xbd_hz+0.5)
+        measured_cycles = int((seconds + fractions/frac_per_sec)*self.measured_xbd_hz+0.5)
         return measured_cycles
 
     def execute(self):
@@ -531,7 +531,7 @@ class Xbh:
                 break
 
     def measure_timing_error(self):
-        cycles = self.get_timing_cal()
+        cycles = self.measured_xbd_hz = self.get_timing_cal()
         timings = self._get_timings()
         if cycles == 0:
             raise xbh.ValueError("Cycle count 0!")
