@@ -444,7 +444,7 @@ class Xbh:
     def get_measured_cycles(self, timings):
         # add 0.5 then cast to int to get rounded integer
         seconds, fractions, frac_per_sec = timings
-        measured_cycles = int((seconds + fractions/frac_per_sec)*self.measured_xbd_hz+0.5)
+        measured_cycles = int((seconds + fractions/frac_per_sec)*self.reported_xbd_hz+0.5)
         return measured_cycles
 
     def execute(self):
@@ -531,10 +531,11 @@ class Xbh:
                 break
 
     def measure_timing_error(self):
-        cycles = self.measured_xbd_hz = self.get_timing_cal()
+        cycles = self.reported_xbd_hz = self.get_timing_cal()
         timings = self._get_timings()
         if cycles == 0:
             raise xbh.ValueError("Cycle count 0!")
+        _logger.debug("Cycles reported by XBD: {}",cycles)
         measured_cycles = self.get_measured_cycles(timings)
         if measured_cycles == 0:
             raise xbh.ValueError("Measured cycle count 0!")
