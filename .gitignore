@@ -46,6 +46,7 @@ __pycache__
 /work
 /binaries
 /algobase
+/plots/*
 
 /external/embedded_algopack
 /external/supercop
