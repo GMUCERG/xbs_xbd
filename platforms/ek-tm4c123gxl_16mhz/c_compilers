@@ -8,15 +8,15 @@ linkOpts="-Wl,-T,XBD_AF.ld,-gc-sections -fuse-linker-plugin"
 debugOpts="-ggdb3"
 
 cat <<EOF
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O0 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os -flto=8 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 -flto=8 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 -flto=8 $sizeOpts $debugOpts 
-arm-tiva_c-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 -flto=8 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O0 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -Os -flto=8 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O1 -flto=8 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O2 -flto=8 $sizeOpts $debugOpts 
+arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O3 -flto=8 $sizeOpts $debugOpts 
 EOF
 
 
