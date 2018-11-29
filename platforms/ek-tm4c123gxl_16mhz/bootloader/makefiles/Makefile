@@ -9,7 +9,7 @@ AXFFILE = $(PROJECT).axf
 TARGET =  $(PROJECT).bin
 
 #GCC_TYPE=eabi
-GCC_TYPE=tiva_c-eabi
+GCC_TYPE=none-eabi
 
 CC = arm-$(GCC_TYPE)-gcc
 LD = arm-$(GCC_TYPE)-gcc
@@ -34,10 +34,11 @@ LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 
 ## Compile options common for all C compilation units.
 #CFLAGS += -Wall -gdwarf-2 -std=gnu99      -DF_CPU=6000000UL -Os -fsigned-char
-#CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
+#CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
+#-mfloat-abi=hard  changed to softfp
 CFLAGS+=-mthumb             \
        -mcpu=cortex-m4     \
-       -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
+       -mfpu=fpv4-sp-d16 -mfloat-abi=softfp \
        -Os                 \
        -ffunction-sections \
        -fdata-sections     \
