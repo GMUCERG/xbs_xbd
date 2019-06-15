@@ -1,42 +1,42 @@
 # Object files
-*.o
-*.ko
-*.obj
-*.elf
-*.axf
+**.o
+**.ko
+**.obj
+**.elf
+**.axf
 
 # Precompiled Headers
-*.gch
-*.pch
+**.gch
+**.pch
 
 # Libraries
-*.lib
-*.a
-*.la
-*.lo
+**.lib
+**.a
+**.la
+**.lo
 
 # Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+**.dll
+**.so
+**.so.*
+**.dylib
 
 # Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-*.bin
+**.exe
+**.out
+**.app
+**.i*86
+**.x86_64
+**.hex
+**.bin
 __pycache__
 
 # Compile artifacts
-*.map
-*.d
-*.lss
-*.eep
-*.x
+**.map
+**.d
+**.lss
+**.eep
+**.x
 
 # Vim swap files
 .*sw*
@@ -51,11 +51,16 @@ __pycache__
 /external/embedded_algopack
 /external/supercop
 
+x86build/
+xbdkeys/
+d-xbdbuild/
+
 # Backups
-*.old
-*.orig
+**.old
+**.orig
 
 # Logs
-*.log
+**.log
 
 data.db
+data.csv

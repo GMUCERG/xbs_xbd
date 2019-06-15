@@ -1,0 +1,60 @@
+BUILDDIR=x86build/${OP}/${ALGO}/${IMPL}
+
+ALGOPACK_PATH=algobase
+IMPL_PATH=${ALGOPACK_PATH}/${OP}/${ALGO}/${IMPL}
+
+OPENSSL_INCLUDE_DIR?=/usr/include/openssl
+OPENSSL_LIB_DIR?=/usr/lib/openssl/lib
+LIBB64_INCLUDE_DIR?=/usr/include/b64
+LIBB64_LIB_DIR?=/usr/include/b64
+
+CC=gcc
+FLAGS+=-O2 -std=c99
+FLAGS+=-I$(OPENSSL_INCLUDE_DIR)
+FLAGS+=-I$(LIBB64_INCLUDE_DIR)
+FLAGS+=-I${IMPL_PATH}
+FLAGS+=-I${BUILDDIR}
+FLAGS+=-Idebugsrc
+FLAGS+=-Ix86deps
+
+CC+=${FLAGS}
+
+#SRCS = ${ALGOPACK_PATH}/${OP}/genkey.c
+SRCS = x86src/${OP}/genkey.c
+SRCS += $(shell find ${IMPL_PATH} -name "*.c" -or -name "*.[Ss]")
+SRCS += $(shell find ./x86deps -name "*.c" -or -name "*.[Ss]")
+
+OBJS := $(SRCS:%.c=%.o)
+OBJS := $(OBJS:%.s=%.o)
+OBJS := $(OBJS:%.S=%.o)
+OBJS := $(patsubst ${IMPL_PATH}%,${BUILDDIR}%,${OBJS})
+OBJS := $(patsubst x86src/${OP}%,${BUILDDIR}%,${OBJS})
+
+all: ${BUILDDIR}/genkey
+
+${BUILDDIR}/%.o: ${IMPL_PATH}/%.c
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${^}
+
+${BUILDDIR}/%.o: x86src/${OP}/%.c
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${^}
+
+${BUILDDIR}/%.o: x86include/%.c
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${^}
+
+${BUILDDIR}/%.o: x86deps/%.c
+	@echo "CC  ${<}";
+	@${CC} -o ${@} -c ${^}
+
+${BUILDDIR}/genkey: ${OBJS}
+	@echo "LINK";
+	@echo "${CC} -o ${@}";
+	@${CC} -o ${@} ${OBJS} -L$(OPENSSL_LIB_DIR) -L$(LIBB64_LIB_DIR) -lcrypto -lb64 -lm
+
+clean:
+	@echo CLEAN
+	@rm -rf ${BUILDDIR}
+	@rm -f x86deps/*.o
+

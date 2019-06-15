@@ -9,28 +9,24 @@ then
   exit -1
 fi
 
-
-
 if [ ! -d "$SOURCE" ]
 then
   echo "Specified directory does not exist"
   exit -1
 fi
 
-
-
 function import_op(){
-if [ ! -d "$SOURCE/crypto_${1}" ]
-then
-    echo "Source directory does not contain a crypto_${1} directory"
-else
-    rsync -aC "$SOURCE/crypto_${1}" algobase
-    echo "Imported $SOURCE/crypto_${1}"
-fi
+	if [ ! -d "$SOURCE/crypto_${1}" ]
+	then
+		echo "Source directory does not contain a crypto_${1} directory"
+	else
+		rsync -aC "$SOURCE/crypto_${1}" algobase
+		echo "Imported $SOURCE/crypto_${1}"
+	fi
 }
 
 import_op verify 
 import_op core 
-import_op hash
 import_op aead
-
+import_op kem
+import_op sign

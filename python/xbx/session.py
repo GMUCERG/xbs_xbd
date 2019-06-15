@@ -37,5 +37,3 @@ class SessionMixin:
         except subprocess.CalledProcessError:
             logger.warn("Could not get git revision of xbx")
 
-
-

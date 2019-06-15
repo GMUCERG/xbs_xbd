@@ -36,7 +36,8 @@ _logger=logging.getLogger(__name__)
 class TypeCode(object):
     HASH = 1
     AEAD = 2
-
+    KEM = 3
+    SIGN = 4
 
 class Error(Exception):
     pass
@@ -141,6 +142,7 @@ class Xbh:
         self.page_size = page_size
         self.xbd_hz = xbd_hz
         self.set_power_gain(25)
+        self.args_start_addr = 0
 
     def __del__(self):
         try:
@@ -503,10 +505,40 @@ class Xbh:
                         .format(uploaded_bytes,hex(addr+offset)))
                 offset += upload_bytes
 
+            # Grab the block right after the program file
+            self.args_start_addr = addr + offset
+
+
+    def upload_static_param(self, data):
+        """Uploads large static arguments to flash"""
+
+        addr = self.args_start_addr
+        assert addr != 0, "Invalid argument flash address"
+
+        offset = 0
+        length = len(data)
+        block_size = 1
+        upload_bytes = block_size*self.page_size
+
+        if length == 0:
+            return
+
+        _logger.debug("Uploading {} bytes {} page(s) at a time starting at {}"
+                    .format(length, block_size, hex(addr)))
+
+        while offset < length:
+            self._upload_code_pages(addr+offset, data[offset:offset+upload_bytes])
+            uploaded_bytes = (upload_bytes if upload_bytes <
+                    (length - offset) else (length - offset))
+            _logger.debug("Uploading {} bytes starting at {}"
+                    .format(uploaded_bytes,hex(addr+offset)))
+            offset += upload_bytes
+
+        return self.args_start_addr
 
 
     def upload_param(self, data, typecode=TypeCode.HASH):
-        """Uploads buffer to xbh.
+        """Uploads buffer to xbh
 
         """
         # Max payload - command length - 4 bytes for size - 4 bytes for type

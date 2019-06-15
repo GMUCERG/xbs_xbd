@@ -72,17 +72,19 @@ FLAGS+=-I${XBD_PATH}/xbd_af
 FLAGS+=-I${XBD_PATH}/xbd_app
 FLAGS+=-I${IMPL_PATH}
 FLAGS+=-I${XBD_PATH}/xbd_op/${OP}
-
-
+FLAGS+=-I${ALGOPACK_PATH}/include
+FLAGS+=-I${ALGOPACK_PATH}/../external/libopencm3/include
+FLAGS+=$(foreach dep,${DEP_PATHS}, -I${dep})
 
 FLAGS+=-MD
 
 # Disable asserts
 FLAGS+=-DNDEBUG
 
-
 CC+=${FLAGS}
+CC+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
 CXX+=${FLAGS}
+CXX+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
 
 BUILDDIR=build
 
@@ -91,7 +93,6 @@ SRCS += $(wildcard ${XBD_PATH}/xbd_op/${OP}/*.c )
 SRCS += $(shell find ${IMPL_PATH} -name "*.c" -or -name "*.cpp" -or -name "*.[Ss]")
 SRCS += $(foreach dep,${DEP_PATHS}, \
     $(shell find ${dep} -name "*.c" -or -name "*.cpp" -or -name "*.[Ss]"))
-
 
 OBJS := $(SRCS:%.c=%.o)
 OBJS := $(OBJS:%.cpp=%.o)
@@ -102,8 +103,6 @@ OBJS := $(patsubst ${XBD_PATH}%,${BUILDDIR}/xbd%,${OBJS})
 OBJS := $(patsubst ${ALGOPACK_PATH}%,${BUILDDIR}/impl%,${OBJS})
 
 OBJS += $(shell find ${HAL_OBJS} -name "*.o")
-
-
 
 all: xbdprog.bin xbdprog.hex
 
@@ -128,7 +127,6 @@ ${BUILDDIR}/impl/%.o: ${ALGOPACK_PATH}/%.s |${BUILDDIR}
 ${BUILDDIR}/impl/%.o: ${ALGOPACK_PATH}/%.cpp |${BUILDDIR}
 	@echo "CXX  ${<}";
 	@${CXX} -o ${@} -c ${<}
-
 
 xbdprog.bin: ${OBJS}
 	@echo "LINK";

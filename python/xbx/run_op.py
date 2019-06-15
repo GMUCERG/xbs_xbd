@@ -16,6 +16,452 @@ import xbh
 
 _logger = logging.getLogger(__name__)
 
+class CryptoKemRun(xbxr.Run):
+    """Contains data specific to cryptographic kem runs
+
+    Call run() to instantiate and run, do not use constructor
+
+    Attributes of interest:
+        mode        KEYPAIR, ENCAPS, or DECAPS
+
+        data_id      ID number to identify crypt,decrypt runs as
+                         working with the same data
+    """
+    KEYPAIR="keypair"
+    ENCAPS="enc"
+    DECAPS="dec"
+    FRG="frg"
+
+    __tablename__ = "crypto_kem_run"
+
+    id = Column(Integer, nullable=False)
+    data_id = Column(Integer)
+    mode = Column(Enum(KEYPAIR, ENCAPS, DECAPS, FRG))
+    secret_key_len = Column(Integer)
+    public_key_len = Column(Integer)
+
+    __mapper_args__ = {
+        'polymorphic_identity':'crypto_kem_run',
+    }
+
+    __table_args__ = (
+        PrimaryKeyConstraint("id"),
+        ForeignKeyConstraint(["id"], ["run.id"]))
+
+
+    def _gen_keypair_params(self):
+        header = struct.pack(
+            "!I",
+            0            # KEYPAIR
+        )
+        return header
+
+
+    def _assemble_enc_params(self, pubkeyptr):
+        #header = struct.pack(
+        #    "!II",
+        #    1,          # ENCAPSULATE
+        #    self.public_key_len
+        #)
+        #return b''.join((header, pubkey))
+        header = struct.pack(
+            "!II",
+            1,          # ENCAPSULATE
+            pubkeyptr
+        )
+        return header
+
+
+    def _assemble_dec_params(self, ciphertext, seckeyptr):
+        macros = self.build_exec.build.implementation.macros
+
+        ciphertext_bytes = macros['_CIPHERTEXTBYTES']
+        #header = struct.pack(
+        #    "!III",
+        #    2,            # DECAPSULATE
+        #    ciphertext_bytes,
+        #    self.secret_key_len
+        #)
+        #return b''.join((header, ciphertext, seckey))
+        header = struct.pack(
+            "!III",
+            2,            # DECAPSULATE
+            seckeyptr,
+            ciphertext_bytes
+        )
+        return b''.join((header, ciphertext))
+
+
+    @classmethod
+    def run(cls, build_exec, params=None):
+        """Factory method to create and execute run instances.
+
+        Call this instead of constructor
+        """
+        _logger.info("Running benchmark on {}".format(build_exec.build.buildid))
+
+        xbh = build_exec.run_session.xbh
+        macros = build_exec.build.implementation.macros
+
+        # Set identical pair ids so we know encryption/decryption pairs
+        s = xbxdb.scoped_session()
+
+        #keypair_run = cls(build_exec, mode=CryptoKemRun.KEYPAIR)
+        #s.add(keypair_run)
+        #s.flush()  # Need to add and flush to get id
+        #keypair_run.data_id = keypair_run.id
+        #keypair_run.secret_key_len = macros['_SECRETKEYBYTES']
+        #keypair_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        ## Generate data
+        #keypair_data = keypair_run._gen_keypair_params()
+
+        #retval, keypair_output = keypair_run._execute(keypair_data)
+        #keypair_run._calculate_power()
+
+        #if retval != 0:
+        #    raise xbxr.XbdResultFailError(
+        #        "XBD execute returned {}".format(retval))
+
+        ## Unpack keypair lengths
+        #fmt = "!II"
+        #pubkey_len, seckey_len = struct.unpack_from(fmt, keypair_output)
+        #_logger.debug("seckey_len={}".format(seckey_len))
+        #_logger.debug("pubkey_len={}".format(pubkey_len))
+
+        ## Unpack keypair
+        #pubkey, seckey = struct.unpack(
+        #    "{}s{}s".format(pubkey_len, seckey_len),
+        #    keypair_output[struct.calcsize(fmt):]
+        #)
+
+        ################################################################################
+        # START of key files
+        #
+        # This is a temporary solution until the i2c comm can be fixed. XBH seems to
+        # crash whenever ~3000 bytes are received from XBD. This limited the number of
+        # algorithms I could test. Because of time constraints, I did not dig too deep
+        # for a better solution and implemented this.
+        ################################################################################
+        import base64
+
+        keydir = "xbdkeys"
+        op = "crypto_kem"
+        algo = build_exec.build.implementation.primitive.name
+        impl = build_exec.build.implementation.name
+        pubkeypath = os.path.join(keydir, op, algo, impl, str(params[0]) + ".pub")
+        seckeypath = os.path.join(keydir, op, algo, impl, str(params[0]) + ".sec")
+        if not os.path.isfile(pubkeypath) or not os.path.isfile(seckeypath):
+            print(pubkeypath, "or", seckeypath, "not found")
+            sys.exit(1) # no better solution for now
+
+        # Load the keys
+        pubkeystr = b''
+        with open(pubkeypath, 'rb') as f:
+            pubkeystr = f.read()
+        seckeystr = b''
+        with open(seckeypath, 'rb') as f:
+            seckeystr = f.read()
+        pubkey = base64.decodestring(pubkeystr)
+        seckey = base64.decodestring(seckeystr)
+        ################################################################################
+        # END of key files
+        ################################################################################
+
+        enc_run = cls(build_exec, mode=CryptoKemRun.ENCAPS)
+        s.add(enc_run)
+        s.flush()  # Need to add and flush to get id
+        enc_run.data_id = enc_run.id
+        enc_run.secret_key_len = macros['_SECRETKEYBYTES']
+        enc_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        pubkeyptr = xbh.upload_static_param(pubkey)
+        enc_data = enc_run._assemble_enc_params(pubkeyptr)
+        
+        retval, enc_output = enc_run._execute(enc_data)
+        enc_run._calculate_power()
+
+        if retval != 0:
+            raise xbxr.XbdResultFailError(
+                "XBD execute returned {}".format(retval))
+
+        # Unpack ciphertext and sessionkey lengths
+        fmt = "!II"
+        clen, klen = struct.unpack_from(fmt, enc_output)
+        _logger.debug("clen={}".format(clen))
+        _logger.debug("klen={}".format(klen))
+
+        # Unpack ciphertext and sessionkey
+        c, k = struct.unpack(
+            "{}s{}s".format(clen, klen),
+            enc_output[struct.calcsize(fmt):]
+        )
+
+        # Retrieved session key!
+
+        dec_run = cls(build_exec, mode=CryptoKemRun.DECAPS)
+        s.add(dec_run)
+        s.flush()  # Need to add and flush to get id
+        dec_run.data_id = enc_run.id
+        dec_run.secret_key_len = macros['_SECRETKEYBYTES']
+        dec_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        seckeyptr = xbh.upload_static_param(seckey)
+        dec_data = dec_run._assemble_dec_params(c, seckeyptr)
+
+        retval, k2 = dec_run._execute(dec_data)
+        dec_run._calculate_power()
+
+        if retval != 0:
+            raise xbxr.XbdResultFailError(
+                "XBD execute returned {}".format(retval))
+
+        if k != k2:
+            raise xbxr.XbdResultFailError(
+                "Decrypted session key does not match encapsulated key")
+
+        # Tamper with the ciphertext
+        c2 = bytearray(c)
+        if len(c2):
+            c2[0] = (c2[0] + 1) % 256
+            c2[-1] = (c2[-1] + 1) % 256
+
+        frg_run = cls(build_exec, mode=CryptoKemRun.FRG)
+        s.add(frg_run)
+        s.flush()  # Need to add and flush to get id
+        frg_run.data_id = enc_run.id
+        frg_run.secret_key_len = macros['_SECRETKEYBYTES']
+        frg_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        seckeyptr = xbh.upload_static_param(seckey)
+        frg_data = frg_run._assemble_dec_params(c2, seckeyptr)
+
+        retval, k3 = frg_run._execute(frg_data)
+        frg_run._calculate_power()
+
+        if retval == 0 and k == k3:
+            kstr = "".join(["{:x}".format(cbyte) for cbyte in k])
+            k3str = "".join(["{:x}".format(cbyte) for cbyte in k3])
+            raise xbxr.XbdResultFailError(
+                "Decrypted session key matches forgery k={} :: k2={}".format(kstr,k3str))
+
+        return enc_run, dec_run, frg_run
+
+
+class CryptoSignRun(xbxr.Run):
+    """Contains data specific to cryptographic signature runs
+
+    Call run() to instantiate and run, do not use constructor
+
+    Attributes of interest:
+        msg_len     Message length
+
+        mode        KEYPAIR, SIGN, OPEN, FRG
+
+        data_id     ID number to identify crypt,decrypt,forge_dec runs as
+                         working with the same data
+    """
+    KEYPAIR="keypair"
+    SIGN="sign"
+    OPEN="open"
+    FRG="frg"
+
+    __tablename__ = "crypto_sign_run"
+
+    id = Column(Integer, nullable=False)
+    data_id = Column(Integer)
+    msg_len = Column(Integer)
+    mode = Column(Enum(KEYPAIR, SIGN, OPEN, FRG))
+    secret_key_len = Column(Integer)
+    public_key_len = Column(Integer)
+
+    __mapper_args__ = {
+        'polymorphic_identity':'crypto_sign_run',
+    }
+
+    __table_args__ = (
+        PrimaryKeyConstraint("id"),
+        ForeignKeyConstraint(["id"], ["run.id"]))
+
+
+    def _gen_keypair_params(self):
+        header = struct.pack(
+            "!I",
+            0            # KEYPAIR
+        )
+        return header
+
+
+    def _assemble_sign_params(self, seckeyptr):
+        header = struct.pack(
+            "!III",
+            1,          # SIGN
+            seckeyptr,
+            self.msg_len
+        )
+        m = os.urandom(self.msg_len)
+        return b''.join((header, m)), m
+
+
+    def _assemble_open_params(self, sm, pubkeyptr):
+        macros = self.build_exec.build.implementation.macros
+
+        smlen = macros['_BYTES']
+        header = struct.pack(
+            "!III",
+            2,            # OPEN
+            pubkeyptr,
+            smlen
+        )
+        return b''.join((header, sm))
+
+
+    @classmethod
+    def run(cls, build_exec, params=None):
+        """Factory method to create and execute run instances.
+
+        Call this instead of constructor
+        """
+        _logger.info("Running benchmark on {} with message length {}".
+                format(build_exec.build.buildid, params[0]))
+
+        xbh = build_exec.run_session.xbh
+        macros = build_exec.build.implementation.macros
+
+        # Set identical pair ids so we know encryption/decryption pairs
+        s = xbxdb.scoped_session()
+
+        #keypair_run = cls(build_exec, msg_len=params[0],
+        #         mode=CryptoSignRun.KEYPAIR)
+        #s.add(keypair_run)
+        #s.flush()  # Need to add and flush to get id
+        #keypair_run.data_id = keypair_run.id
+        #keypair_run.secret_key_run = macros['_SECRETKEYBYTES']
+        #keypair_run.public_key_run = macros['_PUBLICKEYBYTES']
+
+        ## Generate data
+        #keypair_data = keypair_run._gen_keypair_params()
+
+        #retval, keypair_output = keypair_run._execute(keypair_data)
+        #keypair_run._calculate_power()
+
+        #if retval != 0:
+        #    raise xbxr.XbdResultFailError(
+        #        "XBD execute returned {}".format(retval))
+
+        ## Unpack keypair lengths
+        #fmt = "!II"
+        #pubkey_len, seckey_len = struct.unpack_from(fmt, keypair_output)
+
+        ## Unpack keypair
+        #pubkey, seckey = struct.unpack(
+        #    "{}s{}s".format(pubkey_len, seckey_len),
+        #    keypair_output[struct.calcsize(fmt):]
+        #)
+
+        ################################################################################
+        # START of key files
+        #
+        # This is a temporary solution until the i2c comm can be fixed. XBH seems to
+        # crash whenever ~3000 bytes are received from XBD. This limited the number of
+        # algorithms I could test. Because of time constraints, I did not dig too deep
+        # for a better solution and implemented this.
+        ################################################################################
+        import base64
+
+        keydir = "xbdkeys"
+        op = "crypto_sign"
+        algo = build_exec.build.implementation.primitive.name
+        impl = build_exec.build.implementation.name
+        pubkeypath = os.path.join(keydir, op, algo, impl, str(params[1]) + ".pub")
+        seckeypath = os.path.join(keydir, op, algo, impl, str(params[1]) + ".sec")
+        if not os.path.isfile(pubkeypath) or not os.path.isfile(seckeypath):
+            print(pubkeypath, "or", seckeypath, "not found")
+            sys.exit(1) # no better solution for now
+
+        # Load the keys
+        pubkeystr = b''
+        with open(pubkeypath, 'rb') as f:
+            pubkeystr = f.read()
+        seckeystr = b''
+        with open(seckeypath, 'rb') as f:
+            seckeystr = f.read()
+        pubkey = base64.decodestring(pubkeystr)
+        seckey = base64.decodestring(seckeystr)
+        ################################################################################
+        # END of key files
+        ################################################################################
+
+        sign_run = cls(build_exec, msg_len=params[0],
+                mode=CryptoSignRun.SIGN)
+        s.add(sign_run)
+        s.flush()  # Need to add and flush to get id
+        sign_run.data_id = sign_run.id
+        sign_run.secret_key_len = macros['_SECRETKEYBYTES']
+        sign_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        seckeyptr = xbh.upload_static_param(seckey)
+        sign_data, m = sign_run._assemble_sign_params(seckeyptr)
+
+        # Generated message!
+        
+        retval, sm = sign_run._execute(sign_data)
+        sign_run._calculate_power()
+
+        if retval != 0:
+            raise xbxr.XbdResultFailError(
+                "XBD execute returned {}".format(retval))
+
+        # Retrieved signature!
+
+        open_run = cls(build_exec, msg_len=params[0],
+                mode=CryptoSignRun.OPEN)
+        s.add(open_run)
+        s.flush()  # Need to add and flush to get id
+        open_run.data_id = sign_run.id
+        open_run.secret_key_len = macros['_SECRETKEYBYTES']
+        open_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        pubkeyptr = xbh.upload_static_param(pubkey)
+        open_data = open_run._assemble_open_params(sm, pubkeyptr)
+
+        retval, m2 = open_run._execute(open_data)
+        open_run._calculate_power()
+
+        if retval != 0:
+            raise xbxr.XbdResultFailError(
+                "XBD execute returned {}".format(retval))
+
+        if m != m2:
+            raise xbxr.XbdResultFailError(
+                "Returned message does not match signed message")
+
+        # Tamper with the signature (sm format: SIGNATURE+MESSAGE)
+        sm_frg = bytearray(sm)
+        if len(sm_frg):
+            sm_frg[0] = (sm_frg[0] + 1) % 256
+
+        open_forged_run = cls(build_exec, msg_len=params[0],
+                mode=CryptoSignRun.OPEN)
+        s.add(open_forged_run)
+        s.flush()  # Need to add and flush to get id
+        open_forged_run.data_id = sign_run.id
+        open_forged_run.secret_key_len = macros['_SECRETKEYBYTES']
+        open_forged_run.public_key_len = macros['_PUBLICKEYBYTES']
+
+        pubkeyptr = xbh.upload_static_param(pubkey)
+        forged_data = open_forged_run._assemble_open_params(sm_frg, pubkeyptr)
+
+        retval,_ = open_forged_run._execute(forged_data)
+        open_forged_run._calculate_power()
+        
+        if retval == 0:
+            raise xbxr.XbdResultFailError(
+                "Message forgery not detected")
+
+        return sign_run, open_run, open_forged_run
+
+
 class CryptoHashRun(xbxr.Run):
     """Contains data specific to cryptographic hash runs
 
@@ -218,7 +664,6 @@ class CryptoAeadRun(xbxr.Run):
                                                          key)
 
         retval,_ = dec_forged_run._execute(forged_data)
-        #dec_forged_run = _calculate_power()
         dec_forged_run._calculate_power()
         
         if retval != -1 and primitive.name != '0cipher':
@@ -231,5 +676,7 @@ class CryptoAeadRun(xbxr.Run):
 OPERATIONS={
     "crypto_aead": (CryptoAeadRun, xbh.TypeCode.AEAD),
     "crypto_hash": (CryptoHashRun, xbh.TypeCode.HASH),
+    "crypto_kem": (CryptoKemRun, xbh.TypeCode.KEM),
+    "crypto_sign": (CryptoSignRun, xbh.TypeCode.SIGN),
 }
 

@@ -59,6 +59,6 @@ void XBD_serveCommunication()
       transmitBuffer[i]=readByte();
     }
     FRW_msgRecHand(size,transmitBuffer);
-	writeByte('A');	//'ACK' receipt to XBH
+    writeByte('A'); //'ACK' receipt to XBH
   }
 }

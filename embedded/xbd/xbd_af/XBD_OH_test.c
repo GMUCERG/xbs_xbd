@@ -56,6 +56,7 @@ int32_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t *resultBuffer
     *(int32_t*)resultBuffer=HTONL(retval);
 
     if(retval == FAIL_CHECKSUM){
+		XBD_DEBUG("FAIL_CHECKSUM returned\n");
         // Return value + message string + null terminator
         *result_len = NUMBSIZE+strlen(resultBuffer+4)+1;
     }else if (retval == 0){
@@ -65,11 +66,7 @@ int32_t OH_handleChecksumRequest(uint8_t *parameterBuffer, uint8_t *resultBuffer
     }else{
         *result_len = NUMBSIZE;
     }
-
-	
-	#ifdef XBX_DEBUG
 	XBD_DEBUG_BUF("resultBuffer", resultBuffer, NUMBSIZE+CHECKSUM_LEN);
-    #endif
 
 	//prepare 'OK' response to XBH
     return retval;

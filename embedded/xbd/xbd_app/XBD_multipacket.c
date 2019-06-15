@@ -50,8 +50,7 @@ size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void*
     offset+=XBD_COMMAND_LEN;
 
 
-    XBD_DEBUG("SQN:");
-    XBD_DEBUG_32B(state->seqn);
+    XBD_DEBUG("\nSQN:"); XBD_DEBUG_32B(state->seqn);
     *((uint32_t*) ((uint8_t *)dstbuf + offset)) = htonl(state->seqn);
     offset+=SEQNSIZE;
     state->seqn++;

@@ -51,7 +51,6 @@ def init(data_path):
     scoped_session.configure(bind=engine)
 
 
-
 # Enforce foreign keys
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
@@ -61,8 +60,6 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
-
-
 
 
 # From https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/UniqueObject
@@ -84,6 +81,7 @@ def _unique(session, cls, hashfunc, queryfunc, constructor, arg, kw):
                 session.add(obj)
         cache[key] = obj
         return obj
+
 
 def unique_constructor(scoped_session, hashfunc, queryfunc):
     """Prevents duplicate errors in DB
@@ -128,9 +126,6 @@ def unique_constructor(scoped_session, hashfunc, queryfunc):
     return decorate
 
 
-
-
-
 # SQLAlchemy typedecorator recipe
 from sqlalchemy.types import TypeDecorator 
 import json
@@ -156,9 +151,4 @@ class JSONEncodedDict(TypeDecorator):
         if value is not None:
             value = json.loads(value)
         return value
-
-
-
-
-
 

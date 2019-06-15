@@ -34,8 +34,7 @@ LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 
 ## Compile options common for all C compilation units.
 #CFLAGS += -Wall -gdwarf-2 -std=gnu99      -DF_CPU=6000000UL -Os -fsigned-char
-#CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
-#-mfloat-abi=hard  changed to softfp
+#CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 CFLAGS+=-mthumb             \
        -mcpu=cortex-m4     \
        -mfpu=fpv4-sp-d16 -mfloat-abi=softfp \
@@ -50,6 +49,7 @@ CFLAGS+=-mthumb             \
 CFLAGS += -I$(PATH_HAL)/ -I$(PATH_AF) -I$(PATH_HAL)/drivers/
 #CFLAGS += -DTARGET_IS_TM4C123_RA1
 CFLAGS += -Dgcc -DBOOTLOADER
+CFLAGS += -DDEBUG
 CFLAGS += -ggdb3
 #CFLAGS += -flto
 #CFLAGS += -ggdb3 -Og -DDEBUG -DDEBUG_BL -DDEBUG_APP

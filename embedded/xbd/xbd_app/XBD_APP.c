@@ -79,13 +79,13 @@ void XBD_AF_HandleProgramParametersRequest(uint8_t len, uint8_t* data) {
     XBD_loadStringFromConstDataArea(buf, XBDppr);
     retval = XBD_recInitialMultiPacket(&multipkt_state, data, len, buf, true, true);
 
-	#ifdef XBX_DEBUG_APP
+#ifdef XBX_DEBUG_APP
 	XBD_DEBUG("\ntype="); XBD_DEBUG_32B(multipkt_state.type);
 	XBD_DEBUG("\naddr="); XBD_DEBUG_32B(multipkt_state.addr);
 	XBD_DEBUG("\nleng="); XBD_DEBUG_32B(multipkt_state.dataleft);
 	XBD_DEBUG("\ndataptr="); XBD_DEBUG_32B((uint32_t)data);
 	XBD_DEBUG("\ndataptr+offset="); XBD_DEBUG_32B((uint32_t)(data + XBD_COMMAND_LEN + ADDRSIZE + TYPESIZE));
-	#endif
+#endif
 
     if(retval){
         //prepare 'OK' response to XBH
@@ -129,7 +129,7 @@ void XBD_AF_HandleParameterDownloadRequest(uint8_t len, uint8_t* data) {
             return;
         }
     }
-    XBD_DEBUG("Not in parameter download state")
+    XBD_DEBUG("Not in parameter download state");
     XBD_loadStringFromConstDataArea((char *)XBD_response, XBDpdf);
     txDataLen=XBD_COMMAND_LEN;
 }
@@ -169,9 +169,9 @@ void XBD_AF_HandleResultDataRequest(uint8_t len, uint8_t* data) {
         if(0 == multipkt_state.dataleft)
             xbd_state = reportuploaded;
 
-#ifdef XBX_DEBUG_APP
         XBD_DEBUG("\nxbd_genmp_dataleft="); XBD_DEBUG_32B(multipkt_state.dataleft);
 
+#ifdef XBX_DEBUG_APP_VERBOSE
         XBD_DEBUG("\nxbd_result_buffer:");
         for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
             if (0 == ctr % 16)
@@ -194,11 +194,13 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 
 	if( (xbd_state == paramok || xbd_state == executed) )
 	{
-		#ifdef XBX_DEBUG_APP
+#ifdef XBX_DEBUG_APP
 		XBD_DEBUG("Rec'd good EXecute req:");
-		#endif
+#endif
 		
         size_t xbd_parameter_buffer_len = multipkt_state.addr+multipkt_state.datanext;
+		XBD_DEBUG("\nParameter Length: "); XBD_DEBUG_32B(xbd_parameter_buffer_len);
+		XBD_DEBUG_CHAR('\n');
 			
         int32_t ret = OH_handleExecuteRequest(
                 multipkt_state.type,
@@ -208,10 +210,11 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
                 &xbd_stack_use,
                 &result_buffer_len);
 
-		#ifdef XBX_DEBUG_APP
-		XBD_DEBUG("\nOH_handleExecuteRequest ret="); XBD_DEBUG_BYTE(ret);
+#ifdef XBX_DEBUG_APP
+		XBD_DEBUG("OH_handleExecuteRequest ret="); XBD_DEBUG_BYTE(ret);
 		XBD_DEBUG("\nOH_handleExecuteRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
-		#endif
+		XBD_DEBUG_CHAR('\n');
+#endif
 
 		xbd_state = executed;
 
@@ -219,11 +222,13 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 		{
 			//prepare 'OK' response to XBH
 			XBD_loadStringFromConstDataArea(buf, XBDexo);
+			XBD_DEBUG("Prepared 'OK' response\n");
 		}
 		else
 		{
 			//prepare 'FAIL' response to XBH
 			XBD_loadStringFromConstDataArea(buf, XBDexf);
+			XBD_DEBUG("Prepared 'FAIL' response\n");
 		}
 	} 
 	else
@@ -234,11 +239,11 @@ void XBD_AF_HandleEXecuteRequest(uint8_t len, uint8_t* data) {
 		XBD_loadStringFromConstDataArea(buf, XBDexf);
 	}
 
-	#ifdef XBX_DEBUG_APP
+#ifdef XBX_DEBUG_APP
 	XBD_DEBUG_CHAR('\n');
 	XBD_DEBUG(buf);
 	XBD_DEBUG_CHAR('\n');
-	#endif
+#endif
 	txDataLen=XBD_COMMAND_LEN;
 	strcpy((char *) XBD_response, buf);
 	return;
@@ -262,7 +267,9 @@ void XBD_AF_HandleChecksumComputeRequest(uint8_t len, uint8_t* data) {
 #ifdef XBX_DEBUG_APP
     XBD_DEBUG("\nOH_handleCCRequest ret="); XBD_DEBUG_BYTE(ret);
     XBD_DEBUG("\nOH_handleCCRequest stack use="); XBD_DEBUG_32B(xbd_stack_use);
+#endif
 
+#ifdef XBX_DEBUG_APP_VERBOSE
     XBD_DEBUG("\nxbd_result_buffer:");
     for (ctr = 0; ctr < XBD_RESULTLEN; ++ctr) {
         if (0 == ctr % 16)
@@ -319,14 +326,15 @@ void XBD_AF_HandleStackUsageRequest() {
 
 void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 
-        uint8_t dataLen=len-CRC16SIZE;
-        #ifdef XBX_DEBUG_APP
+	uint8_t dataLen=len-CRC16SIZE;
+
+#ifdef XBX_DEBUG_APP
 	//output length of received block
 	XBD_DEBUG("AF Rec'd len=");
 	XBD_DEBUG_BYTE(len);
 	XBD_DEBUG_CHAR('.');
 	XBD_DEBUG_CHAR('\n');
-	#endif
+#endif
 
 	//check crc and disregard block if wrong
 
@@ -379,6 +387,7 @@ void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 	XBD_loadStringFromConstDataArea(buf, XBDexr);
 	if (0 == strncmp(buf, (char*) data, XBD_COMMAND_LEN)) {
 		XBD_AF_HandleEXecuteRequest(dataLen, data);
+		XBD_DEBUG("Finished EXecution\n");
 		return;
 	}
 
@@ -439,9 +448,11 @@ void FRW_msgRecHand(uint8_t len, uint8_t* data) {
 }
 
 uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
-	#ifdef XBX_DEBUG_APP
+	XBD_DEBUG("\nMessage transmit handler\n");
+	XBD_DEBUG("Size: "); XBD_DEBUG_32B(maxlen); XBD_DEBUG_CHAR('\n');
+#ifdef XBX_DEBUG_APP
 		uint16_t ctr;
-	#endif
+#endif
     if (maxlen > XBD_ANSWERLENG_MAX)
         maxlen = XBD_ANSWERLENG_MAX;
 	
@@ -457,7 +468,7 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 			xbd_state = fresh;
 
 
-		#ifdef XBX_DEBUG_APP
+#ifdef XBX_DEBUG_APP_VERBOSE
 		XBD_DEBUG("\nxbd_answer_buffer:");
 		for (ctr = 0; ctr < maxlen; ++ctr) {
 			if (0 == ctr % 16)
@@ -465,14 +476,14 @@ uint8_t FRW_msgTraHand(uint8_t maxlen, uint8_t* data) {
 			XBD_DEBUG_BYTE(xbd_answer_buffer[ctr]);
 		}
 		XBD_DEBUG("\n--------");
-		#endif
+#endif
 		memcpy(data, xbd_answer_buffer, maxlen-CRC16SIZE);
 	}
     else if ( (xbd_state == executed  || xbd_state == checksummed) && 
             (xbd_stack_use & 0x80000000)) {
         xbd_stack_use &= 0x7fffffff;	
 
-#ifdef XBX_DEBUG_APP
+#ifdef XBX_DEBUG_APP_VERBOSE
         XBD_DEBUG("\nxbd_answer_buffer:");
         for (ctr = 0; ctr < maxlen; ++ctr) {
             if (0 == ctr % 16)

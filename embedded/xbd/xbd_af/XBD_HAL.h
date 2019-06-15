@@ -2,10 +2,7 @@
 #define __XBD_HAL_H__
 
 #include <stdint.h>
-
 #include <XBD_DeviceDependent.h>
-
-
 
 #ifdef XBX_LITTLE_ENDIAN
 #ifdef __GNUC__
@@ -25,8 +22,6 @@
 	#define NTOHS(x) (x)
 	#define HTONS(x) (x) 
 #endif
-
-
 
 /** Helper method to fetch a string from const data storage
 * @param dest The destination for the string

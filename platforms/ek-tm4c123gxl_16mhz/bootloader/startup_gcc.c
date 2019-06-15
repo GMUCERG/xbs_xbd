@@ -50,7 +50,7 @@ void ResetISR(void);
 static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
-extern void soft_reset(void);
+extern uint32_t _stack_ptr;
 
 //*****************************************************************************
 //
@@ -76,13 +76,14 @@ __attribute__ ((used,section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
     (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)),
+	//(void (*)(void))(&_stack_ptr),
                                             // The initial stack pointer
     ResetISR,                               // The reset handler
     NmiSR,                                  // The NMI handler
 #ifdef DEBUG                                // If not debug, reset the whole thing
     FaultISR,                               // The hard fault handler
 #else
-    soft_reset,
+    ResetISR,
 #endif
     IntDefaultHandler,                      // The MPU fault handler
     IntDefaultHandler,                      // The bus fault handler
@@ -96,7 +97,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
     IntDefaultHandler,                      // The SysTick handler
-    soft_reset,                             // GPIO Port A
+    0,                             // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
     IntDefaultHandler,                      // GPIO Port C
     IntDefaultHandler,                      // GPIO Port D
