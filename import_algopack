@@ -15,6 +15,13 @@ then
   exit -1
 fi
 
+# Import common stuff
+rsync -aC "$SOURCE/common" algobase
+echo "Imported common files"
+mkdir -p "algobase/include"
+echo '#include "try.h"' > "algobase/include/randombytes.h"
+echo "Created randombytes.h"
+
 function import_op(){
 	if [ ! -d "$SOURCE/crypto_${1}" ]
 	then
