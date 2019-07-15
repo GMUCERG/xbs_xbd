@@ -42,7 +42,7 @@ ENTRY(ResetISR)
 MEMORY
 {
     FLASH (rx) : ORIGIN = 0x00004000, LENGTH = 0x0003d800
-    SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
+    SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00020000
 }
 
 SECTIONS
@@ -56,8 +56,8 @@ SECTIONS
         _etext = .;
     } > FLASH
 /* Needed for 64-bit divide */
+	. = ALIGN(4);
     .ARM.exidx : { 
-        . = ALIGN(4);
         __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
         __exidx_end = .;
@@ -70,8 +70,8 @@ SECTIONS
         _edata = .;
     } > SRAM AT >FLASH 
     _ldata = LOADADDR(.data);
+	. = ALIGN(4);
     .bss : {
-        . = ALIGN(4);
         _bss = .;
         *(.bss*)
         *(COMMON)

@@ -7,10 +7,16 @@
 #define KEM_TYPE CRYPTO_KEM_TYPE
 #define XBD_OPERATION_TYPE CRYPTO_KEM_TYPE
 
-#define MAX_PUBLICKEYBYTES  1824
-#define MAX_SECRETKEYBYTES  3680
+/*
+#define MAX_PUBLICKEYBYTES  4616
+#define MAX_SECRETKEYBYTES  4888
 #define MAX_BYTES             48
-#define MAX_CIPHERTEXTBYTES 2208
+#define MAX_CIPHERTEXTBYTES 4720
+*/
+#define MAX_PUBLICKEYBYTES  14264
+#define MAX_SECRETKEYBYTES  19888
+#define MAX_BYTES              48
+#define MAX_CIPHERTEXTBYTES 14320
 
 // Need to reserve 16 bytes before and after each paramter as a canary
 // (len(p+s+k+c+t)+(number of parameters*2*16))*2
@@ -18,16 +24,6 @@
 #define MAX_TESTBUFFER_BYTES (((MAX_PUBLICKEYBYTES+MAX_SECRETKEYBYTES+MAX_CIPHERTEXTBYTES+(MAX_BYTES*2))+(16*5*2)))
 #else
 #define MAX_TESTBUFFER_BYTES 0
-#endif
-
-/**
- * MAX_TESTBUFFER_BYTES cannot be too large.The board halts when 
- * accessing memory after a certain point... Maybe whatever the
- * page size or cache is?
- */
-#define MAX_WORKING_BUFFER (1<<14)
-#if MAX_TESTBUFFER_BYTES > MAX_WORKING_BUFFER
-#error MAX_TESTBUFFER_BYTES is too large!
 #endif
 
 // Maximum parameter size during runs

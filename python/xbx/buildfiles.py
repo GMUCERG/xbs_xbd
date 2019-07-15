@@ -73,7 +73,7 @@ FLAGS+=-I${XBD_PATH}/xbd_app
 FLAGS+=-I${IMPL_PATH}
 FLAGS+=-I${XBD_PATH}/xbd_op/${OP}
 FLAGS+=-I${ALGOPACK_PATH}/include
-FLAGS+=-I${ALGOPACK_PATH}/../external/libopencm3/include
+#FLAGS+=-I${ALGOPACK_PATH}/../external/libopencm3/include
 FLAGS+=$(foreach dep,${DEP_PATHS}, -I${dep})
 
 FLAGS+=-MD
@@ -82,9 +82,9 @@ FLAGS+=-MD
 FLAGS+=-DNDEBUG
 
 CC+=${FLAGS}
-CC+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
+#CC+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
 CXX+=${FLAGS}
-CXX+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
+#CXX+=-L${ALGOPACK_PATH}/../external/libopencm3/lib
 
 BUILDDIR=build
 

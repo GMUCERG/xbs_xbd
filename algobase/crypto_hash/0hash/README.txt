@@ -1,1 +1,0 @@
-This is an empty hash function used for testing
