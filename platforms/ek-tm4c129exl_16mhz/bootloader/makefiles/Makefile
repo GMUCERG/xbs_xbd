@@ -9,7 +9,8 @@ AXFFILE = $(PROJECT).axf
 TARGET =  $(PROJECT).bin
 
 #GCC_TYPE=eabi
-GCC_TYPE=tiva_c-eabi
+#GCC_TYPE=tiva_c-eabi
+GCC_TYPE=none-eabi
 
 CC = arm-$(GCC_TYPE)-gcc
 LD = arm-$(GCC_TYPE)-gcc
@@ -37,7 +38,7 @@ LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 #CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 CFLAGS+=-mthumb             \
        -mcpu=cortex-m4     \
-       -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
+       -mfpu=fpv4-sp-d16 -mfloat-abi=softfp \
        -Os                 \
        -ffunction-sections \
        -fdata-sections     \
