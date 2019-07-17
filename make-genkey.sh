@@ -4,23 +4,29 @@ KEYDIR=xbdkeys
 BUILDDIR=x86build
 BUILDLIST=(
 	'crypto_kem babybear xbdref'
-	'crypto_kem firesaber xbd'
-	'crypto_kem frodo640aes m4'
-	'crypto_kem frodo640cshake m4'
+#	'crypto_kem firesaber xbd'
+#	'crypto_kem frodo640aes m4'
+#	'crypto_kem frodo640cshake m4'
+	'crypto_kem firesaber m4v2'
+	'crypto_kem frodo640aes m4v2'
+	'crypto_kem frodo640cshake m4v2'
 	'crypto_kem kindi256342 m4'
-	'crypto_kem kyber512 ref'
-	'crypto_kem kyber768 ref'
-	'crypto_kem kyber1024 ref'
-	'crypto_kem lightsaber xbd'
+#	'crypto_kem kyber512 ref'
+#	'crypto_kem kyber768 ref'
+#	'crypto_kem kyber1024 ref'
+	'crypto_kem kyber512 m4v2'
+	'crypto_kem kyber768 m4v2'
+	'crypto_kem kyber1024 m4v2'
+	'crypto_kem lightsaber m4v2'
 	'crypto_kem mamabear xbdref'
 	'crypto_kem newhope512cca ref'
-	'crypto_kem newhope1024cca ref'
-	'crypto_kem ntruhrss701 pqm4ref'
+	'crypto_kem newhope1024cca m4v2'
+	'crypto_kem ntruhrss701 m4v2'
 	'crypto_kem ntrukem443 xbdref'
-	'crypto_kem ntrukem743 pqm4ref'
+	'crypto_kem ntrukem743 m4'
 	'crypto_kem papabear xbdref'
 #	'crypto_kem rlizard102411 m4'
-	'crypto_kem saber m4'
+	'crypto_kem saber m4v2'
 	'crypto_kem sikep503 xbdref'
 	'crypto_kem sikep751 pqm4ref'
 	'crypto_kem sntrup4591761 m4'
@@ -130,6 +136,12 @@ do_main() {
 			implref="pqm4ref"
 		elif [ "$implref" == "xbd" ]; then
 			implref="xbdref"
+		elif [ "$implref" == "m4v2" ]; then
+			if [ -d "algobase/$op/$algo/pqm4v2ref" ]; then
+				implref="pqm4v2ref"
+			elif [ -d "algobase/$op/$algo/pqm4v2opt" ]; then
+				implref="pqm4v2opt"
+			fi
 		fi
 
 		if [[ -z "$op" || -z "$algo" || -z "$impl" ]]; then
