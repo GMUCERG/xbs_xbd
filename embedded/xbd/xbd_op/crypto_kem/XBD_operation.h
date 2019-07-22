@@ -13,10 +13,23 @@
 #define MAX_BYTES             48
 #define MAX_CIPHERTEXTBYTES 4720
 */
+
+
+//for 129EXL
 #define MAX_PUBLICKEYBYTES  14264
 #define MAX_SECRETKEYBYTES  19888
 #define MAX_BYTES              48
 #define MAX_CIPHERTEXTBYTES 14320
+
+
+/*
+//test
+#define MAX_PUBLICKEYBYTES   6000
+#define MAX_SECRETKEYBYTES   6000
+#define MAX_BYTES              48
+#define MAX_CIPHERTEXTBYTES  6000
+*/
+
 
 // Need to reserve 16 bytes before and after each paramter as a canary
 // (len(p+s+k+c+t)+(number of parameters*2*16))*2

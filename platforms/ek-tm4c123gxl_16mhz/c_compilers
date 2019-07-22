@@ -9,8 +9,8 @@ linkOpts='-Wl,-T,XBD_AF.ld,-gc-sections -fuse-linker-plugin'
 #debugOpts=''
 #debugOpts='-ggdb3'
 #debugOpts='-DDEBUG -ggdb3'
-#debugOpts='-DDEBUG -DXBX_DEBUG_APP -ggdb3'
-debugOpts='-DDEBUG -DXBX_DEBUG_APP -DXBX_DEBUG_APP_VERBOSE -ggdb3'
+debugOpts='-DDEBUG -DXBX_DEBUG_APP -ggdb3'
+#debugOpts='-DDEBUG -DXBX_DEBUG_APP -DXBX_DEBUG_APP_VERBOSE -ggdb3'
 
 cat <<EOF
 arm-none-eabi-gcc $mcuOpts $gccOpts $linkOpts -O0 $sizeOpts $debugOpts 

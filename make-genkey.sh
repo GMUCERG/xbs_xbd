@@ -21,6 +21,7 @@ BUILDLIST=(
 	'crypto_kem mamabear xbdref'
 	'crypto_kem newhope512cca ref'
 	'crypto_kem newhope1024cca m4v2'
+	'crypto_kem newhope1024cpa m4v2'
 	'crypto_kem ntruhrss701 m4v2'
 	'crypto_kem ntrukem443 xbdref'
 #	'crypto_kem ntruhps2048509 ref'
