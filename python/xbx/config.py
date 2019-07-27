@@ -360,6 +360,9 @@ class Config(Base):
 
     xbh_addr              = Column(String)
     xbh_port              = Column(Integer)
+    
+    xbp_gain              = Column(Integer)
+    xbp_shunt             = Column(Integer)
 
     platform_hash         = Column(String)
     operation_name        = Column(String)
@@ -423,7 +426,10 @@ class Config(Base):
         self.xbh_addr = config.get('xbh', 'address')
         self.xbh_port = config.get('xbh', 'port')
 
-
+        # XBP
+        self.xbp_gain = config.get('xbp', 'gain' )
+        self.xbp_shunt = config.get('xbp', 'shunt' )
+        
         # Platform
         self.platform = Platform.from_path(config.get('hardware','platform'),
                                            self.platforms_path)

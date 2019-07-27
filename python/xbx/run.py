@@ -287,7 +287,7 @@ class BuildExec(Base):
         del self.runs[:] # Delete existing runs for this build
         config = self.run_session.config
         # SET GAIN to value from config.ini
-        self.xbh.set_power_gain(200)
+        self.xbh.set_power_gain(self.run_session.config.xbp_gain)
         
         # Make sure num_start_tests is the bigger half of config.checksum_tests//2
         num_end_tests = config.checksum_tests//2
