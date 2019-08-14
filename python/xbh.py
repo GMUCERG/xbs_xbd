@@ -352,6 +352,10 @@ class Xbh:
         # _logger.debug("Receive {} {} {} {} {}".format(
         #         power, current, voltage, avgpwr, maxpwr))
 
+        # has to use values from config.ini!!!
+        gain = self.run_session.config.xbp_gain
+        _logger.debug("Gain was set to {}".format(gain))
+
         avgpwr, maxpwr, cnt_overflow = struct.unpack("!III", msg)
         _logger.debug("Receive {} {} {}".format(
                 avgpwr, maxpwr, cnt_overflow))
