@@ -353,21 +353,21 @@ class Xbh:
         #         power, current, voltage, avgpwr, maxpwr))
 
         # has to use values from config.ini!!!
-        gain = self.run_session.config.xbp_gain
-        _logger.debug("Gain was set to {}".format(gain))
 
         avgpwr, maxpwr, cnt_overflow = struct.unpack("!III", msg)
         _logger.debug("Receive {} {} {}".format(
                 avgpwr, maxpwr, cnt_overflow))
-        #volatge is currently stored in avgpwr
-        avgpwr=float((avgpwr*3.3)/(4096*200))
-        #power = V*I
-        avgpwr=float(avgpwr*3.3)
-        maxpwr=float((maxpwr*3.3)/(4096*200))
-        maxpwr=float( maxpwr*3.3)
+        # might have to move computation to run.py if I can't get config.ini values here
         
-        #for now assuming cnt_overflow as total_energy
-       # cnt_overflow=float(avg_power/measured_time)
+        ##volatge is currently stored in avgpwr
+        #avgpwr=float((avgpwr*3.3)/(4096*200))
+        ##power = V*I
+        #avgpwr=float(avgpwr*3.3)
+        #maxpwr=float((maxpwr*3.3)/(4096*200))
+        #maxpwr=float( maxpwr*3.3)
+        
+        ##for now assuming cnt_overflow as total_energy
+        ## cnt_overflow=float(avg_power/measured_time)
         
         return avgpwr, maxpwr, cnt_overflow
 

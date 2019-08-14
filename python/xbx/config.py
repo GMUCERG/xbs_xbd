@@ -362,7 +362,8 @@ class Config(Base):
     xbh_port              = Column(Integer)
     
     xbp_gain              = Column(Integer)
-    xbp_shunt             = Column(Integer)
+    xbp_shunt             = Column(Real)
+    xbp_volt              = Column(Real)
 
     platform_hash         = Column(String)
     operation_name        = Column(String)

@@ -142,6 +142,10 @@ class Run(Base):
         # Shunt resistor value must be in config.ini
         # XBP gain must be in config.ini
         # values must go into database
+        gain=self.run_session.config.xbp_gain
+        shunt=self.run_session.config.xbp_shunt
+        volt=self.run_session.config.xbp_volt
+        _logger.info("Gain {}, Shunt {}, Voltage {}".format(gain, shunt, volt))
 
     def _execute(self, packed_params=None):
         """Executes and returns results
