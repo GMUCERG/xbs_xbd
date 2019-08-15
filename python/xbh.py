@@ -365,6 +365,7 @@ class Xbh:
         #avgpwr=float(avgpwr*3.3)
         #maxpwr=float((maxpwr*3.3)/(4096*200))
         #maxpwr=float( maxpwr*3.3)
+        #gain=config.xbp_gain
         
         ##for now assuming cnt_overflow as total_energy
         ## cnt_overflow=float(avg_power/measured_time)

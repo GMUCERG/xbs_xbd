@@ -7,20 +7,20 @@
 #define KEM_TYPE CRYPTO_KEM_TYPE
 #define XBD_OPERATION_TYPE CRYPTO_KEM_TYPE
 
-/*
+
 #define MAX_PUBLICKEYBYTES  4616
 #define MAX_SECRETKEYBYTES  4888
 #define MAX_BYTES             48
 #define MAX_CIPHERTEXTBYTES 4720
-*/
 
 
-//for 129EXL
+
+/*//for 129EXL
 #define MAX_PUBLICKEYBYTES  14264
 #define MAX_SECRETKEYBYTES  19888
 #define MAX_BYTES              48
 #define MAX_CIPHERTEXTBYTES 14320
-
+*/
 
 /*
 //test

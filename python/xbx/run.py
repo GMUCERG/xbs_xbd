@@ -142,10 +142,21 @@ class Run(Base):
         # Shunt resistor value must be in config.ini
         # XBP gain must be in config.ini
         # values must go into database
-        gain=self.run_session.config.xbp_gain
-        shunt=self.run_session.config.xbp_shunt
-        volt=self.run_session.config.xbp_volt
+        gain=self.build_exec.run_session.config.xbp_gain
+        shunt=self.build_exec.run_session.config.xbp_shunt
+        volt=self.build_exec.run_session.config.xbp_volt
         _logger.info("Gain {}, Shunt {}, Voltage {}".format(gain, shunt, volt))
+
+        # pwr values are ADC values of amplified voltage drop over shunt resistor
+        # voltage at 12-bit adc input = (adc*3.3)/4096
+        # shunt voltage = voltage/gain
+        # current = shunt voltage/shunt resistance
+        # power = current * supply voltage
+        avgpwr=float((avgpwr*3.3*volt)/(4096*gain*shunt))
+        maxpwr=float((maxpwr*3.3*volt)/(4096*gain*shunt))
+
+        _logger.info("Avegrage Power {}, Max Power {}".format(avgpwr, maxpwr))
+
 
     def _execute(self, packed_params=None):
         """Executes and returns results
@@ -166,7 +177,21 @@ class Run(Base):
 
         self.measured_cycles = xbh.get_measured_cycles(timings)
         self.time = xbh.get_measured_time(timings)
-        self.avg_power, self.max_power, self.cnt_overflow = xbh.get_power()
+
+        avgpwr, maxpwr, self.cnt_overflow = xbh.get_power()
+        gain=self.build_exec.run_session.config.xbp_gain
+        shunt=self.build_exec.run_session.config.xbp_shunt
+        volt=self.build_exec.run_session.config.xbp_volt
+        _logger.debug("Gain {}, Shunt {}, Voltage {}".format(gain, shunt, volt))
+        # pwr values are ADC values of amplified voltage drop over shunt resistor
+        # voltage at 12-bit adc input = (adc*3.3)/4096
+        # shunt voltage = voltage/gain
+        # current = shunt voltage/shunt resistance
+        # power = current * supply voltage
+        self.avg_power=float((avgpwr*3.3*volt)/(4096*gain*shunt))
+        self.max_power=float((maxpwr*3.3*volt)/(4096*gain*shunt))
+        _logger.debug("Avegrage Power {}, Max Power {}".format(avgpwr, maxpwr))
+
         self.total_energy = float((self.avg_power*self.measured_cycles)/120000000)
         return results
 

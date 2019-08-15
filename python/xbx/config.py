@@ -362,8 +362,8 @@ class Config(Base):
     xbh_port              = Column(Integer)
     
     xbp_gain              = Column(Integer)
-    xbp_shunt             = Column(Real)
-    xbp_volt              = Column(Real)
+    xbp_shunt             = Column(Integer)
+    xbp_volt              = Column(Integer)
 
     platform_hash         = Column(String)
     operation_name        = Column(String)
@@ -430,6 +430,7 @@ class Config(Base):
         # XBP
         self.xbp_gain = config.get('xbp', 'gain' )
         self.xbp_shunt = config.get('xbp', 'shunt' )
+        self.xbp_volt = config.get('xbp', 'volt' )
         
         # Platform
         self.platform = Platform.from_path(config.get('hardware','platform'),
