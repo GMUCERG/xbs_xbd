@@ -78,7 +78,7 @@ class Run(Base):
 
         avg_power           Average power
 
-        median_power        Median power
+        cnt_overflow        Counter used for average calc has overflowed
 
         total_energy        Total energy
 
@@ -99,7 +99,7 @@ class Run(Base):
     min_power       = Column(Integer)
     max_power       = Column(Integer)
     avg_power       = Column(Integer)
-    median_power    = Column(Integer)
+    cnt_overflow    = Column(Integer)
     total_energy    = Column(Integer)
 
     power_samples   = relationship("PowerSample", backref="run")
@@ -177,8 +177,11 @@ class Run(Base):
 
         self.measured_cycles = xbh.get_measured_cycles(timings)
         self.time = xbh.get_measured_time(timings)
+        _logger.debug("Measured time {}, measured cycles {}".format(self.time, self.measured_cycles))
 
         avgpwr, maxpwr, self.cnt_overflow = xbh.get_power()
+        if self.cnt_overflow != 0:
+            _logger.error("Average value incorrect due to counter overflow!")
         gain=self.build_exec.run_session.config.xbp_gain
         shunt=self.build_exec.run_session.config.xbp_shunt
         volt=self.build_exec.run_session.config.xbp_volt
@@ -190,7 +193,7 @@ class Run(Base):
         # power = current * supply voltage
         self.avg_power=float((avgpwr*3.3*volt)/(4096*gain*shunt))
         self.max_power=float((maxpwr*3.3*volt)/(4096*gain*shunt))
-        _logger.debug("Avegrage Power {}, Max Power {}".format(avgpwr, maxpwr))
+        _logger.debug("Average Power {}, Max Power {}".format(avgpwr, maxpwr))
 
         self.total_energy = float((self.avg_power*self.measured_cycles)/120000000)
         return results

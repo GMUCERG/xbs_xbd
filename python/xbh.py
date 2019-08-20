@@ -359,16 +359,6 @@ class Xbh:
                 avgpwr, maxpwr, cnt_overflow))
         # might have to move computation to run.py if I can't get config.ini values here
         
-        ##volatge is currently stored in avgpwr
-        #avgpwr=float((avgpwr*3.3)/(4096*200))
-        ##power = V*I
-        #avgpwr=float(avgpwr*3.3)
-        #maxpwr=float((maxpwr*3.3)/(4096*200))
-        #maxpwr=float( maxpwr*3.3)
-        #gain=config.xbp_gain
-        
-        ##for now assuming cnt_overflow as total_energy
-        ## cnt_overflow=float(avg_power/measured_time)
         
         return avgpwr, maxpwr, cnt_overflow
 
@@ -446,6 +436,7 @@ class Xbh:
         """Gets measured time in nanoseconds"""
         seconds, fractions, frac_per_sec = timings
         measured_time = int(round(10**9*(seconds + fractions/frac_per_sec)+0.5))
+        _logger.debug("Measured time {}".format(measured_time))
         return measured_time
 
     def get_measured_cycles(self, timings):
